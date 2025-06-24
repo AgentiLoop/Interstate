@@ -14,15 +14,13 @@ extension GameViewController {
     // MARK: - Road System Setup
     
     func setupRoads() {
-        // Store route data but DON'T create all roads - use dynamic loading!
-        print("Setting up ultra-lightweight dynamic road loading system...")
+        print("🚀 Setting up memory-managed road system...")
         
-        // Store ONLY GPS data for dynamic loading - don't pre-calculate anything!
-        routeGPSData = interstateRoutes
-        print("📍 Stored GPS data for \(routeGPSData.count) routes")
+        // Setup memory-managed route loading instead of loading all routes
+        setupMemoryManagedRouteSystem()
         
-        // Debug: Print all unique highway names to check for duplicates
-        print("🛣️ All available highways:")
+        // Debug: Print all available highways from the master list
+        print("🛣️ Master highway list:")
         let sortedHighways = Array(interstateRoutes.keys).sorted()
         for highway in sortedHighways {
             if let coords = interstateRoutes[highway] {
@@ -36,32 +34,38 @@ extension GameViewController {
             print("⚠️ WARNING: Duplicate highway names detected!")
         }
         
-        // Don't pre-calculate smooth points - calculate on demand only!
-        // This saves massive amounts of memory at startup
-        
-        // Initialize tracking FIRST
-        for routeName in routeGPSData.keys {
-            loadedRoadNodes[routeName] = []
-            loadedRouteSegments[routeName] = Set<Int>()
-        }
-        
-        // Add checkpoint gates at cities AFTER route data is available
+        // Add checkpoint gates at cities
         setupCheckpointGates()
         
-        // Don't find all intersection zones - calculate on demand
-        // findAllIntersectionZones()
+        print("✅ Memory-managed road system ready!")
         
-        print("✅ Ultra-lightweight dynamic road system ready!")
-        print("📍 \(routeGPSData.count) routes prepared for on-demand loading")
-        print("💾 Memory-efficient: Everything calculated on-demand only")
-        
-        // FORCE INITIAL ROAD LOADING - Create roads immediately at startup
+        // Force initial road loading
         print("🚀 Force loading initial roads...")
-        let playerStartPos = gpsToSceneKit(latitude: lastSavedPosition.0, longitude: lastSavedPosition.1)
-        let startPosition = SCNVector3(playerStartPos.x, 0, playerStartPos.z)
         
-        // Force update roads immediately
+        // FORCED UPDATE: Bypass all thresholds for initial loading
+        lastRoadUpdatePosition = SCNVector3(-99999, -99999, -99999) // Force update
         updateDynamicRoads()
+        
+        // Also try to manually trigger road generation for any loaded routes
+        print("🔍 Attempting to generate roads for loaded routes...")
+        let currentlyLoaded = Array(loadedRouteData)
+        print("📋 Currently loaded routes: \(currentlyLoaded.joined(separator: ", "))")
+        
+        if !currentlyLoaded.isEmpty {
+            for routeName in currentlyLoaded {
+                if let gpsCoordinates = getRouteData(routeName: routeName) {
+                    let smoothPoints = generateSmoothRoadPoints(from: gpsCoordinates)
+                    routeSmoothPoints[routeName] = smoothPoints
+                    allRoadPoints[routeName] = smoothPoints
+                    print("🛣️ Pre-generated smooth points for \(routeName) (\(smoothPoints.count) points)")
+                }
+            }
+            
+            // Force another road update now that we have smooth points
+            updateDynamicRoads()
+        } else {
+            print("⚠️ No routes loaded yet during initial setup")
+        }
         
         print("🚀 Initial road loading completed")
     }
@@ -69,42 +73,132 @@ extension GameViewController {
     // MARK: - Dynamic Road Loading
     
     func updateDynamicRoads() {
+        // URGENT DEBUG: This should appear every frame
+        NSLog("🚨 DEBUG: updateDynamicRoads ENTRY")
+        print("🚨 URGENT DEBUG: updateDynamicRoads function called!")
+        
         autoreleasepool {
             let playerPosition = carNode.position
+            NSLog("🚨 DEBUG: Got player position: %f, %f", playerPosition.x, playerPosition.z)
+            
+            print("🔄 updateDynamicRoads called at position (\(Int(playerPosition.x)), \(Int(playerPosition.z)))")
+            
+            // Memory management happens automatically in background thread
             
             // Only update if player moved significantly
             let distanceMoved = sqrt(pow(playerPosition.x - lastRoadUpdatePosition.x, 2) + 
                                    pow(playerPosition.z - lastRoadUpdatePosition.z, 2))
             
             if distanceMoved < CGFloat(roadUpdateThreshold) {
+                print("📍 Player hasn't moved enough (\(Int(distanceMoved))m < \(roadUpdateThreshold)m), skipping road update")
                 return
             }
             
             lastRoadUpdatePosition = playerPosition
             
-            // Check only nearby routes to save processing
-            let nearbyRoutes = findNearbyRoutes(playerPosition: playerPosition)
+            // Check only loaded routes to save processing
+            let nearbyRoutes = findLoadedNearbyRoutes(playerPosition: playerPosition)
+            
+            if nearbyRoutes.isEmpty {
+                print("❌ No nearby routes found to render!")
+                return
+            }
             
             for routeName in nearbyRoutes {
                 autoreleasepool {
-                    // Calculate smooth points on-demand only for nearby routes
+                    // Calculate smooth points on-demand only for loaded routes
                     if routeSmoothPoints[routeName] == nil {
-                        if let gpsCoordinates = routeGPSData[routeName] {
+                        if let gpsCoordinates = getRouteData(routeName: routeName) {
                             let smoothPoints = generateSmoothRoadPoints(from: gpsCoordinates)
                             routeSmoothPoints[routeName] = smoothPoints
                             allRoadPoints[routeName] = smoothPoints // For compatibility
-                            print("📍 Generated smooth points for \(routeName) on-demand")
+                            print("📍 Generated smooth points for \(routeName) on-demand (\(smoothPoints.count) points)")
+                            
+                            // Memory tracking handled by the new system automatically
+                        } else {
+                            print("❌ Could not get GPS coordinates for \(routeName)")
                         }
                     }
                     
                     if let smoothPoints = routeSmoothPoints[routeName] {
+                        print("🛣️ Processing road segments for \(routeName) (\(smoothPoints.count) smooth points)")
                         updateRouteSegments(routeName: routeName, smoothPoints: smoothPoints, playerPosition: playerPosition)
+                    } else {
+                        print("❌ No smooth points available for \(routeName)")
                     }
                 }
             }
             
             // Update edge lines for loaded segments only
             updateVisibleEdgeLines()
+            
+            print("✅ Road update completed for \(nearbyRoutes.count) routes")
+        }
+    }
+    
+    func loadRoadSegmentsInBackground(routeName: String, smoothPoints: [(Float, Float)], segmentsToLoad: Set<Int>) {
+        print("🚧 Loading \(segmentsToLoad.count) road segments for \(routeName) in background")
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            
+            var roadNodesToAdd: [SCNNode] = []
+            
+            autoreleasepool {
+                for segmentIndex in segmentsToLoad {
+                    if segmentIndex < smoothPoints.count - 1 {
+                        let start = smoothPoints[segmentIndex]
+                        let end = smoothPoints[segmentIndex + 1]
+                        
+                        // Create road node in background
+                        let roadNode = self.createRoadSegmentNode(
+                            from: SCNVector3(start.0, 0, start.1),
+                            to: SCNVector3(end.0, 0, end.1),
+                            routeName: routeName,
+                            segmentIndex: segmentIndex
+                        )
+                        
+                        roadNodesToAdd.append(roadNode)
+                    }
+                }
+            }
+            
+            print("🎨 Created \(roadNodesToAdd.count) road nodes for \(routeName), adding to scene...")
+            
+            // Add nodes to scene on main thread
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                
+                var addedCount = 0
+                for roadNode in roadNodesToAdd {
+                    // Check if segment still doesn't exist
+                    if let nodeName = roadNode.name,
+                       self.scene.rootNode.childNode(withName: nodeName, recursively: true) == nil {
+                        
+                        self.scene.rootNode.addChildNode(roadNode)
+                        
+                        // Initialize arrays if needed
+                        if self.loadedRoadNodes[routeName] == nil {
+                            self.loadedRoadNodes[routeName] = []
+                        }
+                        self.loadedRoadNodes[routeName]?.append(roadNode)
+                        
+                        // Extract segment index from node name
+                        let components = nodeName.components(separatedBy: "_")
+                        if components.count >= 2, let segmentIndex = Int(components[1]) {
+                            if self.loadedRouteSegments[routeName] == nil {
+                                self.loadedRouteSegments[routeName] = Set<Int>()
+                            }
+                            self.loadedRouteSegments[routeName]?.insert(segmentIndex)
+                        }
+                        
+                        addedCount += 1
+                    }
+                }
+                
+                print("✅ Added \(addedCount) road segments to scene for \(routeName)")
+                print("🎯 Total scene children: \(self.scene.rootNode.childNodes.count)")
+            }
         }
     }
     
@@ -133,40 +227,14 @@ extension GameViewController {
                 // REMOVED: Don't unload segments - keep roads visible
             }
             
-            // Load new segments
-            for segmentIndex in segmentsToLoad {
-                autoreleasepool {
-                    if segmentIndex < smoothPoints.count - 1 {
-                        let start = smoothPoints[segmentIndex]
-                        let end = smoothPoints[segmentIndex + 1]
-                        
-                        // Check if this segment already exists to prevent duplicates
-                        let segmentName = "\(routeName)_\(segmentIndex)_container"
-                        if scene.rootNode.childNode(withName: segmentName, recursively: true) == nil {
-                            let roadNode = createRoadSegmentNode(
-                                from: SCNVector3(start.0, 0, start.1),
-                                to: SCNVector3(end.0, 0, end.1),
-                                routeName: routeName,
-                                segmentIndex: segmentIndex
-                            )
-                            
-                            scene.rootNode.addChildNode(roadNode)
-                            loadedRoadNodes[routeName]?.append(roadNode)
-                            loadedSegments.insert(segmentIndex)
-                        } else {
-                            print("⚠️ Skipping duplicate segment: \(segmentName)")
-                            loadedSegments.insert(segmentIndex) // Still mark as loaded
-                        }
-                    }
-                }
-            }
+                         // Load new segments in background to prevent game pauses
+             if !segmentsToLoad.isEmpty {
+                 loadRoadSegmentsInBackground(routeName: routeName, smoothPoints: smoothPoints, segmentsToLoad: segmentsToLoad)
+             }
             
             loadedRouteSegments[routeName] = loadedSegments
             
-            // Debug info (remove in production)
-            if !segmentsToLoad.isEmpty || !segmentsToUnload.isEmpty {
-                print("🛣️ \(routeName): +\(segmentsToLoad.count) -\(segmentsToUnload.count) segments (total: \(loadedSegments.count))")
-            }
+            // Silent road loading - removed debug spam
         }
     }
     
@@ -419,21 +487,28 @@ extension GameViewController {
         }
     }
     
-    func findNearbyRoutes(playerPosition: SCNVector3) -> [String] {
+    func findLoadedNearbyRoutes(playerPosition: SCNVector3) -> [String] {
         var nearbyRoutes: [String] = []
-        let maxRouteCheckDistance: Float = 10000.0 // Increased to 10km to ensure we find routes
+        let maxRouteCheckDistance: Float = 5000.0 // 5km range for road rendering
         
-        print("🔍 Finding nearby routes from position: \(playerPosition)")
-        print("🔍 Checking \(routeGPSData.count) total routes")
+        // Debug: Print what routes are loaded
+        let loadedRoutes = Array(loadedRouteData)
+        if !loadedRoutes.isEmpty {
+            print("🔍 Checking \(loadedRoutes.count) loaded routes: \(loadedRoutes.joined(separator: ", "))")
+        }
         
-        for (routeName, gpsCoordinates) in routeGPSData {
+        // Only check routes that are currently loaded in memory
+        for routeName in loadedRouteData {
+            guard let gpsCoordinates = getRouteData(routeName: routeName) else {
+                print("❌ Could not get route data for \(routeName)")
+                continue
+            }
+            
             // Quick check: is any point in this route near the player?
-            var isNearby = false
             var minDistance: Float = Float.infinity
             
-            // Check every GPS point for debugging (was every 5th)
-            for i in 0..<gpsCoordinates.count {
-                let (lat, lon) = gpsCoordinates[i]
+            // Check every GPS point to be more thorough
+            for (lat, lon) in gpsCoordinates {
                 let routePoint = gpsToSceneKit(latitude: lat, longitude: lon)
                 let distance = sqrt(pow(playerPosition.x - routePoint.x, 2) + 
                                   pow(playerPosition.z - routePoint.z, 2))
@@ -441,22 +516,19 @@ extension GameViewController {
                 if Float(distance) < minDistance {
                     minDistance = Float(distance)
                 }
-                
-                if Float(distance) <= maxRouteCheckDistance {
-                    isNearby = true
-                    break
-                }
             }
             
-            if isNearby {
+            print("🛣️ Route \(routeName): closest point \(Int(minDistance))m from player")
+            
+            if minDistance <= maxRouteCheckDistance {
                 nearbyRoutes.append(routeName)
-                print("✅ Found nearby route: \(routeName) (closest point: \(Int(minDistance))m)")
+                print("✅ \(routeName) added to nearby routes")
             } else {
-                print("❌ Route \(routeName) too far (closest: \(Int(minDistance))m)")
+                print("❌ \(routeName) too far (\(Int(minDistance))m > \(Int(maxRouteCheckDistance))m)")
             }
         }
         
-        print("🔍 Found \(nearbyRoutes.count) nearby routes: \(nearbyRoutes)")
+        print("🎯 Found \(nearbyRoutes.count) nearby routes: \(nearbyRoutes.joined(separator: ", "))")
         return nearbyRoutes
     }
     

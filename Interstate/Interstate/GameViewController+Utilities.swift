@@ -12,6 +12,34 @@ extension GameViewController {
     
     // MARK: - GPS Conversion
     
+    func convertSceneToGPS(_ scenePosition: SCNVector3) -> (lat: Double, lon: Double) {
+        // Convert from SceneKit coordinates back to GPS
+        let metersEast = Double(scenePosition.x) / sceneScale
+        let metersNorth = Double(-scenePosition.z) / sceneScale // Negative because +Z is south
+        
+        let deltaLat = metersNorth / latitudeScale
+        let deltaLon = metersEast / longitudeScale
+        
+        let latitude = centerLatitude + deltaLat
+        let longitude = centerLongitude + deltaLon
+        
+        return (lat: latitude, lon: longitude)
+    }
+    
+    func haversineDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) -> Double {
+        let R = 6371000.0 // Earth radius in meters
+        let dLat = (lat2 - lat1) * .pi / 180
+        let dLon = (lon2 - lon1) * .pi / 180
+        let lat1Rad = lat1 * .pi / 180
+        let lat2Rad = lat2 * .pi / 180
+        
+        let a = sin(dLat/2) * sin(dLat/2) +
+                cos(lat1Rad) * cos(lat2Rad) * sin(dLon/2) * sin(dLon/2)
+        let c = 2 * atan2(sqrt(a), sqrt(1-a))
+        
+        return R * c
+    }
+    
     func gpsToSceneKit(latitude: Double, longitude: Double) -> SCNVector3 {
         // Convert GPS coordinates to meters from center
         let deltaLat = latitude - centerLatitude

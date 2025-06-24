@@ -138,7 +138,7 @@ class GameViewController: NSViewController {
     let roadLoadDistance: Float = 1500.0 // Load roads within 1.5km of player  
     let roadUnloadDistance: Float = 3000.0 // Unload roads beyond 3km
     var lastRoadUpdatePosition: SCNVector3 = SCNVector3(0, 0, 0)
-    let roadUpdateThreshold: Float = 300.0 // Only update when player moves 300m
+    var roadUpdateThreshold: Float = 300.0 // Only update when player moves 300m
     
     // Store route data efficiently - don't generate all roads at startup
     var routeGPSData: [String: [(Double, Double)]] = [:]
@@ -155,6 +155,12 @@ class GameViewController: NSViewController {
     
     var lastMemoryCleanup: Date = Date()
     let memoryCleanupInterval: TimeInterval = 30.0 // Clean every 30 seconds (much less aggressive)
+    
+    // MARK: - Active Routes Tracking (for the new memory system)
+    
+    // Track currently active routes (being driven on)
+    var activeRoutes: Set<String> = Set()
+    var lastActiveRouteCheck: Date = Date()
     
     // MARK: - View Lifecycle
     
