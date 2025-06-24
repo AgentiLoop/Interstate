@@ -1,0 +1,558 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		EA856C812E04E30E00A08E0B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EA856C652E04E30D00A08E0B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA856C6C2E04E30D00A08E0B;
+			remoteInfo = Interstate;
+		};
+		EA856C8B2E04E30E00A08E0B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EA856C652E04E30D00A08E0B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA856C6C2E04E30D00A08E0B;
+			remoteInfo = Interstate;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		EA856C6D2E04E30D00A08E0B /* Interstate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Interstate.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA856C802E04E30E00A08E0B /* InterstateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InterstateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA856C8A2E04E30E00A08E0B /* InterstateUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InterstateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		EA856C6F2E04E30D00A08E0B /* Interstate */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Interstate;
+			sourceTree = "<group>";
+		};
+		EA856C832E04E30E00A08E0B /* InterstateTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = InterstateTests;
+			sourceTree = "<group>";
+		};
+		EA856C8D2E04E30E00A08E0B /* InterstateUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = InterstateUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		EA856C6A2E04E30D00A08E0B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA856C7D2E04E30E00A08E0B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA856C872E04E30E00A08E0B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		EA856C642E04E30D00A08E0B = {
+			isa = PBXGroup;
+			children = (
+				EA856C6F2E04E30D00A08E0B /* Interstate */,
+				EA856C832E04E30E00A08E0B /* InterstateTests */,
+				EA856C8D2E04E30E00A08E0B /* InterstateUITests */,
+				EA856C6E2E04E30D00A08E0B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EA856C6E2E04E30D00A08E0B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EA856C6D2E04E30D00A08E0B /* Interstate.app */,
+				EA856C802E04E30E00A08E0B /* InterstateTests.xctest */,
+				EA856C8A2E04E30E00A08E0B /* InterstateUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EA856C6C2E04E30D00A08E0B /* Interstate */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA856C942E04E30E00A08E0B /* Build configuration list for PBXNativeTarget "Interstate" */;
+			buildPhases = (
+				EA856C692E04E30D00A08E0B /* Sources */,
+				EA856C6A2E04E30D00A08E0B /* Frameworks */,
+				EA856C6B2E04E30D00A08E0B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EA856C6F2E04E30D00A08E0B /* Interstate */,
+			);
+			name = Interstate;
+			packageProductDependencies = (
+			);
+			productName = Interstate;
+			productReference = EA856C6D2E04E30D00A08E0B /* Interstate.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA856C7F2E04E30E00A08E0B /* InterstateTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA856C972E04E30E00A08E0B /* Build configuration list for PBXNativeTarget "InterstateTests" */;
+			buildPhases = (
+				EA856C7C2E04E30E00A08E0B /* Sources */,
+				EA856C7D2E04E30E00A08E0B /* Frameworks */,
+				EA856C7E2E04E30E00A08E0B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA856C822E04E30E00A08E0B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EA856C832E04E30E00A08E0B /* InterstateTests */,
+			);
+			name = InterstateTests;
+			packageProductDependencies = (
+			);
+			productName = InterstateTests;
+			productReference = EA856C802E04E30E00A08E0B /* InterstateTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		EA856C892E04E30E00A08E0B /* InterstateUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA856C9A2E04E30E00A08E0B /* Build configuration list for PBXNativeTarget "InterstateUITests" */;
+			buildPhases = (
+				EA856C862E04E30E00A08E0B /* Sources */,
+				EA856C872E04E30E00A08E0B /* Frameworks */,
+				EA856C882E04E30E00A08E0B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA856C8C2E04E30E00A08E0B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EA856C8D2E04E30E00A08E0B /* InterstateUITests */,
+			);
+			name = InterstateUITests;
+			packageProductDependencies = (
+			);
+			productName = InterstateUITests;
+			productReference = EA856C8A2E04E30E00A08E0B /* InterstateUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EA856C652E04E30D00A08E0B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					EA856C6C2E04E30D00A08E0B = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					EA856C7F2E04E30E00A08E0B = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = EA856C6C2E04E30D00A08E0B;
+					};
+					EA856C892E04E30E00A08E0B = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = EA856C6C2E04E30D00A08E0B;
+					};
+				};
+			};
+			buildConfigurationList = EA856C682E04E30D00A08E0B /* Build configuration list for PBXProject "Interstate" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EA856C642E04E30D00A08E0B;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = EA856C6E2E04E30D00A08E0B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EA856C6C2E04E30D00A08E0B /* Interstate */,
+				EA856C7F2E04E30E00A08E0B /* InterstateTests */,
+				EA856C892E04E30E00A08E0B /* InterstateUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EA856C6B2E04E30D00A08E0B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA856C7E2E04E30E00A08E0B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA856C882E04E30E00A08E0B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EA856C692E04E30D00A08E0B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA856C7C2E04E30E00A08E0B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA856C862E04E30E00A08E0B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		EA856C822E04E30E00A08E0B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA856C6C2E04E30D00A08E0B /* Interstate */;
+			targetProxy = EA856C812E04E30E00A08E0B /* PBXContainerItemProxy */;
+		};
+		EA856C8C2E04E30E00A08E0B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA856C6C2E04E30D00A08E0B /* Interstate */;
+			targetProxy = EA856C8B2E04E30E00A08E0B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		EA856C922E04E30E00A08E0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 469UCUB275;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		EA856C932E04E30E00A08E0B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 469UCUB275;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		EA856C952E04E30E00A08E0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Interstate/Interstate.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 469UCUB275;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.Interstate;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		EA856C962E04E30E00A08E0B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Interstate/Interstate.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 469UCUB275;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.Interstate;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		EA856C982E04E30E00A08E0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 469UCUB275;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.InterstateTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Interstate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Interstate";
+			};
+			name = Debug;
+		};
+		EA856C992E04E30E00A08E0B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 469UCUB275;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.InterstateTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Interstate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Interstate";
+			};
+			name = Release;
+		};
+		EA856C9B2E04E30E00A08E0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 469UCUB275;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.InterstateUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Interstate;
+			};
+			name = Debug;
+		};
+		EA856C9C2E04E30E00A08E0B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 469UCUB275;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.InterstateUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Interstate;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		EA856C682E04E30D00A08E0B /* Build configuration list for PBXProject "Interstate" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA856C922E04E30E00A08E0B /* Debug */,
+				EA856C932E04E30E00A08E0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA856C942E04E30E00A08E0B /* Build configuration list for PBXNativeTarget "Interstate" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA856C952E04E30E00A08E0B /* Debug */,
+				EA856C962E04E30E00A08E0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA856C972E04E30E00A08E0B /* Build configuration list for PBXNativeTarget "InterstateTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA856C982E04E30E00A08E0B /* Debug */,
+				EA856C992E04E30E00A08E0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA856C9A2E04E30E00A08E0B /* Build configuration list for PBXNativeTarget "InterstateUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA856C9B2E04E30E00A08E0B /* Debug */,
+				EA856C9C2E04E30E00A08E0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EA856C652E04E30D00A08E0B /* Project object */;
+}

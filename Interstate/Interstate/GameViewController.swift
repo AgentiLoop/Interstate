@@ -1,0 +1,201 @@
+//
+//  GameViewController.swift
+//  Interstate
+//
+//  Created by Todd Bruss on 6/19/25.
+//
+
+import SceneKit
+import QuartzCore
+import AVFoundation
+import Darwin
+
+class GameViewController: NSViewController {
+    
+    // MARK: - Scene and Camera Properties
+    
+    var sceneView: SCNView!
+    var scene: SCNScene!
+    var cameraNode: SCNNode!
+    
+    // MARK: - Car Properties
+    
+    var carNode: SCNNode!
+    var carSpeed: Float = 0.0
+    var maxSpeed: Float = 89.4  // m/s (~200 mph)
+    var acceleration: Float = 10.0
+    var deceleration: Float = 15.0
+    var steeringAngle: Float = 0.0  // Current steering wheel angle
+    var isAccelerating = false
+    var isBraking = false
+    var isTurningLeft = false
+    var isTurningRight = false
+    
+    // MARK: - Car Audio System Properties
+    
+    // Audio sources
+    var engineStartSound: SCNAudioSource!
+    var engineIdleSound: SCNAudioSource!
+    var engineRevSound: SCNAudioSource!
+    var engineShiftingSounds: [SCNAudioSource] = []
+    var tireSquealSound: SCNAudioSource!
+    var brakeSound: SCNAudioSource!
+    
+    // Audio players for continuous sounds
+    var engineIdlePlayer: SCNAudioPlayer?
+    var engineRevPlayer: SCNAudioPlayer?
+    var tireSquealPlayer: SCNAudioPlayer?
+    
+    // Audio state tracking
+    var currentGear: Int = 1
+    var engineRPM: Float = 800.0  // Idle RPM
+    var maxRPM: Float = 6500.0
+    var isEngineRunning: Bool = false
+    var lastSpeedForGearShift: Float = 0.0
+    
+    // Audio nodes for positional audio
+    var engineAudioNode: SCNNode!
+    var exhaustAudioNode: SCNNode!
+    var tireAudioNodes: [SCNNode] = []
+    
+    // MARK: - Camera Properties
+    
+    var targetCameraPosition = SCNVector3(0, 0, 0)
+    var targetCameraLookAt = SCNVector3(0, 0, 0)
+    let cameraFollowSpeed: Float = 6.0 // Smooth following for high-speed driving
+    let cameraHeight: Float = 8.0 // Good height for road visibility
+    let cameraDistance: Float = 15.0 // Standard distance for good road visibility
+    
+    // MARK: - HUD Properties
+    
+    var hudContainer: NSView!
+    var speedLabel: NSTextField!
+    var currentRouteLabel: NSTextField!
+    var instructionsLabel: NSTextField!
+    var compassLabel: NSTextField!
+    
+    // MARK: - Radar Map Properties
+    
+    var radarContainer: NSView!
+    var radarMapView: NSView!
+    var carTrail: [CGPoint] = []
+    let radarScale: CGFloat = 0.0035  // Scale factor for radar map - LARGER for better visibility
+    var radarCarLayer: CAShapeLayer!
+    
+    // MARK: - Steering Properties
+    
+    let maxSteeringAngle: Float = 35.0  // Realistic steering angle
+    
+    // MARK: - Game Timer
+    
+    var gameTimer: Timer?
+    
+    // MARK: - Position Saving
+    
+    var lastSavedPosition: (Double, Double) = (34.0522, -118.2437) // Default to LA
+    
+    // MARK: - Checkpoint and Scoring System
+    
+    var currentScore: Int = 0
+    var highScore: Int = 0
+    var totalDrivingTime: TimeInterval = 0
+    var lastCheckpointTime: TimeInterval = 0
+    var gameStartTime: Date?
+    var checkpointsReached: Set<String> = []
+    var scoreLabel: NSTextField!
+    var timeLabel: NSTextField!
+    
+    // MARK: - Road System Properties
+    
+    var allRoadPoints: [String: [(Float, Float)]] = [:]
+    var intersectionZones: [SCNVector3] = []
+    let intersectionRadius: Float = 30.0  // Radius of intersection zones
+    
+    // MARK: - GPS Conversion Properties
+    
+    let centerLatitude: Double = 39.8283  // Geographic center of USA (Kansas)
+    let centerLongitude: Double = -98.5795
+    let latitudeScale: Double = 111000.0  // meters per degree latitude
+    let longitudeScale: Double = 87000.0   // meters per degree longitude at 39°N
+    let sceneScale: Double = 0.01  // Scale down for SceneKit (1:100)
+    
+    // MARK: - Data Storage
+    
+    var interstateRoutes: [String: [(Double, Double)]] = [:]  // Will be loaded from JSON
+    var majorCities: [(String, Double, Double, Int)] = []  // Will be loaded from JSON
+    
+    // MARK: - Audio Update Properties
+    
+    var lastAudioUpdateTime: TimeInterval = 0
+    var audioUpdateInterval: TimeInterval = 1.0 // Update audio once per second (1/60th of 60fps)
+    var lastEngineRPM: Double = 0
+    var lastGear: Int = 1
+    
+    // MARK: - Dynamic Road Loading Properties
+    
+    var loadedRoadNodes: [String: [SCNNode]] = [:] // Track loaded road segments by route
+    var loadedRouteSegments: [String: Set<Int>] = [:] // Track which segments are loaded per route
+    let roadLoadDistance: Float = 1500.0 // Load roads within 1.5km of player  
+    let roadUnloadDistance: Float = 3000.0 // Unload roads beyond 3km
+    var lastRoadUpdatePosition: SCNVector3 = SCNVector3(0, 0, 0)
+    let roadUpdateThreshold: Float = 300.0 // Only update when player moves 300m
+    
+    // Store route data efficiently - don't generate all roads at startup
+    var routeGPSData: [String: [(Double, Double)]] = [:]
+    var routeSmoothPoints: [String: [(Float, Float)]] = [:] // Cache smooth points
+    
+    // MARK: - Dynamic Checkpoint Loading Properties
+    
+    var loadedCheckpoints: [String: SCNNode] = [:] // Track loaded checkpoint nodes
+    let checkpointLoadDistance: Float = 3000.0 // Load checkpoints within 3km
+    let checkpointUnloadDistance: Float = 4000.0 // Unload checkpoints beyond 4km
+    var checkpointPositions: [String: (SCNVector3, Int)] = [:] // Cache checkpoint positions and populations
+    
+    // MARK: - Memory Management
+    
+    var lastMemoryCleanup: Date = Date()
+    let memoryCleanupInterval: TimeInterval = 30.0 // Clean every 30 seconds (much less aggressive)
+    
+    // MARK: - View Lifecycle
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Load data from JSON files first
+        loadInterstateRoutesFromJSON()
+        loadMajorCitiesFromJSON()
+        
+        // Setup SceneKit view
+        sceneView = SCNView(frame: view.bounds)
+        sceneView.autoresizingMask = [.width, .height]
+        view.addSubview(sceneView)
+        
+        // Setup the scene
+        setupScene()
+        setupCar()
+        setupCamera()
+        setupRoads()
+        setupDirtRoads()  // Add dirt roads to off-road cities
+        setupControls()
+        setupHUD()
+        setupRadarMap()
+        
+        // Set the view to the scene
+        sceneView.scene = scene
+        sceneView.allowsCameraControl = false
+        sceneView.showsStatistics = false
+        sceneView.backgroundColor = NSColor(red: 0.5, green: 0.8, blue: 1.0, alpha: 1.0) // Sky blue
+        
+        // Force clear color to ensure ground shows
+        scene.background.contents = NSColor(red: 0.5, green: 0.8, blue: 1.0, alpha: 1.0)
+        
+        // Start the game loop
+        _ = Timer.scheduledTimer(timeInterval: 1.0/60.0, target: self, selector: #selector(gameLoop), userInfo: nil, repeats: true)
+    }
+    
+    deinit {
+        // Clean up notification observers
+        NotificationCenter.default.removeObserver(self)
+        print("🧹 GameViewController deinitialized and observers removed")
+    }
+}

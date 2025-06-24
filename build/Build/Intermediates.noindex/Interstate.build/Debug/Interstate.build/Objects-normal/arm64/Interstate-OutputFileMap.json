@@ -1,0 +1,38 @@
+{
+  "" : {
+    "diagnostics" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/Interstate-master.dia",
+    "emit-module-dependencies" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/Interstate-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/Interstate-master-emit-module.dia",
+    "swift-dependencies" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/Interstate-master.swiftdeps"
+  },
+  "/Users/toddbruss/Documents/Interstate/Interstate/AppDelegate.swift" : {
+    "const-values" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/AppDelegate.swiftconstvalues",
+    "dependencies" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/AppDelegate.d",
+    "diagnostics" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/AppDelegate.dia",
+    "index-unit-output-path" : "/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/AppDelegate.o",
+    "llvm-bc" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/AppDelegate.bc",
+    "object" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/AppDelegate.o",
+    "swift-dependencies" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/AppDelegate.swiftdeps",
+    "swiftmodule" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/AppDelegate~partial.swiftmodule"
+  },
+  "/Users/toddbruss/Documents/Interstate/Interstate/GameViewController.swift" : {
+    "const-values" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GameViewController.swiftconstvalues",
+    "dependencies" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GameViewController.d",
+    "diagnostics" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GameViewController.dia",
+    "index-unit-output-path" : "/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GameViewController.o",
+    "llvm-bc" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GameViewController.bc",
+    "object" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GameViewController.o",
+    "swift-dependencies" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GameViewController.swiftdeps",
+    "swiftmodule" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GameViewController~partial.swiftmodule"
+  },
+  "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/toddbruss/Documents/Interstate/build/Build/Intermediates.noindex/Interstate.build/Debug/Interstate.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}
