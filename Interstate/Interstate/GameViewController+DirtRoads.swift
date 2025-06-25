@@ -13,118 +13,144 @@ extension GameViewController {
     // MARK: - Dirt Road System
     
     func setupDirtRoads() {
-        // Find cities that are FAR from any interstate
-        var offRoadCities = findOffRoadCities()
-        // FORCE Carson City to have dirt roads regardless
-        let carsonCity = ("Carson City, NV", 39.1638, -119.7674, 25971)
-        if !offRoadCities.contains(where: { $0.0 == "Carson City, NV" }) {
-            offRoadCities.append(carsonCity)
-        }
-        
-        // Create dirt roads to these cities
-        for (cityName, lat, lon, _) in offRoadCities {
-            createDirtRoadToCity(cityName: cityName, latitude: lat, longitude: lon)
-        }
+        // Process all cities and either:
+        // 1. Move checkpoint to interstate if within 10 miles
+        // 2. Create dirt road loop if more than 10 miles away
+        processCitiesForRoadPlacement()
     }
     
-    private func findOffRoadCities() -> [(String, Double, Double, Int)] {
-        var offRoadCities: [(String, Double, Double, Int)] = []
-        let minDistanceFromInterstate: Float = 500.0 // SUPER LOW - 500m - if not RIGHT ON interstate, gets dirt road!
+    private func processCitiesForRoadPlacement() {
+        let tenMilesInMeters: Float = 16093.0 // 10 miles
         
-        // EVERY city needs to be checked
+        // Process EVERY city
         for city in majorCities {
             let cityPos = gpsToSceneKit(latitude: city.1, longitude: city.2)
-            var isOnInterstate = false
             
-            // Check if city is DIRECTLY on an interstate route
-            for (_, gpsCoords) in interstateRoutes {
-                for (lat, lon) in gpsCoords {
-                    let highwayPos = gpsToSceneKit(latitude: lat, longitude: lon)
-                    let distance = sqrt(pow(cityPos.x - highwayPos.x, 2) + pow(cityPos.z - highwayPos.z, 2))
-                    if Float(distance) < minDistanceFromInterstate {
-                        isOnInterstate = true
-                        break
-                    }
-                }
-                if isOnInterstate { break }
-            }
+            // Find closest point on any interstate
+            var closestInterstatePoint: (SCNVector3, String, Int)? = nil
+            var minDistance: Float = Float.infinity
             
-            // If NOT on interstate, it needs a dirt road!
-            if !isOnInterstate {
-                offRoadCities.append(city)
-            }
-        }
-        
-        return offRoadCities
-    }
-    
-    private func createDirtRoadToCity(cityName: String, latitude: Double, longitude: Double) {
-        let cityPos = gpsToSceneKit(latitude: latitude, longitude: longitude)
-        
-        // Create multiple dirt roads extending in different directions from the city
-        let directions = [
-            (1.0, 0.0),    // East
-            (-1.0, 0.0),   // West
-            (0.0, 1.0),    // North
-            (0.0, -1.0),   // South
-            (0.7, 0.7),    // Northeast
-            (-0.7, 0.7),   // Northwest
-            (0.7, -0.7),   // Southeast
-            (-0.7, -0.7)   // Southwest
-        ]
-        
-        // Create 2-4 random dirt roads from this city
-        let numRoads = Int.random(in: 2...4)
-        let selectedDirections = directions.shuffled().prefix(numRoads)
-        
-        for (index, (dx, dz)) in selectedDirections.enumerated() {
-            // Create endpoint 5-10km away in that direction
-            let distance = Float.random(in: 5000...10000)
-            let endpoint = SCNVector3(
-                cityPos.x + CGFloat(dx * Double(distance)),
-                0,
-                cityPos.z + CGFloat(dz * Double(distance))
-            )
-            
-            // Generate twisty path from city to endpoint
-            let twistyPath = generateTwistyDirtPath(from: cityPos, to: endpoint)
-            
-            // Create the dirt road segments
-            createDirtRoadSegments(path: twistyPath, cityName: "\(cityName)_road\(index)")
-        }
-    }
-    
-    private func findDirtRoadConnectionPoint(cityPos: SCNVector3) -> SCNVector3 {
-        // Find a point that's halfway between the city and the nearest interstate area
-        var nearestPoint = cityPos
-        var minDistance: Float = Float.infinity
-        
-        // Sample some interstate points to find general direction
-        for (_, gpsCoords) in interstateRoutes {
-            // Just check a few points per route for performance
-            let sampleIndices = [0, gpsCoords.count/4, gpsCoords.count/2, 3*gpsCoords.count/4, gpsCoords.count-1]
-            
-            for index in sampleIndices {
-                if index < gpsCoords.count {
-                    let (lat, lon) = gpsCoords[index]
+            for (routeName, gpsCoords) in interstateRoutes {
+                for i in 0..<gpsCoords.count {
+                    let (lat, lon) = gpsCoords[i]
                     let highwayPos = gpsToSceneKit(latitude: lat, longitude: lon)
                     let distance = sqrt(pow(cityPos.x - highwayPos.x, 2) + pow(cityPos.z - highwayPos.z, 2))
                     
                     if Float(distance) < minDistance {
                         minDistance = Float(distance)
-                        // Connection point is 1/3 of the way from city to highway
-                        nearestPoint = SCNVector3(
-                            cityPos.x + (highwayPos.x - cityPos.x) * 0.33,
-                            0,
-                            cityPos.z + (highwayPos.z - cityPos.z) * 0.33
-                        )
+                        closestInterstatePoint = (highwayPos, routeName, i)
                     }
+                }
+            }
+            
+            // Check if city is within 10 miles of interstate
+            if minDistance <= tenMilesInMeters {
+                // City is close to interstate - move checkpoint directly onto the highway
+                if let (interstatePos, _, _) = closestInterstatePoint {
+                    print("📍 Moving \(city.0) checkpoint directly to interstate (distance: \(Int(minDistance))m)")
+                    // Update checkpoint position to be on the interstate
+                    checkpointPositions[city.0] = (interstatePos, city.3)
+                }
+            } else {
+                // City is far from interstate - create dirt road loop
+                print("🛤️ Creating dirt road loop for \(city.0) (distance: \(Int(minDistance/1609))mi from interstate)")
+                createDirtRoadLoop(cityName: city.0, latitude: city.1, longitude: city.2, cityPos: cityPos)
+            }
+        }
+    }
+    
+    private func createDirtRoadLoop(cityName: String, latitude: Double, longitude: Double, cityPos: SCNVector3) {
+        // Find TWO connection points on the interstate to create a loop
+        let connectionPoints = findTwoInterstateConnectionPoints(cityPos: cityPos)
+        
+        guard connectionPoints.count == 2 else {
+            print("⚠️ Could not find two connection points for \(cityName)")
+            return
+        }
+        
+        // Create dirt road from first interstate point to city
+        let path1 = generateTwistyDirtPath(from: connectionPoints[0], to: cityPos)
+        createDirtRoadSegments(path: path1, cityName: "\(cityName)_road1")
+        
+        // Create dirt road from city to second interstate point
+        let path2 = generateTwistyDirtPath(from: cityPos, to: connectionPoints[1])
+        createDirtRoadSegments(path: path2, cityName: "\(cityName)_road2")
+        
+        print("✅ Created dirt road loop for \(cityName) connecting to interstate at 2 points")
+    }
+    
+    private func findTwoInterstateConnectionPoints(cityPos: SCNVector3) -> [SCNVector3] {
+        var connectionPoints: [SCNVector3] = []
+        var allHighwayPoints: [(SCNVector3, Float, String)] = [] // position, distance, route
+        
+        // Collect all highway points with their distances
+        for (routeName, gpsCoords) in interstateRoutes {
+            for i in stride(from: 0, to: gpsCoords.count, by: 5) { // Sample every 5th point for performance
+                let (lat, lon) = gpsCoords[i]
+                let highwayPos = gpsToSceneKit(latitude: lat, longitude: lon)
+                let distance = sqrt(pow(cityPos.x - highwayPos.x, 2) + pow(cityPos.z - highwayPos.z, 2))
+                allHighwayPoints.append((highwayPos, Float(distance), routeName))
+            }
+        }
+        
+        // Sort by distance
+        allHighwayPoints.sort { $0.1 < $1.1 }
+        
+        // Find two connection points that are:
+        // 1. Both reasonably close to the city (within 50 miles / 80km)
+        // 2. Separated from each other by at least 10km
+        let maxConnectionDistance: Float = 80000.0 // 50 miles
+        let minSeparation: Float = 10000.0 // 10km between connection points
+        
+        if let firstPoint = allHighwayPoints.first(where: { $0.1 <= maxConnectionDistance }) {
+            connectionPoints.append(firstPoint.0)
+            
+            // Find second point that's separated from the first
+            for point in allHighwayPoints {
+                if point.1 > maxConnectionDistance { break }
+                
+                let separation = sqrt(pow(point.0.x - firstPoint.0.x, 2) + pow(point.0.z - firstPoint.0.z, 2))
+                if Float(separation) >= minSeparation {
+                    connectionPoints.append(point.0)
+                    break
                 }
             }
         }
         
-        return nearestPoint
+        // If we couldn't find two good points, try to find them on opposite sides of the city
+        if connectionPoints.count < 2 {
+            connectionPoints.removeAll()
+            
+            // Find points in different quadrants relative to the city
+            var quadrantPoints: [Int: [(SCNVector3, Float)]] = [:]
+            
+            for point in allHighwayPoints {
+                if point.1 > maxConnectionDistance { continue }
+                
+                // Determine quadrant
+                let dx = point.0.x - cityPos.x
+                let dz = point.0.z - cityPos.z
+                let quadrant = (dx >= 0 ? 1 : 0) + (dz >= 0 ? 2 : 0)
+                
+                if quadrantPoints[quadrant] == nil {
+                    quadrantPoints[quadrant] = []
+                }
+                quadrantPoints[quadrant]?.append((point.0, point.1))
+            }
+            
+            // Pick closest points from different quadrants
+            let sortedQuadrants = quadrantPoints.sorted { $0.value.first?.1 ?? Float.infinity < $1.value.first?.1 ?? Float.infinity }
+            for (_, points) in sortedQuadrants.prefix(2) {
+                if let closestInQuadrant = points.min(by: { $0.1 < $1.1 }) {
+                    connectionPoints.append(closestInQuadrant.0)
+                }
+            }
+        }
+        
+        return connectionPoints
     }
+    
+
     
     private func generateTwistyDirtPath(from start: SCNVector3, to end: SCNVector3) -> [SCNVector3] {
         // USE THE SAME SMOOTH GENERATION AS REGULAR ROADS!
