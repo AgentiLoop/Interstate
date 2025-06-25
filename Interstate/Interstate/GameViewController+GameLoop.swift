@@ -25,10 +25,10 @@ extension GameViewController {
             updateRadarMap()
             
             // Periodic memory status logging (every 15 seconds and only if routes are loaded)
-            let currentTime = Int(Date().timeIntervalSince1970)
-            if currentTime % 15 == 0 && loadedRouteData.count > 0 {
-                // Memory status now logged automatically by the background system
-            }
+//            let currentTime = Int(Date().timeIntervalSince1970)
+//            if currentTime % 15 == 0 && loadedRouteData.count > 0 {
+//                // Memory status now logged automatically by the background system
+//            }
         }
     }
     

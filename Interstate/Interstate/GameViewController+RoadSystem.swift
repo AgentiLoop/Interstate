@@ -25,8 +25,8 @@ extension GameViewController {
         // USER REQUIREMENTS - STRICT LIMITS to prevent memory explosion and stalls
         let SEGMENT_LOAD_DISTANCE: CGFloat = 2000.0    // Increased to ensure roads are found
         let SEGMENT_UNLOAD_DISTANCE: CGFloat = 3000.0  // Increased accordingly
-        let MAX_SEGMENTS: Int = 15                    // REDUCED - Segments are longer now!
-        let MIN_SEGMENTS: Int = 1                    // Reasonable minimum
+        let MAX_SEGMENTS: Int = 8                    // REDUCED - Segments are longer now!
+        let MIN_SEGMENTS: Int = 3                   // Reasonable minimum
         
         // STALL PREVENTION - Only update every 8 frames to prevent constant loading
         // BUT: Always update on first few frames when no roads are loaded
