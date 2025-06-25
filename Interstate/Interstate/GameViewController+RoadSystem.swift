@@ -111,25 +111,39 @@ extension GameViewController {
             return 
         }
         
-        // Get the route data
+        // Get the route data and generate smooth points
         guard let routeData = routesToUse[closestRoute] else { 
             return 
         }
         
-        // Load segments from this route that are close enough
+        let smoothPoints = generateSmoothRoadPoints(from: routeData)
+        let segmentLength = 500 // Points per smooth curve segment
+        let totalSegments = (smoothPoints.count + segmentLength - 1) / segmentLength
+        
+        // Load curve segments that are close enough
         var segmentsToLoad: [(String, CGFloat)] = []
         
-        for (index, (lat, lon)) in routeData.enumerated() {
-            let segmentKey = "\(closestRoute)_\(index)"
+        for segmentIndex in 0..<totalSegments {
+            let segmentKey = "\(closestRoute)_\(segmentIndex)"
             
             // Skip if already loaded
             if loadedRoadSegments[segmentKey] != nil { continue }
             
-            let segmentPosition = gpsToSceneKit(latitude: lat, longitude: lon)
-            let distance = calculateDistance(from: playerPosition, to: segmentPosition)
+            // Check if this segment is close to the player
+            let startIndex = segmentIndex * segmentLength
+            let endIndex = min(startIndex + segmentLength, smoothPoints.count - 1)
             
-            if distance <= loadDistance {
-                segmentsToLoad.append((segmentKey, distance))
+            // Sample a few points from this segment to check distance
+            var minDistanceToSegment: CGFloat = CGFloat.infinity
+            for i in stride(from: startIndex, to: endIndex, by: 50) { // Sample every 50 points
+                let point = smoothPoints[i]
+                let segmentPosition = SCNVector3(point.0, 0, point.1)
+                let distance = calculateDistance(from: playerPosition, to: segmentPosition)
+                minDistanceToSegment = min(minDistanceToSegment, distance)
+            }
+            
+            if minDistanceToSegment <= loadDistance {
+                segmentsToLoad.append((segmentKey, minDistanceToSegment))
             }
         }
         
@@ -149,8 +163,8 @@ extension GameViewController {
         // FLOATING POINT PRECISION: When coordinates get too large, precision is lost
         // causing jitter, stalls, and rendering problems. Rebase when player is far from origin.
         
-        let REBASE_THRESHOLD: CGFloat = 5000.0 // When player is 5km from origin
-        let REBASE_DISTANCE: CGFloat = 3000.0  // How far they've moved since last rebase
+        let REBASE_THRESHOLD: CGFloat = 50000.0 // When player is 50km from origin (much better for gameplay)
+        let REBASE_DISTANCE: CGFloat = 30000.0  // How far they've moved since last rebase
         
         let distanceFromOrigin = sqrt(playerPosition.x * playerPosition.x + 
                                     playerPosition.z * playerPosition.z)
@@ -239,44 +253,61 @@ extension GameViewController {
     }
     
     private func calculateSegmentDistance(segmentKey: String, playerPosition: SCNVector3) -> CGFloat {
-        // Extract route name and index from segment key
+        // Extract route name and segment index from segment key
         let components = segmentKey.split(separator: "_")
         guard components.count >= 2,
-              let index = Int(components.last!) else { return CGFloat.infinity }
+              let segmentIndex = Int(components.last!) else { return CGFloat.infinity }
         
         let routeName = components.dropLast().joined(separator: "_")
         
         // Use fallback route source if needed
         let routesToUse = routeGPSData.isEmpty ? interstateRoutes : routeGPSData
         
-        guard let routeData = routesToUse[routeName],
-              index < routeData.count else { return CGFloat.infinity }
+        guard let routeData = routesToUse[routeName] else { return CGFloat.infinity }
         
-        let (lat, lon) = routeData[index]
-        let segmentPosition = gpsToSceneKit(latitude: lat, longitude: lon)
+        // Generate smooth points and find closest point in this segment
+        let smoothPoints = generateSmoothRoadPoints(from: routeData)
+        let segmentLength = 500
         
-        return calculateDistance(from: playerPosition, to: segmentPosition)
+        let startIndex = segmentIndex * segmentLength
+        guard startIndex < smoothPoints.count else { return CGFloat.infinity }
+        
+        let endIndex = min(startIndex + segmentLength, smoothPoints.count - 1)
+        
+        // Find closest point in this segment
+        var minDistance: CGFloat = CGFloat.infinity
+        for i in startIndex...endIndex {
+            let point = smoothPoints[i]
+            let segmentPosition = SCNVector3(point.0, 0, point.1)
+            let distance = calculateDistance(from: playerPosition, to: segmentPosition)
+            minDistance = min(minDistance, distance)
+        }
+        
+        return minDistance
     }
     
     private func loadRoadSegment(segmentKey: String, routeName: String) {
-        // Extract index from segment key
-        let components = segmentKey.split(separator: "_")
-        guard let index = Int(components.last!) else { return }
-        
+        // Extract route name and create smooth curve segment
         // Use fallback route source if needed
         let routesToUse = routeGPSData.isEmpty ? interstateRoutes : routeGPSData
         
-        guard let routeData = routesToUse[routeName],
-              index < routeData.count - 1 else { return }
+        guard let routeData = routesToUse[routeName] else { return }
         
-        // Create road segment
-        let startPoint = routeData[index]
-        let endPoint = routeData[index + 1]
+        // Generate smooth road points using existing Catmull-Rom spline system
+        let smoothPoints = generateSmoothRoadPoints(from: routeData)
         
-        let startPos = gpsToSceneKit(latitude: startPoint.0, longitude: startPoint.1)
-        let endPos = gpsToSceneKit(latitude: endPoint.0, longitude: endPoint.1)
+        // Create longer curved road segments instead of individual straight segments
+        let segmentLength = 500 // Points per segment for smooth curves
+        let components = segmentKey.split(separator: "_")
+        guard let segmentIndex = Int(components.last!) else { return }
         
-        let roadNode = createRoadSegmentNode(from: startPos, to: endPos, routeName: routeName)
+        let startIndex = segmentIndex * segmentLength
+        guard startIndex < smoothPoints.count - 1 else { return }
+        
+        let endIndex = min(startIndex + segmentLength, smoothPoints.count - 1)
+        let segmentPoints = Array(smoothPoints[startIndex...endIndex])
+        
+        let roadNode = createSmoothRoadSegmentNode(points: segmentPoints, routeName: routeName)
         
         // Add to scene and tracking
         roadSystemNode.addChildNode(roadNode)
@@ -299,8 +330,33 @@ extension GameViewController {
         }
     }
     
+    // MARK: - Smooth Curved Road Creation WITH PROPER MARKINGS
+    private func createSmoothRoadSegmentNode(points: [(CGFloat, CGFloat)], routeName: String) -> SCNNode {
+        let roadNode = SCNNode()
+        
+        // Create curved road segments with proper markings
+        guard points.count >= 2 else { return roadNode }
+        
+        // Create individual road pieces along the curve
+        for i in 0..<points.count - 1 {
+            let startPoint = points[i]
+            let endPoint = points[i + 1]
+            
+            let startPos = SCNVector3(startPoint.0, 0, startPoint.1)
+            let endPos = SCNVector3(endPoint.0, 0, endPoint.1)
+            
+            let roadPiece = createRoadPiece(from: startPos, to: endPos, routeName: routeName)
+            roadNode.addChildNode(roadPiece)
+        }
+        
+        // Add consistent markings along the entire curve
+        createSmoothRoadMarkings(roadNode: roadNode, points: points, routeName: routeName)
+        
+        return roadNode
+    }
+    
     // MARK: - Road Node Creation WITH PROPER MARKINGS
-    private func createRoadSegmentNode(from startPos: SCNVector3, to endPos: SCNVector3, routeName: String) -> SCNNode {
+    private func createRoadPiece(from startPos: SCNVector3, to endPos: SCNVector3, routeName: String) -> SCNNode {
         let roadNode = SCNNode()
         
         // Calculate road properties
@@ -335,129 +391,195 @@ extension GameViewController {
         if distance > 0 {
             let angle = atan2(deltaX, deltaZ)
             roadSegmentNode.rotation = SCNVector4(0, 1, 0, Float(angle))
-            
-            // Add road markings
-            createHighwayCenterLine(roadNode: roadNode, startPos: startPos, endPos: endPos, angle: angle)
-            createHighwayEdgeLines(roadNode: roadNode, startPos: startPos, endPos: endPos, angle: angle)
-            createHighwayLaneMarkings(roadNode: roadNode, startPos: startPos, endPos: endPos, angle: angle)
         }
         
         roadNode.addChildNode(roadSegmentNode)
         return roadNode
     }
     
-    // MARK: - Highway Markings
-    private func createHighwayCenterLine(roadNode: SCNNode, startPos: SCNVector3, endPos: SCNVector3, angle: CGFloat) {
-        let distance = calculateDistance(from: startPos, to: endPos)
+    // MARK: - Correct Highway Road Markings
+    private func createSmoothRoadMarkings(roadNode: SCNNode, points: [(CGFloat, CGFloat)], routeName: String) {
+        guard points.count >= 10 else { return }
         
-        // Yellow center line material  
-        let centerMaterial = SCNMaterial()
-        centerMaterial.diffuse.contents = NSColor.yellow
-        centerMaterial.emission.contents = NSColor.yellow.withAlphaComponent(0.3)
+        // CORRECT HIGHWAY MARKINGS FROM MUTCD STANDARDS:
+        // 1. SOLID WHITE LINES on left and right EDGES where road meets grass
+        // 2. SHORT YELLOW DASHED LINE in the CENTER of the road
         
-        // Create dashed center line
-        let dashLength: CGFloat = 10.0
-        let gapLength: CGFloat = 5.0
-        var currentDistance: CGFloat = 0.0
-        
-        while currentDistance + dashLength < distance - 2.0 {
-            let ratio = CGFloat(currentDistance) / CGFloat(distance)
-            
-            // Calculate position step by step to avoid complex expressions
-            let deltaX = endPos.x - startPos.x
-            let deltaZ = endPos.z - startPos.z
-            let posX = startPos.x + deltaX * ratio
-            let posZ = startPos.z + deltaZ * ratio
-            let dashPosition = SCNVector3(posX, 0.15, posZ)
-            
-            let centerDash = SCNBox(width: 0.5, height: 0.05, length: dashLength, chamferRadius: 0)
-            centerDash.materials = [centerMaterial]
-            
-            let dashNode = SCNNode(geometry: centerDash)
-            dashNode.position = dashPosition
-            dashNode.rotation = SCNVector4(0, 1, 0, Float(angle))
-            
-            roadNode.addChildNode(dashNode)
-            
-            currentDistance += dashLength + gapLength
-        }
+        createSmoothCurvedEdgeLines(roadNode: roadNode, points: points)
+        createSmoothCurvedCenterDashes(roadNode: roadNode, points: points)
     }
     
-    private func createHighwayEdgeLines(roadNode: SCNNode, startPos: SCNVector3, endPos: SCNVector3, angle: CGFloat) {
-        let distance = calculateDistance(from: startPos, to: endPos)
-        
-        // White edge line material
-        let edgeMaterial = SCNMaterial()
-        edgeMaterial.diffuse.contents = NSColor.white
-        edgeMaterial.emission.contents = NSColor.white.withAlphaComponent(0.2)
-        
-        // Create edge lines at ±10 units (for 20 unit wide road)
-        let edgeOffsets: [CGFloat] = [-10.0, 10.0]
+    // MARK: - Smooth Curved Road Markings Using Paths
+    
+    private func createSmoothCurvedEdgeLines(roadNode: SCNNode, points: [(CGFloat, CGFloat)]) {
+        // Create CONTINUOUS CURVED white edge lines with SMOOTH offsets
+        let edgeOffsets: [CGFloat] = [-10.0, 10.0] // Left and right edges
         
         for offset in edgeOffsets {
-            // Calculate edge position step by step
-            let perpendicularAngle = angle + CGFloat.pi/2
-            let offsetX = offset * cos(perpendicularAngle)
-            let offsetZ = offset * sin(perpendicularAngle)
-            let edgeStartPos = SCNVector3(startPos.x + offsetX, 0.15, startPos.z + offsetZ)
+            // Calculate smooth normals for the entire curve
+            var normals: [(CGFloat, CGFloat)] = []
             
-            let edgeLine = SCNBox(width: 0.3, height: 0.05, length: CGFloat(distance), chamferRadius: 0)
-            edgeLine.materials = [edgeMaterial]
+            for i in 0..<points.count {
+                let normal: (CGFloat, CGFloat)
+                
+                if i == 0 && points.count > 1 {
+                    // First point - use direction to next
+                    let dx = points[1].0 - points[0].0
+                    let dz = points[1].1 - points[0].1
+                    let len = sqrt(dx*dx + dz*dz)
+                    normal = (-dz/len, dx/len) // Perpendicular
+                } else if i == points.count - 1 && i > 0 {
+                    // Last point - use direction from previous
+                    let dx = points[i].0 - points[i-1].0
+                    let dz = points[i].1 - points[i-1].1
+                    let len = sqrt(dx*dx + dz*dz)
+                    normal = (-dz/len, dx/len) // Perpendicular
+                } else if i > 0 && i < points.count - 1 {
+                    // Middle points - use central difference for smoother curves
+                    let dx = points[i+1].0 - points[i-1].0
+                    let dz = points[i+1].1 - points[i-1].1
+                    let len = sqrt(dx*dx + dz*dz)
+                    normal = (-dz/len, dx/len) // Perpendicular
+                } else {
+                    normal = (1, 0)
+                }
+                
+                normals.append(normal)
+            }
             
-            let edgeNode = SCNNode(geometry: edgeLine)
+            // Create edge points using smooth normals
+            var edgePoints: [SCNVector3] = []
+            for i in 0..<points.count {
+                let point = points[i]
+                let normal = normals[i]
+                
+                let edgeX = point.0 + offset * normal.0
+                let edgeZ = point.1 + offset * normal.1
+                edgePoints.append(SCNVector3(edgeX, 0.15, edgeZ))
+            }
             
-            // Calculate edge line center position step by step
-            let midX = (startPos.x + endPos.x) / 2
-            let midZ = (startPos.z + endPos.z) / 2
-            let finalX = midX + offsetX
-            let finalZ = midZ + offsetZ
-            edgeNode.position = SCNVector3(finalX, 0.15, finalZ)
-            edgeNode.rotation = SCNVector4(0, 1, 0, Float(angle))
-            
-            roadNode.addChildNode(edgeNode)
+            // Create a continuous curved line from the edge points
+            createContinuousCurvedLine(points: edgePoints, color: .white, width: 0.5, parent: roadNode)
         }
     }
     
-    private func createHighwayLaneMarkings(roadNode: SCNNode, startPos: SCNVector3, endPos: SCNVector3, angle: CGFloat) {
-        let distance = calculateDistance(from: startPos, to: endPos)
+    private func createSmoothCurvedCenterDashes(roadNode: SCNNode, points: [(CGFloat, CGFloat)]) {
+        // Create SHORT YELLOW DASHES along the center curve
+        var centerPoints: [SCNVector3] = []
         
-        // White lane marking material
-        let laneMaterial = SCNMaterial()
-        laneMaterial.diffuse.contents = NSColor.white
-        laneMaterial.emission.contents = NSColor.white.withAlphaComponent(0.2)
+        // Convert road points to center line (no offset needed for center)
+        for point in points {
+            centerPoints.append(SCNVector3(point.0, 0.15, point.1))
+        }
         
-        // Create lane markings at ±5 units (dividing the 20-unit road into 4 lanes)
-        let laneOffsets: [CGFloat] = [-5.0, 5.0]
-        
-        for offset in laneOffsets {
-            // Create dashed lane markings
-            let dashLength: CGFloat = 6.0
-            let gapLength: CGFloat = 4.0
-            var currentDistance: CGFloat = 0.0
+        // Create dashed yellow center line
+        createDashedCurvedLine(points: centerPoints, color: .yellow, width: 0.5, 
+                              dashLength: 10.0, gapLength: 15.0, parent: roadNode)
+    }
+    
+    // MARK: - Curve Creation Helpers
+    
+    private func createContinuousCurvedLine(points: [SCNVector3], color: NSColor, width: CGFloat, parent: SCNNode) {
+        // Create segments between consecutive points
+        for i in 0..<points.count - 1 {
+            let start = points[i]
+            let end = points[i + 1]
             
-            while currentDistance + dashLength < distance - 2.0 {
-                let ratio = CGFloat(currentDistance) / CGFloat(distance)
+            let distance = sqrt(pow(end.x - start.x, 2) + pow(end.z - start.z, 2))
+            guard distance > 0.1 else { continue }
+            
+            // Create line segment
+            let lineGeometry = SCNBox(width: width, height: 0.05, length: distance, chamferRadius: 0)
+            let material = SCNMaterial()
+            material.diffuse.contents = color
+            material.emission.contents = color.withAlphaComponent(0.3)
+            lineGeometry.materials = [material]
+            
+            let lineNode = SCNNode(geometry: lineGeometry)
+            
+            // Position at midpoint
+            lineNode.position = SCNVector3(
+                (start.x + end.x) / 2,
+                (start.y + end.y) / 2,
+                (start.z + end.z) / 2
+            )
+            
+            // Rotate to align with direction
+            let angle = atan2(end.x - start.x, end.z - start.z)
+            lineNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+            
+            parent.addChildNode(lineNode)
+        }
+    }
+    
+    private func createDashedCurvedLine(points: [SCNVector3], color: NSColor, width: CGFloat, 
+                                       dashLength: CGFloat, gapLength: CGFloat, parent: SCNNode) {
+        // Track distance along curve
+        var accumulatedDistance: CGFloat = 0
+        var currentlyDrawing = true
+        var dashStartIndex = 0
+        var dashStartT: CGFloat = 0
+        
+        for i in 0..<points.count - 1 {
+            let start = points[i]
+            let end = points[i + 1]
+            let segmentLength = sqrt(pow(end.x - start.x, 2) + pow(end.z - start.z, 2))
+            
+            var segmentProgress: CGFloat = 0
+            
+            while segmentProgress < segmentLength {
+                let remainingInSegment = segmentLength - segmentProgress
+                let targetLength = currentlyDrawing ? dashLength : gapLength
+                let remainingInDashOrGap = targetLength - (accumulatedDistance.truncatingRemainder(dividingBy: dashLength + gapLength)).truncatingRemainder(dividingBy: targetLength)
                 
-                // Calculate lane marking position step by step to avoid complex expressions
-                let perpendicularAngle = angle + CGFloat.pi/2
-                let deltaX = endPos.x - startPos.x
-                let deltaZ = endPos.z - startPos.z
-                let baseX = startPos.x + deltaX * ratio
-                let baseZ = startPos.z + deltaZ * ratio
-                let offsetX = offset * cos(perpendicularAngle)
-                let offsetZ = offset * sin(perpendicularAngle)
-                let dashPosition = SCNVector3(baseX + offsetX, 0.15, baseZ + offsetZ)
+                let advanceLength = min(remainingInSegment, remainingInDashOrGap)
                 
-                let laneDash = SCNBox(width: 0.3, height: 0.05, length: dashLength, chamferRadius: 0)
-                laneDash.materials = [laneMaterial]
+                if currentlyDrawing {
+                    // Calculate dash endpoints
+                    let t1 = segmentProgress / segmentLength
+                    let t2 = (segmentProgress + advanceLength) / segmentLength
+                    
+                    let dashStart = SCNVector3(
+                        start.x + (end.x - start.x) * t1,
+                        start.y + (end.y - start.y) * t1,
+                        start.z + (end.z - start.z) * t1
+                    )
+                    
+                    let dashEnd = SCNVector3(
+                        start.x + (end.x - start.x) * t2,
+                        start.y + (end.y - start.y) * t2,
+                        start.z + (end.z - start.z) * t2
+                    )
+                    
+                    // Create dash
+                    let dashDist = sqrt(pow(dashEnd.x - dashStart.x, 2) + pow(dashEnd.z - dashStart.z, 2))
+                    if dashDist > 0.1 {
+                        let dashGeometry = SCNBox(width: width, height: 0.05, length: dashDist, chamferRadius: 0)
+                        let material = SCNMaterial()
+                        material.diffuse.contents = color
+                        material.emission.contents = color.withAlphaComponent(0.4)
+                        dashGeometry.materials = [material]
+                        
+                        let dashNode = SCNNode(geometry: dashGeometry)
+                        dashNode.position = SCNVector3(
+                            (dashStart.x + dashEnd.x) / 2,
+                            (dashStart.y + dashEnd.y) / 2,
+                            (dashStart.z + dashEnd.z) / 2
+                        )
+                        
+                        let angle = atan2(dashEnd.x - dashStart.x, dashEnd.z - dashStart.z)
+                        dashNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+                        
+                        parent.addChildNode(dashNode)
+                    }
+                }
                 
-                let dashNode = SCNNode(geometry: laneDash)
-                dashNode.position = dashPosition
-                dashNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+                segmentProgress += advanceLength
+                accumulatedDistance += advanceLength
                 
-                roadNode.addChildNode(dashNode)
-                
-                currentDistance += dashLength + gapLength
+                // Check if we should switch between dash and gap
+                let cycleProgress = accumulatedDistance.truncatingRemainder(dividingBy: dashLength + gapLength)
+                currentlyDrawing = cycleProgress < dashLength
             }
         }
     }

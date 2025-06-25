@@ -197,6 +197,7 @@ class GameViewController: NSViewController {
         setupCar()
         setupCamera()
         // setupRoads() - Removed: Simple road loading system loads roads dynamically in updateDynamicRoads()
+        setupCheckpointGates()  // Initialize checkpoint positions
         setupDirtRoads()  // Add dirt roads to off-road cities
         setupControls()
         setupHUD()
