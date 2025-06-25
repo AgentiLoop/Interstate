@@ -14,89 +14,91 @@ extension GameViewController {
     // MARK: - HUD Setup
     
     func setupHUD() {
-        // Create HUD container - FORCE TOP-LEFT CORNER!
-        let hudWidth: CGFloat = 520  // Wider for longer instructions
-        let hudHeight: CGFloat = 120  // Taller for more info
-        
-        // Debug print to see what's happening
-        print("View bounds: \(view.bounds)")
-        print("View frame: \(view.frame)")
+        // Create HUD container - PROFESSIONAL STYLE
+        let hudWidth: CGFloat = 380  // Narrower, more compact
+        let hudHeight: CGFloat = 140  // Slightly taller for better spacing
         
         // Calculate position for TOP-LEFT (high Y value in macOS coordinates)
         let hudX: CGFloat = 20
         let hudY: CGFloat = view.bounds.height - hudHeight - 20
         
-        print("HUD Position: x=\(hudX), y=\(hudY)")
-        
         hudContainer = NSView(frame: NSRect(x: hudX, y: hudY, width: hudWidth, height: hudHeight))
         hudContainer.wantsLayer = true
-        hudContainer.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.95).cgColor
-        hudContainer.layer?.cornerRadius = 10
-        hudContainer.layer?.borderColor = NSColor.cyan.withAlphaComponent(1.0).cgColor // CYAN border for visibility
-        hudContainer.layer?.borderWidth = 5
+        hudContainer.layer?.backgroundColor = NSColor(white: 0.1, alpha: 0.7).cgColor // Semi-transparent dark gray
+        hudContainer.layer?.cornerRadius = 8
+        hudContainer.layer?.borderColor = NSColor(white: 0.5, alpha: 0.3).cgColor // Subtle gray border
+        hudContainer.layer?.borderWidth = 1
         view.addSubview(hudContainer)
         
         // Speed label - TOP of HUD (high Y value in NSView coordinates)
-        speedLabel = NSTextField(frame: NSRect(x: 10, y: 95, width: 500, height: 20))
+        speedLabel = NSTextField(frame: NSRect(x: 15, y: 110, width: 350, height: 24))
         speedLabel.stringValue = "Speed: 0 mph"
-        speedLabel.textColor = NSColor.white
-        speedLabel.font = NSFont.boldSystemFont(ofSize: 14)
+        speedLabel.textColor = NSColor(white: 0.9, alpha: 1.0)
+        speedLabel.font = NSFont.systemFont(ofSize: 18, weight: .semibold)
         speedLabel.backgroundColor = NSColor.clear
         speedLabel.isBordered = false
         speedLabel.isEditable = false
         hudContainer.addSubview(speedLabel)
         
         // Current route label - SECOND from top
-        currentRouteLabel = NSTextField(frame: NSRect(x: 10, y: 77, width: 500, height: 18))
+        currentRouteLabel = NSTextField(frame: NSRect(x: 15, y: 88, width: 350, height: 20))
         currentRouteLabel.stringValue = "Current Route: Calculating..."
-        currentRouteLabel.textColor = NSColor.green
-        currentRouteLabel.font = NSFont.systemFont(ofSize: 12)
+        currentRouteLabel.textColor = NSColor(white: 0.8, alpha: 1.0)
+        currentRouteLabel.font = NSFont.systemFont(ofSize: 14)
         currentRouteLabel.backgroundColor = NSColor.clear
         currentRouteLabel.isBordered = false
         currentRouteLabel.isEditable = false
         hudContainer.addSubview(currentRouteLabel)
         
         // Compass label - THIRD from top
-        compassLabel = NSTextField(frame: NSRect(x: 10, y: 59, width: 500, height: 18))
-        compassLabel.stringValue = "Heading: N"
-        compassLabel.textColor = NSColor.systemBlue
-        compassLabel.font = NSFont.systemFont(ofSize: 12)
+        compassLabel = NSTextField(frame: NSRect(x: 15, y: 66, width: 350, height: 20))
+        compassLabel.stringValue = "Heading: N (0°)"
+        compassLabel.textColor = NSColor(white: 0.8, alpha: 1.0)
+        compassLabel.font = NSFont.systemFont(ofSize: 14)
         compassLabel.backgroundColor = NSColor.clear
         compassLabel.isBordered = false
         compassLabel.isEditable = false
         hudContainer.addSubview(compassLabel)
         
         // Segment count label for simple road loading system
-        segmentCountLabel = NSTextField(frame: NSRect(x: 10, y: 41, width: 300, height: 18))
+        segmentCountLabel = NSTextField(frame: NSRect(x: 15, y: 44, width: 180, height: 20))
         segmentCountLabel.isEditable = false
         segmentCountLabel.isBordered = false
         segmentCountLabel.backgroundColor = NSColor.clear
-        segmentCountLabel.textColor = NSColor.yellow
-        segmentCountLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-        segmentCountLabel.stringValue = "0/200 segments"
+        segmentCountLabel.textColor = NSColor(white: 0.7, alpha: 1.0)
+        segmentCountLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
+        segmentCountLabel.stringValue = "0/15 segments"
         hudContainer.addSubview(segmentCountLabel)
         
         // Score label - FOURTH from top  
-        scoreLabel = NSTextField(frame: NSRect(x: 10, y: 23, width: 500, height: 18))
+        scoreLabel = NSTextField(frame: NSRect(x: 15, y: 22, width: 350, height: 20))
         scoreLabel.stringValue = "Score: 0 | High: \(highScore)"
-        scoreLabel.textColor = NSColor.orange
-        scoreLabel.font = NSFont.boldSystemFont(ofSize: 12)
+        scoreLabel.textColor = NSColor(white: 0.8, alpha: 1.0)
+        scoreLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
         scoreLabel.backgroundColor = NSColor.clear
         scoreLabel.isBordered = false
         scoreLabel.isEditable = false
         hudContainer.addSubview(scoreLabel)
         
         // Time label - FIFTH from top
-        timeLabel = NSTextField(frame: NSRect(x: 10, y: 5, width: 500, height: 18))
+        timeLabel = NSTextField(frame: NSRect(x: 15, y: 0, width: 350, height: 20))
         timeLabel.stringValue = "Time: 0:00 | Checkpoints: 0"
-        timeLabel.textColor = NSColor.magenta
-        timeLabel.font = NSFont.systemFont(ofSize: 11)
+        timeLabel.textColor = NSColor(white: 0.7, alpha: 1.0)
+        timeLabel.font = NSFont.systemFont(ofSize: 14)
         timeLabel.backgroundColor = NSColor.clear
         timeLabel.isBordered = false
         timeLabel.isEditable = false
         hudContainer.addSubview(timeLabel)
         
-        // REMOVED - Instructions label was overlapping with time label
+        // Create separate minimal controls reference in bottom-left
+        let controlsLabel = NSTextField(frame: NSRect(x: 20, y: 20, width: 200, height: 20))
+        controlsLabel.stringValue = "S=Gas W=Brake A/D=Steer"
+        controlsLabel.textColor = NSColor(white: 0.6, alpha: 0.8)
+        controlsLabel.font = NSFont.systemFont(ofSize: 12)
+        controlsLabel.backgroundColor = NSColor.clear
+        controlsLabel.isBordered = false
+        controlsLabel.isEditable = false
+        view.addSubview(controlsLabel)
     }
     
     // MARK: - HUD Update
@@ -106,8 +108,7 @@ extension GameViewController {
         speedLabel.stringValue = "Speed: \(speedMph) mph"
         
         // Fix steering direction - positive angle = RIGHT, negative angle = LEFT
-        let steeringDirection = steeringAngle > 0 ? "RIGHT" : steeringAngle < 0 ? "LEFT" : "STRAIGHT"
-        let steeringInfo = abs(steeringAngle) > 0.1 ? " • Steering: \(steeringDirection)" : ""
+        // Removed steering info display for cleaner HUD
         
         // Determine which highway the car is on
         let carPosition = carNode.position
@@ -128,26 +129,25 @@ extension GameViewController {
             let totalTime = Date().timeIntervalSince(gameStartTime)
             let minutes = Int(totalTime) / 60
             let seconds = Int(totalTime) % 60
-            timeLabel.stringValue = "Time: \(minutes):\(String(format: "%02d", seconds)) | Checkpoints: \(checkpointsReached.count) | Controls: S=GAS W=BRAKE A=LEFT D=RIGHT"
+            timeLabel.stringValue = "Time: \(minutes):\(String(format: "%02d", seconds)) | Checkpoints: \(checkpointsReached.count)"
         }
     }
     
     // MARK: - Radar Map Setup
     
     func setupRadarMap() {
-        // Create radar container - TOP-RIGHT CORNER
-        // TIGHT FIT around US map content
-        let radarWidth: CGFloat = 200  // Much smaller - tight fit
+        // Create radar container - TOP-RIGHT CORNER - PROFESSIONAL STYLE
+        let radarWidth: CGFloat = 200  // Compact size
         let radarHeight: CGFloat = 120  // Proportional to US map shape
         let radarX = view.bounds.width - radarWidth - 20
         let radarY = view.bounds.height - radarHeight - 20
         
         radarContainer = NSView(frame: NSRect(x: radarX, y: radarY, width: radarWidth, height: radarHeight))
         radarContainer.wantsLayer = true
-        radarContainer.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.8).cgColor
-        radarContainer.layer?.cornerRadius = 10
-        radarContainer.layer?.borderColor = NSColor.green.withAlphaComponent(1.0).cgColor
-        radarContainer.layer?.borderWidth = 3
+        radarContainer.layer?.backgroundColor = NSColor(white: 0.1, alpha: 0.7).cgColor // Match HUD style
+        radarContainer.layer?.cornerRadius = 8
+        radarContainer.layer?.borderColor = NSColor(white: 0.5, alpha: 0.3).cgColor // Subtle gray border
+        radarContainer.layer?.borderWidth = 1
         view.addSubview(radarContainer)
         
         // Create radar map view with NO padding - fill the box
@@ -167,10 +167,10 @@ extension GameViewController {
         let centerX = radarSize.width / 2
         let centerY = radarSize.height / 2
         
-        // Create layer for unvisited roads (white)
+        // Create layer for unvisited roads (subtle gray)
         let roadLayer = CAShapeLayer()
         roadLayer.fillColor = NSColor.clear.cgColor
-        roadLayer.strokeColor = NSColor.white.withAlphaComponent(0.5).cgColor
+        roadLayer.strokeColor = NSColor(white: 0.6, alpha: 0.5).cgColor
         roadLayer.lineWidth = 1.0
         
         let roadPath = CGMutablePath()
@@ -195,10 +195,10 @@ extension GameViewController {
         roadLayer.path = roadPath
         radarMapView.layer?.addSublayer(roadLayer)
         
-        // Create layer for visited roads (green) - will be drawn in updateRadarMap
+        // Create layer for visited roads (light gray) - will be drawn in updateRadarMap
         let visitedLayer = CAShapeLayer()
         visitedLayer.fillColor = NSColor.clear.cgColor
-        visitedLayer.strokeColor = NSColor.green.cgColor
+        visitedLayer.strokeColor = NSColor(white: 0.8, alpha: 0.8).cgColor
         visitedLayer.lineWidth = 2.0
         visitedLayer.name = "visitedRoads"
         radarMapView.layer?.addSublayer(visitedLayer)
@@ -290,11 +290,10 @@ extension GameViewController {
         
         // Update HUD position when view layout changes
         if let hud = hudContainer {
-            let hudWidth: CGFloat = 520
-            let hudHeight: CGFloat = 120
+            let hudWidth: CGFloat = 380  // Updated to match new width
+            let hudHeight: CGFloat = 140  // Updated to match new height
             let hudY = view.bounds.height - hudHeight - 20
             hud.frame = NSRect(x: 20, y: hudY, width: hudWidth, height: hudHeight)
-            print("Updated HUD position in viewDidLayout: y=\(hudY), view height=\(view.bounds.height)")
         }
         
         // Update radar position

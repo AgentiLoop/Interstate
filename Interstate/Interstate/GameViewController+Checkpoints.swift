@@ -38,8 +38,8 @@ extension GameViewController {
         // Calculate perpendicular direction (90 degrees to road)
         let perpendicularAngle = roadDirection + Float.pi / 2
         
-        // Place poles on BOTH SIDES of the road - 12 units from center (20% wider)
-        let poleOffset: Float = 12.0
+        // Place poles on BOTH SIDES of the road - 15.6 units from center (30% wider)
+        let poleOffset: Float = 15.6
         let leftPoleX = roadPosition.x + CGFloat(cos(perpendicularAngle) * poleOffset)
         let leftPoleZ = roadPosition.z + CGFloat(sin(perpendicularAngle) * poleOffset)
         let rightPoleX = roadPosition.x - CGFloat(cos(perpendicularAngle) * poleOffset)
@@ -48,7 +48,7 @@ extension GameViewController {
         // Gate poles - TALLER and BRIGHTER for visibility
         let poleMaterial = SCNMaterial()
         poleMaterial.diffuse.contents = NSColor.white
-        poleMaterial.emission.contents = NSColor(white: 0.5, alpha: 1.0)
+        poleMaterial.emission.contents = NSColor(white: 0.6, alpha: 1.0)
         
         let poleGeometry = SCNCylinder(radius: 0.5, height: 16.0)
         poleGeometry.materials = [poleMaterial]
@@ -68,9 +68,9 @@ extension GameViewController {
         // Banner connecting the poles - using pole positions directly
         let bannerMaterial = SCNMaterial()
         bannerMaterial.diffuse.contents = createBannerTexture(cityName: cityName)
-        bannerMaterial.emission.contents = createBannerTexture(cityName: cityName) // BRIGHT on BOTH SIDES
+        bannerMaterial.emission.contents = NSColor(white: 0.4, alpha: 1.0) // Moderate glow for better visibility
         bannerMaterial.isDoubleSided = true
-        bannerMaterial.lightingModel = .constant // No shadows - always bright!
+        bannerMaterial.lightingModel = .physicallyBased // Normal lighting to preserve color
         
         // Calculate exact distance between poles
         let poleDistance = sqrt(pow(leftPoleX - rightPoleX, 2) + pow(leftPoleZ - rightPoleZ, 2))
@@ -111,9 +111,9 @@ extension GameViewController {
         
         // Fill with green or red background based on completion status
         if isCompleted {
-            NSColor(red: 0.8, green: 0.0, blue: 0.0, alpha: 1.0).setFill() // Red for completed
+            NSColor(red: 0.85, green: 0.1, blue: 0.1, alpha: 1.0).setFill() // Bright red for completed
         } else {
-            NSColor(red: 0.0, green: 0.8, blue: 0.0, alpha: 1.0).setFill() // Green for uncompleted
+            NSColor(red: 0.0, green: 0.65, blue: 0.0, alpha: 1.0).setFill() // Medium green for uncompleted
         }
         NSRect(origin: .zero, size: imageSize).fill()
         
@@ -166,9 +166,8 @@ extension GameViewController {
                 if let geometry = node.geometry as? SCNBox,
                    let material = geometry.firstMaterial {
                     // Change banner to red with "COMPLETED!" text - KEEP THE SAME CITY NAME
-                    let redBanner = createBannerTexture(cityName: cityName, isCompleted: true)
-                    material.diffuse.contents = redBanner
-                    material.emission.contents = redBanner // Keep BRIGHT on both sides!
+                    material.diffuse.contents = createBannerTexture(cityName: cityName, isCompleted: true)
+                    material.emission.contents = NSColor(white: 0.4, alpha: 1.0) // Moderate glow for visibility
                     print("🔴 Changed \(cityName) banner to red (completed)")
                 }
             }
@@ -186,9 +185,8 @@ extension GameViewController {
                     // Much tighter distance check - only if banner is directly over checkpoint
                     if distance < 5.0 { // Within 5 units (was 50)
                         // Change banner to red with "COMPLETED!" text - KEEP THE SAME CITY NAME
-                        let redBanner = createBannerTexture(cityName: cityName, isCompleted: true)
-                        material.diffuse.contents = redBanner
-                        material.emission.contents = redBanner // Keep BRIGHT on both sides!
+                        material.diffuse.contents = createBannerTexture(cityName: cityName, isCompleted: true)
+                        material.emission.contents = NSColor(white: 0.4, alpha: 1.0) // Moderate glow for visibility
                         print("🔴 Changed \(cityName) banner to red (completed) - found by position")
                     }
                 }
