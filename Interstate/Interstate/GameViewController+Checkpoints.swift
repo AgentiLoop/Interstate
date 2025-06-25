@@ -67,10 +67,12 @@ extension GameViewController {
         
         // Banner connecting the poles - using pole positions directly
         let bannerMaterial = SCNMaterial()
-        bannerMaterial.diffuse.contents = createBannerTexture(cityName: cityName)
-        bannerMaterial.emission.contents = NSColor(white: 0.4, alpha: 1.0) // Moderate glow for better visibility
+        let bannerTexture = createBannerTexture(cityName: cityName)
+        bannerMaterial.diffuse.contents = bannerTexture
+        bannerMaterial.emission.contents = bannerTexture // Use same texture for emission to glow with color
+        bannerMaterial.emission.intensity = 0.3 // Control glow intensity
         bannerMaterial.isDoubleSided = true
-        bannerMaterial.lightingModel = .physicallyBased // Normal lighting to preserve color
+        bannerMaterial.lightingModel = .constant // Always bright, unaffected by scene lighting
         
         // Calculate exact distance between poles
         let poleDistance = sqrt(pow(leftPoleX - rightPoleX, 2) + pow(leftPoleZ - rightPoleZ, 2))
@@ -111,9 +113,9 @@ extension GameViewController {
         
         // Fill with green or red background based on completion status
         if isCompleted {
-            NSColor(red: 0.85, green: 0.1, blue: 0.1, alpha: 1.0).setFill() // Bright red for completed
+            NSColor(red: 0.9, green: 0.0, blue: 0.0, alpha: 1.0).setFill() // Bright red for completed
         } else {
-            NSColor(red: 0.0, green: 0.65, blue: 0.0, alpha: 1.0).setFill() // Medium green for uncompleted
+            NSColor(red: 0.0, green: 0.8, blue: 0.0, alpha: 1.0).setFill() // Bright green for uncompleted
         }
         NSRect(origin: .zero, size: imageSize).fill()
         
@@ -166,8 +168,11 @@ extension GameViewController {
                 if let geometry = node.geometry as? SCNBox,
                    let material = geometry.firstMaterial {
                     // Change banner to red with "COMPLETED!" text - KEEP THE SAME CITY NAME
-                    material.diffuse.contents = createBannerTexture(cityName: cityName, isCompleted: true)
-                    material.emission.contents = NSColor(white: 0.4, alpha: 1.0) // Moderate glow for visibility
+                    let redBannerTexture = createBannerTexture(cityName: cityName, isCompleted: true)
+                    material.diffuse.contents = redBannerTexture
+                    material.emission.contents = redBannerTexture // Use same texture for colored glow
+                    material.emission.intensity = 0.3
+                    material.lightingModel = .constant // Keep bright
                     print("🔴 Changed \(cityName) banner to red (completed)")
                 }
             }
@@ -185,8 +190,11 @@ extension GameViewController {
                     // Much tighter distance check - only if banner is directly over checkpoint
                     if distance < 5.0 { // Within 5 units (was 50)
                         // Change banner to red with "COMPLETED!" text - KEEP THE SAME CITY NAME
-                        material.diffuse.contents = createBannerTexture(cityName: cityName, isCompleted: true)
-                        material.emission.contents = NSColor(white: 0.4, alpha: 1.0) // Moderate glow for visibility
+                        let redBannerTexture = createBannerTexture(cityName: cityName, isCompleted: true)
+                        material.diffuse.contents = redBannerTexture
+                        material.emission.contents = redBannerTexture // Use same texture for colored glow
+                        material.emission.intensity = 0.3
+                        material.lightingModel = .constant // Keep bright
                         print("🔴 Changed \(cityName) banner to red (completed) - found by position")
                     }
                 }
