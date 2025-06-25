@@ -35,8 +35,8 @@ extension GameViewController {
         
         let playerPosition = playerNode.position
         
-        // FLOATING POINT PRECISION FIX - World origin rebasing for large coordinates
-        checkAndRebaseWorldOrigin(playerPosition: playerPosition)
+        // FLOATING POINT PRECISION FIX - World origin rebasing DISABLED
+        // checkAndRebaseWorldOrigin(playerPosition: playerPosition) // DISABLED - NEVER RESET CAR POSITION
         
         // Get current segment count
         let currentSegmentCount = loadedRoadSegments.count
@@ -331,7 +331,7 @@ extension GameViewController {
     }
     
     // MARK: - Smooth Curved Road Creation WITH PROPER MARKINGS
-    private func createSmoothRoadSegmentNode(points: [(CGFloat, CGFloat)], routeName: String) -> SCNNode {
+    func createSmoothRoadSegmentNode(points: [(CGFloat, CGFloat)], routeName: String) -> SCNNode {
         let roadNode = SCNNode()
         
         // Create curved road segments with proper markings
@@ -364,8 +364,8 @@ extension GameViewController {
         let deltaZ = endPos.z - startPos.z
         let distance = sqrt(deltaX * deltaX + deltaZ * deltaZ)
         
-        // Create main road surface
-        let roadGeometry = SCNBox(width: 20.0, height: 0.1, length: CGFloat(distance), chamferRadius: 0)
+        // Create main road surface - ADD EXTRA LENGTH TO PREVENT GAPS
+        let roadGeometry = SCNBox(width: 20.0, height: 0.1, length: CGFloat(distance) + 0.5, chamferRadius: 0)
         
         // Road surface material
         let roadMaterial = SCNMaterial()

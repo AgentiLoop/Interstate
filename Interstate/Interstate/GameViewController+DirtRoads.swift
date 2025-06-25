@@ -37,7 +37,7 @@ extension GameViewController {
             var isOnInterstate = false
             
             // Check if city is DIRECTLY on an interstate route
-            for (routeName, gpsCoords) in interstateRoutes {
+            for (_, gpsCoords) in interstateRoutes {
                 for (lat, lon) in gpsCoords {
                     let highwayPos = gpsToSceneKit(latitude: lat, longitude: lon)
                     let distance = sqrt(pow(cityPos.x - highwayPos.x, 2) + pow(cityPos.z - highwayPos.z, 2))
@@ -194,121 +194,30 @@ extension GameViewController {
     }
     
     private func createDirtRoadSegments(path: [SCNVector3], cityName: String) {
-        // Create BRIGHT ORANGE-BROWN dirt road material - SUPER VISIBLE
-        let dirtMaterial = SCNMaterial()
-        dirtMaterial.diffuse.contents = NSColor(red: 0.8, green: 0.5, blue: 0.2, alpha: 1.0) // Bright orange-brown
-        dirtMaterial.emission.contents = NSColor(red: 0.3, green: 0.15, blue: 0.0, alpha: 1.0) // Strong glow
-        dirtMaterial.roughness.contents = 0.8
-        dirtMaterial.metalness.contents = 0.0
+        // Convert path to 2D points format
+        var points: [(CGFloat, CGFloat)] = []
+        for point in path {
+            points.append((point.x, point.z))
+        }
         
-        // Create segments
-        for i in 0..<path.count - 1 {
-            let start = path[i]
-            let end = path[i + 1]
-            
-            // Create road segment
-            let distance = sqrt(pow(end.x - start.x, 2) + pow(end.z - start.z, 2))
-            
-            let roadGeometry = SCNBox(width: 20.0, height: 0.2, length: CGFloat(distance), chamferRadius: 0)  // Thin dirt road
-            roadGeometry.materials = [dirtMaterial]
-            
-            let roadNode = SCNNode(geometry: roadGeometry)
-            roadNode.position = SCNVector3((start.x + end.x) / 2, 0.0, (start.z + end.z) / 2) // At ground level
-            
-            let angle = atan2(end.x - start.x, end.z - start.z)
-            roadNode.eulerAngles = SCNVector3(0, Float(angle), 0)
-            roadNode.name = "dirtRoad_\(cityName)_\(i)"
-            
-            scene.rootNode.addChildNode(roadNode)
-            
-            // Add white center line
-            if distance > 2 {
-                createDirtRoadCenterLine(from: start, to: end, angle: Float(angle), index: i, cityName: cityName)
+        // Use the SAME smooth road creation system as highways!
+        let roadNode = createSmoothRoadSegmentNode(points: points, routeName: "dirt_\(cityName)")
+        
+        // Change the material to dirt color for all road pieces
+        roadNode.enumerateChildNodes { (node, stop) in
+            if let geometry = node.geometry {
+                let dirtMaterial = SCNMaterial()
+                dirtMaterial.diffuse.contents = NSColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 1.0) // Dirt brown
+                dirtMaterial.emission.contents = NSColor(red: 0.1, green: 0.05, blue: 0.0, alpha: 1.0)
+                dirtMaterial.roughness.contents = 0.9
+                dirtMaterial.metalness.contents = 0.0
+                geometry.materials = [dirtMaterial]
             }
-            
-            // Add orange edge lines
-            createDirtRoadEdgeLines(from: start, to: end, angle: Float(angle), index: i, cityName: cityName)
         }
+        
+        roadNode.name = "dirtRoad_\(cityName)"
+        scene.rootNode.addChildNode(roadNode)
     }
     
-    private func createDirtRoadCenterLine(from start: SCNVector3, to end: SCNVector3, angle: Float, index: Int, cityName: String) {
-        let distance = sqrt(pow(end.x - start.x, 2) + pow(end.z - start.z, 2))
-        
-        // White center line material
-        let centerMaterial = SCNMaterial()
-        centerMaterial.diffuse.contents = NSColor.white
-        centerMaterial.emission.contents = NSColor(white: 0.2, alpha: 1.0)
-        centerMaterial.roughness.contents = 0.3
-        
-        // Create dashed center line
-        let dashLength: CGFloat = 5.0
-        let gapLength: CGFloat = 5.0
-        var currentDistance: CGFloat = 2.0
-        
-        while currentDistance + dashLength < distance - 2.0 {
-            let ratio = currentDistance / CGFloat(distance)
-            let dashPosition = SCNVector3(
-                start.x + (end.x - start.x) * CGFloat(ratio),
-                0.1,  // Slightly above dirt road surface
-                start.z + (end.z - start.z) * CGFloat(ratio)
-            )
-            
-            let centerDash = SCNBox(width: 0.3, height: 0.03, length: dashLength, chamferRadius: 0)
-            centerDash.materials = [centerMaterial]
-            
-            let dashNode = SCNNode(geometry: centerDash)
-            dashNode.position = dashPosition
-            dashNode.eulerAngles = SCNVector3(0, CGFloat(angle), 0)
-            dashNode.name = "dirtCenterLine_\(cityName)_\(index)"
-            
-            scene.rootNode.addChildNode(dashNode)
-            
-            currentDistance += dashLength + gapLength
-        }
-    }
-    
-    private func createDirtRoadEdgeLines(from start: SCNVector3, to end: SCNVector3, angle: Float, index: Int, cityName: String) {
-        let distance = sqrt(pow(end.x - start.x, 2) + pow(end.z - start.z, 2))
-        
-        // Orange edge line material
-        let edgeMaterial = SCNMaterial()
-        edgeMaterial.diffuse.contents = NSColor.orange
-        edgeMaterial.emission.contents = NSColor(red: 0.5, green: 0.25, blue: 0, alpha: 1.0)
-        edgeMaterial.roughness.contents = 0.3
-        
-        // Calculate perpendicular offsets for edges
-        let dx = Float(end.x - start.x)
-        let dz = Float(end.z - start.z)
-        let length = sqrt(dx * dx + dz * dz)
-        let perpX = -dz / length
-        let perpZ = dx / length
-        
-        // Create edge lines at ±10 units (20 unit wide road)
-        for offset in [-10.0, 10.0] as [Float] {
-            let edgeStart = SCNVector3(
-                start.x + CGFloat(perpX * offset),
-                0.1,  // Slightly above dirt road surface
-                start.z + CGFloat(perpZ * offset)
-            )
-            let edgeEnd = SCNVector3(
-                end.x + CGFloat(perpX * offset),
-                0.1,  // Slightly above dirt road surface
-                end.z + CGFloat(perpZ * offset)
-            )
-            
-            let edgeLine = SCNBox(width: 0.3, height: 0.05, length: CGFloat(distance), chamferRadius: 0)
-            edgeLine.materials = [edgeMaterial]
-            
-            let edgeNode = SCNNode(geometry: edgeLine)
-            edgeNode.position = SCNVector3(
-                (edgeStart.x + edgeEnd.x) / 2,
-                0.1,  // Slightly above dirt road surface
-                (edgeStart.z + edgeEnd.z) / 2
-            )
-            edgeNode.eulerAngles = SCNVector3(0, Float(angle), 0)
-            edgeNode.name = "dirtEdgeLine_\(cityName)_\(index)"
-            
-            scene.rootNode.addChildNode(edgeNode)
-        }
-    }
+    // Dirt road marking functions removed - now using the same highway marking system
 } 
