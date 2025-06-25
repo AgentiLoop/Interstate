@@ -45,6 +45,9 @@ extension GameViewController {
         groundNode.position = SCNVector3(0, -0.5, 0) // Below road level
         groundNode.name = "ground"
         scene.rootNode.addChildNode(groundNode)
+        
+        // Add road system node for simple road loading
+        scene.rootNode.addChildNode(roadSystemNode)
     }
     
     // MARK: - Car Setup
@@ -58,8 +61,6 @@ extension GameViewController {
         let startPosition = gpsToSceneKit(latitude: lastSavedPosition.0, longitude: lastSavedPosition.1)
         carNode.position = SCNVector3(startPosition.x, 1.1, startPosition.z)
         scene.rootNode.addChildNode(carNode)
-        
-        print("🚗 Car positioned at saved location: \(lastSavedPosition)")
         
         // Initialize game timing and scoring
         gameStartTime = Date()

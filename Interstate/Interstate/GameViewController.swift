@@ -73,6 +73,7 @@ class GameViewController: NSViewController {
     var currentRouteLabel: NSTextField!
     var instructionsLabel: NSTextField!
     var compassLabel: NSTextField!
+    var segmentCountLabel: NSTextField! // For simple road loading system
     
     // MARK: - Radar Map Properties
     
@@ -107,7 +108,7 @@ class GameViewController: NSViewController {
     
     // MARK: - Road System Properties
     
-    var allRoadPoints: [String: [(Float, Float)]] = [:]
+    var allRoadPoints: [String: [(CGFloat, CGFloat)]] = [:]
     var intersectionZones: [SCNVector3] = []
     let intersectionRadius: Float = 30.0  // Radius of intersection zones
     
@@ -131,24 +132,39 @@ class GameViewController: NSViewController {
     var lastEngineRPM: Double = 0
     var lastGear: Int = 1
     
-    // MARK: - Dynamic Road Loading Properties
+    // MARK: - Simple Road Loading Properties
     
-    var loadedRoadNodes: [String: [SCNNode]] = [:] // Track loaded road segments by route
-    var loadedRouteSegments: [String: Set<Int>] = [:] // Track which segments are loaded per route
-    let roadLoadDistance: Float = 1500.0 // Load roads within 1.5km of player  
-    let roadUnloadDistance: Float = 3000.0 // Unload roads beyond 3km
-    var lastRoadUpdatePosition: SCNVector3 = SCNVector3(0, 0, 0)
-    var roadUpdateThreshold: Float = 300.0 // Only update when player moves 300m
+    // The new simple road loading system in GameViewController+RoadSystem.swift
+    // handles all road loading with these data structures:
+    var loadedRoadSegments: [String: SCNNode] = [:] // Simple segment tracking: key -> node
+    var roadSystemNode: SCNNode = SCNNode() // Root node for all road segments
     
-    // Store route data efficiently - don't generate all roads at startup
+    // Store route data efficiently
     var routeGPSData: [String: [(Double, Double)]] = [:]
-    var routeSmoothPoints: [String: [(Float, Float)]] = [:] // Cache smooth points
+    
+    // Legacy properties (kept for compatibility but not used by simple system)
+    var loadedRoadNodes: [String: [SCNNode]] = [:] // Not used by simple system
+    var loadedRouteSegments: [String: Set<Int>] = [:] // Not used by simple system
+    let roadLoadDistance: CGFloat = 800.0 // Not used - simple system has own constants
+    let roadUnloadDistance: CGFloat = 1200.0 // Not used - simple system has own constants
+    var lastRoadUpdatePosition: SCNVector3 = SCNVector3(0, 0, 0) // Not used
+    var roadUpdateThreshold: CGFloat = 150.0 // Not used - simple system doesn't throttle
+    var routeSmoothPoints: [String: [(CGFloat, CGFloat)]] = [:] // Not used by simple system
+    var lastRouteProcessTime: [String: Date] = [:] // Not used by simple system
+    let routeProcessThrottleInterval: TimeInterval = 5.0 // Not used by simple system
+    // OLD SYSTEM VARIABLES - COMPLETELY DISABLED to prevent 584 segment overload
+    let maxTotalSegments: Int = 200 // OBSOLETE - simple system uses MAX_SEGMENTS = 350
+    var currentTotalSegments: Int = 0 // OBSOLETE - simple system uses loadedRoadSegments.count
+    
+    // SIMPLE ROAD LOADING SYSTEM VARIABLES
+    var roadUpdateCounter = 0 // Reduces loading frequency to prevent stalls
+    var lastWorldOriginRebase: SCNVector3 = SCNVector3Zero // For floating point precision fix
     
     // MARK: - Dynamic Checkpoint Loading Properties
     
     var loadedCheckpoints: [String: SCNNode] = [:] // Track loaded checkpoint nodes
-    let checkpointLoadDistance: Float = 3000.0 // Load checkpoints within 3km
-    let checkpointUnloadDistance: Float = 4000.0 // Unload checkpoints beyond 4km
+    let checkpointLoadDistance: CGFloat = 3000.0 // Load checkpoints within 3km
+    let checkpointUnloadDistance: CGFloat = 4000.0 // Unload checkpoints beyond 4km
     var checkpointPositions: [String: (SCNVector3, Int)] = [:] // Cache checkpoint positions and populations
     
     // MARK: - Memory Management
@@ -180,7 +196,7 @@ class GameViewController: NSViewController {
         setupScene()
         setupCar()
         setupCamera()
-        setupRoads()
+        // setupRoads() - Removed: Simple road loading system loads roads dynamically in updateDynamicRoads()
         setupDirtRoads()  // Add dirt roads to off-road cities
         setupControls()
         setupHUD()

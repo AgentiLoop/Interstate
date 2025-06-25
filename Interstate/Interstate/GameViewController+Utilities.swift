@@ -59,16 +59,16 @@ extension GameViewController {
     // MARK: - Highway Detection
     
     func getCurrentHighway(position: SCNVector3) -> String {
-        let carX = Float(position.x)
-        let carZ = Float(position.z)
+        let carX = position.x
+        let carZ = position.z
         var closestHighway = ""
-        var minDistance: Float = Float.infinity
+        var minDistance: CGFloat = CGFloat.infinity
         
         // First check loaded road nodes (most accurate)
         for (routeName, nodes) in loadedRoadNodes {
             for node in nodes {
-                let distance = sqrt(pow(carX - Float(node.position.x), 2) + 
-                                  pow(carZ - Float(node.position.z), 2))
+                let distance = sqrt(pow(carX - node.position.x, 2) + 
+                                  pow(carZ - node.position.z, 2))
                 
                 if distance < minDistance {
                     minDistance = distance
@@ -83,13 +83,13 @@ extension GameViewController {
         }
         
         // Otherwise check all GPS data to find nearest highway
-        minDistance = Float.infinity
+        minDistance = CGFloat.infinity
         for (routeName, gpsCoordinates) in interstateRoutes {
             // Convert GPS to scene coordinates
-            var sceneCoordinates: [(Float, Float)] = []
+            var sceneCoordinates: [(CGFloat, CGFloat)] = []
             for (lat, lon) in gpsCoordinates {
                 let pos = gpsToSceneKit(latitude: lat, longitude: lon)
-                sceneCoordinates.append((Float(pos.x), Float(pos.z)))
+                sceneCoordinates.append((pos.x, pos.z))
             }
             
             // Check distance to each segment
@@ -116,7 +116,7 @@ extension GameViewController {
     
     // MARK: - Distance Calculations
     
-    func distanceToLineSegment(point: (Float, Float), lineStart: (Float, Float), lineEnd: (Float, Float)) -> Float {
+    func distanceToLineSegment(point: (CGFloat, CGFloat), lineStart: (CGFloat, CGFloat), lineEnd: (CGFloat, CGFloat)) -> CGFloat {
         let A = point.0 - lineStart.0
         let B = point.1 - lineStart.1
         let C = lineEnd.0 - lineStart.0
@@ -127,7 +127,7 @@ extension GameViewController {
         
         let param = dot / lenSq
         
-        let xx, yy: Float
+        let xx, yy: CGFloat
         if param < 0 {
             xx = lineStart.0
             yy = lineStart.1
@@ -144,7 +144,7 @@ extension GameViewController {
         return sqrt(dx * dx + dy * dy)
     }
     
-    func closestPointOnLineSegment(point: (Float, Float), lineStart: (Float, Float), lineEnd: (Float, Float)) -> (Float, Float) {
+    func closestPointOnLineSegment(point: (CGFloat, CGFloat), lineStart: (CGFloat, CGFloat), lineEnd: (CGFloat, CGFloat)) -> (CGFloat, CGFloat) {
         let A = point.0 - lineStart.0
         let B = point.1 - lineStart.1
         let C = lineEnd.0 - lineStart.0
@@ -219,7 +219,7 @@ extension GameViewController {
     
     // MARK: - Smooth Road Generation
     
-    func generateSmoothRoadPoints(from gpsCoordinates: [(Double, Double)]) -> [(Float, Float)] {
+    func generateSmoothRoadPoints(from gpsCoordinates: [(Double, Double)]) -> [(CGFloat, CGFloat)] {
         guard gpsCoordinates.count >= 2 else { return [] }
         
         // Convert GPS to scene coordinates
@@ -229,7 +229,7 @@ extension GameViewController {
             scenePoints.append(SCNVector3(pos.x, 0, pos.z))
         }
         
-        var smoothPoints: [(Float, Float)] = []
+        var smoothPoints: [(CGFloat, CGFloat)] = []
         let segmentsPerSection = 50 // Greatly increased for much smoother curves
         
         for i in 0..<scenePoints.count - 1 {
@@ -243,13 +243,13 @@ extension GameViewController {
             for j in 0..<segmentsPerSection {
                 let t = Float(j) / Float(segmentsPerSection)
                 let smoothPoint = catmullRomSpline(p0, p1, p2, p3, t)
-                smoothPoints.append((Float(smoothPoint.x), Float(smoothPoint.z)))
+                smoothPoints.append((smoothPoint.x, smoothPoint.z))
             }
         }
         
         // Add final point with proper smoothing
         if let lastPoint = scenePoints.last {
-            smoothPoints.append((Float(lastPoint.x), Float(lastPoint.z)))
+            smoothPoints.append((lastPoint.x, lastPoint.z))
         }
         
         return smoothPoints
@@ -257,7 +257,7 @@ extension GameViewController {
     
     // MARK: - Line Intersection
     
-    func lineIntersection(p1: (Float, Float), p2: (Float, Float), p3: (Float, Float), p4: (Float, Float)) -> (Float, Float)? {
+    func lineIntersection(p1: (CGFloat, CGFloat), p2: (CGFloat, CGFloat), p3: (CGFloat, CGFloat), p4: (CGFloat, CGFloat)) -> (CGFloat, CGFloat)? {
         let x1 = p1.0, y1 = p1.1
         let x2 = p2.0, y2 = p2.1
         let x3 = p3.0, y3 = p3.1

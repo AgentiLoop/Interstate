@@ -66,8 +66,18 @@ extension GameViewController {
         compassLabel.isEditable = false
         hudContainer.addSubview(compassLabel)
         
+        // Segment count label for simple road loading system
+        segmentCountLabel = NSTextField(frame: NSRect(x: 10, y: 41, width: 300, height: 18))
+        segmentCountLabel.isEditable = false
+        segmentCountLabel.isBordered = false
+        segmentCountLabel.backgroundColor = NSColor.clear
+        segmentCountLabel.textColor = NSColor.yellow
+        segmentCountLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        segmentCountLabel.stringValue = "0/200 segments"
+        hudContainer.addSubview(segmentCountLabel)
+        
         // Score label - FOURTH from top  
-        scoreLabel = NSTextField(frame: NSRect(x: 10, y: 41, width: 500, height: 18))
+        scoreLabel = NSTextField(frame: NSRect(x: 10, y: 23, width: 500, height: 18))
         scoreLabel.stringValue = "Score: 0 | High: \(highScore)"
         scoreLabel.textColor = NSColor.orange
         scoreLabel.font = NSFont.boldSystemFont(ofSize: 12)
@@ -77,8 +87,8 @@ extension GameViewController {
         hudContainer.addSubview(scoreLabel)
         
         // Time label - FIFTH from top
-        timeLabel = NSTextField(frame: NSRect(x: 10, y: 23, width: 500, height: 18))
-        timeLabel.stringValue = "Time: 0:00 | Checkpoints: 0 | Memory: Loading..."
+        timeLabel = NSTextField(frame: NSRect(x: 10, y: 5, width: 500, height: 18))
+        timeLabel.stringValue = "Time: 0:00 | Checkpoints: 0"
         timeLabel.textColor = NSColor.magenta
         timeLabel.font = NSFont.systemFont(ofSize: 11)
         timeLabel.backgroundColor = NSColor.clear
@@ -86,15 +96,7 @@ extension GameViewController {
         timeLabel.isEditable = false
         hudContainer.addSubview(timeLabel)
         
-        // Instructions label - BOTTOM of HUD (low Y value)
-        instructionsLabel = NSTextField(frame: NSRect(x: 10, y: 5, width: 500, height: 18))
-        instructionsLabel.stringValue = "S=GAS W=BRAKE A=LEFT D=RIGHT • 50+ MPH for checkpoints"
-        instructionsLabel.textColor = NSColor.yellow
-        instructionsLabel.font = NSFont.systemFont(ofSize: 9)
-        instructionsLabel.backgroundColor = NSColor.clear
-        instructionsLabel.isBordered = false
-        instructionsLabel.isEditable = false
-        hudContainer.addSubview(instructionsLabel)
+        // REMOVED - Instructions label was overlapping with time label
     }
     
     // MARK: - HUD Update
@@ -126,11 +128,8 @@ extension GameViewController {
             let totalTime = Date().timeIntervalSince(gameStartTime)
             let minutes = Int(totalTime) / 60
             let seconds = Int(totalTime) % 60
-            let memoryStats = getMemoryUsageStats()
-            timeLabel.stringValue = "Time: \(minutes):\(String(format: "%02d", seconds)) | Checkpoints: \(checkpointsReached.count) | \(memoryStats)"
+            timeLabel.stringValue = "Time: \(minutes):\(String(format: "%02d", seconds)) | Checkpoints: \(checkpointsReached.count) | Controls: S=GAS W=BRAKE A=LEFT D=RIGHT"
         }
-        
-        instructionsLabel.stringValue = "S=GAS W=BRAKE A=LEFT D=RIGHT • 50+ MPH for checkpoints\(steeringInfo)"
     }
     
     // MARK: - Radar Map Setup
@@ -366,17 +365,27 @@ extension GameViewController {
             }
         }
         
-        // Convert to miles and return
-        let distanceMiles = Int(Double(minDistance) / sceneScale / 1609.34)
+        // Convert to miles and return - SAFETY CHECK for infinite/NaN values
+        let distanceMiles: Int
+        let distanceMeters = Double(minDistance) / sceneScale
+        
+        if minDistance.isFinite && !minDistance.isNaN && distanceMeters.isFinite {
+            distanceMiles = Int(distanceMeters / 1609.34)
+        } else {
+            distanceMiles = 999 // Default fallback for invalid distances
+        }
+        
         return nearestCheckpoint.isEmpty ? "Unknown" : "→ \(nearestCheckpoint) (\(distanceMiles) mi)"
     }
     
     func getMemoryUsageStats() -> String {
-        var totalNodes = 0
-        var totalRoutes = 0
+        // Get data from SIMPLE road loading system - not the old complex system
+        let segmentCount = loadedRoadSegments.count
+        let maxSegments = 350 // User's requested limit
+        let segmentWarning = segmentCount >= maxSegments ? " ⚠️MAX" : ""
         
-        for (routeName, nodes) in loadedRoadNodes {
-            totalNodes += nodes.count
+        var totalRoutes = 0
+        for (_, nodes) in loadedRoadNodes {
             if !nodes.isEmpty {
                 totalRoutes += 1
             }
@@ -384,6 +393,6 @@ extension GameViewController {
         
         let loadedCheckpointCount = loadedCheckpoints.count
         
-        return "Loaded: \(totalRoutes) routes, \(totalNodes) segments, \(loadedCheckpointCount) checkpoints"
+        return "Loaded: \(totalRoutes) routes, \(segmentCount)/\(maxSegments) segments\(segmentWarning), \(loadedCheckpointCount) checkpoints"
     }
 }

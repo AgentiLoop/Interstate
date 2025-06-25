@@ -13,31 +13,18 @@ extension GameViewController {
     // MARK: - Dirt Road System
     
     func setupDirtRoads() {
-        print("🛤️ Setting up dirt roads to off-road cities...")
-        
         // Find cities that are FAR from any interstate
         var offRoadCities = findOffRoadCities()
         // FORCE Carson City to have dirt roads regardless
         let carsonCity = ("Carson City, NV", 39.1638, -119.7674, 25971)
         if !offRoadCities.contains(where: { $0.0 == "Carson City, NV" }) {
             offRoadCities.append(carsonCity)
-            print("🚨 FORCING Carson City, NV to have dirt roads!")
-        }
-        
-        print("🏘️ Found \(offRoadCities.count) off-road cities")
-        
-        // List all off-road cities found
-        for city in offRoadCities {
-            print("   - \(city.0)")
         }
         
         // Create dirt roads to these cities
         for (cityName, lat, lon, _) in offRoadCities {
-            print("🚧 Creating dirt road to \(cityName)")
             createDirtRoadToCity(cityName: cityName, latitude: lat, longitude: lon)
         }
-        
-        print("✅ Dirt roads created to off-road cities")
     }
     
     private func findOffRoadCities() -> [(String, Double, Double, Int)] {
@@ -56,7 +43,6 @@ extension GameViewController {
                     let distance = sqrt(pow(cityPos.x - highwayPos.x, 2) + pow(cityPos.z - highwayPos.z, 2))
                     if Float(distance) < minDistanceFromInterstate {
                         isOnInterstate = true
-                        print("✅ \(city.0) is ON \(routeName)")
                         break
                     }
                 }
@@ -66,11 +52,9 @@ extension GameViewController {
             // If NOT on interstate, it needs a dirt road!
             if !isOnInterstate {
                 offRoadCities.append(city)
-                print("🛤️ DIRT ROAD NEEDED: \(city.0)")
             }
         }
         
-        print("📊 Total cities needing dirt roads: \(offRoadCities.count) out of \(majorCities.count)")
         return offRoadCities
     }
     

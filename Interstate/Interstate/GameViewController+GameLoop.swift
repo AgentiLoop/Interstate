@@ -14,16 +14,10 @@ extension GameViewController {
     // MARK: - Game Loop
     
     @objc func gameLoop() {
-        // URGENT DEBUG: Check if game loop is running
-        NSLog("🚨 DEBUG: gameLoop ENTRY")
-        
         autoreleasepool {
             updateCarPhysics()
             updateCameraPosition() // Update camera independently
-            
-            NSLog("🚨 DEBUG: About to call updateDynamicRoads")
             updateDynamicRoads() // This now includes memory-managed route updates
-            NSLog("🚨 DEBUG: Called updateDynamicRoads, no crash")
             updateDynamicCheckpoints() // Load/unload checkpoint signs based on proximity
             checkForCheckpointCollision() // Check for checkpoint hits
             updateCarAudio() // Update realistic car audio system

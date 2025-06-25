@@ -172,14 +172,14 @@ class RouteLoadingOperation: Operation, @unchecked Sendable {
             self.progressCallback?(self.routeName, 0.0)
         }
         
-        // Actually process the route data instead of simulating
+        // Actually process the route data - optimized for speed
         if let coordinatesList = routeData as? [(Double, Double)] {
             
             let totalSteps = coordinatesList.count
             var processedSteps = 0
             
-            // Process coordinates in chunks to allow cancellation and progress updates
-            let chunkSize = max(1, totalSteps / 10) // 10 progress updates
+            // Process coordinates in larger chunks for faster loading
+            let chunkSize = max(1, totalSteps / 5) // Only 5 progress updates instead of 10
             
             for (index, coordinate) in coordinatesList.enumerated() {
                 if isCancelled { return }
@@ -188,10 +188,9 @@ class RouteLoadingOperation: Operation, @unchecked Sendable {
                 let _ = coordinate.0
                 let _ = coordinate.1
                 
-                // Actual processing would happen here
-                // For now, just a minimal delay to prevent blocking
+                // Removed artificial delay - process immediately
                 if index % chunkSize == 0 {
-                    Thread.sleep(forTimeInterval: 0.001) // 1ms per chunk
+                    // No more Thread.sleep - this was causing delays!
                     
                     processedSteps += chunkSize
                     let progress = Float(processedSteps) / Float(totalSteps)
@@ -274,60 +273,28 @@ class PredictiveLoader {
 extension GameViewController {
     
     func setupMemoryManagedRouteSystem() {
-        // Initialize components
-        memoryBudgetManager = MemoryBudgetManager(maxBudgetMB: 256)
-        routeLoadingStates = [:]
-        loadingQueue = OperationQueue()
-        loadingQueue.maxConcurrentOperationCount = 3 // Limit concurrent operations
-        loadingQueue.qualityOfService = .utility // Background priority
-        predictiveLoader = PredictiveLoader()
+        // COMPLETELY DISABLED - Using simple road loading system instead
+        print("🚫 Complex memory-managed route system COMPLETELY DISABLED")
+        print("✅ Using simple road loading system from updateDynamicRoads()")
         
-        // Start the management loop
-        startMemoryManagementLoop()
-        
-        print("🚀 Advanced memory-managed route system initialized")
-        print("📊 Memory budget: 256MB")
+        // ZERO initialization - prevents all background loading that causes 584 segments
+        // No background operations, no timers, no complex state management
+        // All loading is now handled by the simple updateDynamicRoads() function
+        return // Early return prevents any initialization
     }
     
     private func startMemoryManagementLoop() {
-        // Use proper async timer instead of blocking sleep
-        let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-            DispatchQueue.global(qos: .utility).async {
-                self?.performMemoryManagement()
-            }
-        }
-        
-        // Store timer to prevent deallocation
-        objc_setAssociatedObject(self, &AssociatedKeys.memoryTimer, timer, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        // COMPLETELY DISABLED - This was causing the 584 segment overload
+        // All loading now handled by simple updateDynamicRoads() system
+        print("🚫 startMemoryManagementLoop() DISABLED - prevents 584 segment overload")
+        return // Early return prevents any background operations
     }
     
     private func performMemoryManagement() {
-        guard let carNode = carNode else { return }
-        
-        let currentPosition = carNode.position
-        let currentPositionGPS = convertSceneToGPS(currentPosition)
-        
-        // Get predicted position for early loading
-        let predictedPosition = predictiveLoader.predictFuturePosition(currentPosition: currentPosition)
-        let predictedGPS = convertSceneToGPS(predictedPosition)
-        
-        // Determine routes to load/unload
-        let routesToLoad = getRoutesToLoad(currentGPS: currentPositionGPS, predictedGPS: predictedGPS)
-        let routesToUnload = getRoutesToUnload(currentGPS: currentPositionGPS)
-        
-        // Handle memory pressure
-        handleMemoryPressure(routesToLoad: routesToLoad)
-        
-        // Start loading new routes
-        loadRoutes(routesToLoad)
-        
-        // Unload old routes
-        unloadRoutes(routesToUnload)
-        
-        // Log status occasionally
-        if Int(Date().timeIntervalSince1970) % 15 == 0 {
-            logMemoryStatus()
-        }
+        // COMPLETELY DISABLED - This was the source of 584 segment overload
+        // All loading now handled by simple updateDynamicRoads() system  
+        print("🚫 performMemoryManagement() DISABLED - prevents background overload")
+        return // Early return prevents all background loading operations
     }
     
     private func getRoutesToLoad(currentGPS: (lat: Double, lon: Double), predictedGPS: (lat: Double, lon: Double)) -> [String] {
@@ -349,8 +316,8 @@ extension GameViewController {
             let predictedDistance = getMinimumDistanceToRoute(routeName: routeName, gps: predictedGPS)
             let minDistance = min(currentDistance, predictedDistance)
             
-            // Load if within threshold (reduced to 15km for more aggressive loading)
-            if minDistance < 15000 { // 15km
+            // BALANCED LOADING - Load if within 20km (reasonable distance for segment limits)
+            if minDistance < 20000 { // 20km - balanced between loading and memory limits
                 routesToLoad.append(routeName)
             }
         }
@@ -372,8 +339,8 @@ extension GameViewController {
             
             let distance = getMinimumDistanceToRoute(routeName: routeName, gps: currentGPS)
             
-            // Unload if far away (increased to 75km for better retention)
-            if distance > 75000 { // 75km
+            // BALANCED UNLOADING - Unload if beyond 35km 
+            if distance > 35000 { // 35km - gives good buffer for loaded routes
                 routesToUnload.append(routeName)
             }
         }
@@ -386,7 +353,7 @@ extension GameViewController {
         
         // If we're over 80% usage, be more aggressive about eviction
         if usagePercentage > 0.8 {
-            let targetReduction = Int(Float(256 * 1024 * 1024) * 0.2) // Free 20% of 256MB
+            let targetReduction = Int(Float(200 * 1024 * 1024) * 0.2) // Free 20% of 200MB budget
             let routesToEvict = memoryBudgetManager.getRoutesToEvict(toFreeBytes: targetReduction)
             unloadRoutes(routesToEvict)
         }
@@ -401,7 +368,7 @@ extension GameViewController {
         }
         
         // Free memory if needed for new routes
-        if memoryBudgetManager.currentUsage + memoryNeeded > (256 * 1024 * 1024) {
+        if memoryBudgetManager.currentUsage + memoryNeeded > (200 * 1024 * 1024) {
             let routesToEvict = memoryBudgetManager.getRoutesToEvict(toFreeBytes: memoryNeeded)
             unloadRoutes(routesToEvict)
         }
@@ -437,12 +404,12 @@ extension GameViewController {
         if case .loaded(let footprint) = state {
             memoryBudgetManager.allocate(routeName, footprint: footprint)
             
-            // Generate road geometry on background queue
-            DispatchQueue.global(qos: .utility).async { [weak self] in
+            // Generate road geometry immediately on main thread for faster response
+            DispatchQueue.main.async { [weak self] in
                 self?.generateRouteGeometry(routeName)
             }
             
-            print("✅ Loaded \(routeName): \(footprint.totalSize / 1024)KB")
+            // Route loaded successfully
         }
     }
     
@@ -456,17 +423,12 @@ extension GameViewController {
                 self?.removeRouteFromScene(routeName)
             }
             
-            print("🗑️ Unloaded \(routeName)")
+            // Route unloaded
         }
     }
     
     private func logMemoryStatus() {
-        let usage = memoryBudgetManager.currentUsage
-        let percentage = memoryBudgetManager.usagePercentage
-        let loadedCount = routeLoadingStates.values.filter { $0.isLoaded }.count
-        let activeCount = activeRoutes.count
-        
-        print("🧠 Memory: \(usage / (1024*1024))MB/256MB (\(String(format: "%.1f", percentage * 100))%) | Routes: \(loadedCount) loaded, \(activeCount) active")
+        // Memory status tracking (logging disabled)
     }
     
     // MARK: - Helper Methods
@@ -489,10 +451,19 @@ extension GameViewController {
     }
     
     private func generateRouteGeometry(_ routeName: String) {
-        // Force the road system to recognize this route and generate geometry
-        DispatchQueue.main.async { [weak self] in
-            self?.addRouteToScene(routeName)
+        // Check if we already have smooth points to avoid regenerating
+        if routeSmoothPoints[routeName] == nil {
+            // Pre-generate smooth points immediately for faster road rendering
+            if let gpsCoordinates = getRouteData(routeName: routeName) {
+                let smoothPoints = generateSmoothRoadPoints(from: gpsCoordinates)
+                routeSmoothPoints[routeName] = smoothPoints
+                allRoadPoints[routeName] = smoothPoints // For compatibility
+                // Smooth points generated
+            }
         }
+        
+        // Force the road system to recognize this route and generate geometry immediately
+        self.addRouteToScene(routeName)
     }
     
     private func addRouteToScene(_ routeName: String) {
@@ -504,8 +475,10 @@ extension GameViewController {
             loadedRouteSegments[routeName] = Set<Int>()
         }
         
-        // Don't call updateDynamicRoads recursively - let the game loop handle it
-        print("🏗️ Route \(routeName) ready for rendering (road tracking initialized)")
+        // Add throttling - only trigger road update if route is actually new
+        if routeSmoothPoints[routeName] != nil && loadedRouteSegments[routeName]?.isEmpty == true {
+            self.updateDynamicRoads()
+        }
     }
     
     private func removeRouteFromScene(_ routeName: String) {
@@ -534,6 +507,120 @@ extension GameViewController {
         return Set(routeLoadingStates.compactMap { (key, value) in
             value.isLoaded ? key : nil
         })
+    }
+    
+    private func setupImmediateLoadingSystem() {
+        // Check for immediate route loading frequently to ensure roads are always available
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            while self != nil {
+                Thread.sleep(forTimeInterval: 0.2) // Fast checks to ensure immediate loading
+                self?.checkForImmediateRouteLoading()
+            }
+        }
+    }
+    
+    private func checkForImmediateRouteLoading() {
+        guard let carNode = carNode else { return }
+        
+        let currentPosition = carNode.position
+        let currentPositionGPS = convertSceneToGPS(currentPosition)
+        
+        // Find routes within immediate loading distance (8km - increased slightly)
+        for (routeName, _) in interstateRoutes {
+            // Skip if already loaded or loading
+            if let state = routeLoadingStates[routeName] {
+                switch state {
+                case .loaded, .loading:
+                    continue
+                case .unloaded, .failed:
+                    break
+                }
+            }
+            
+            let distance = getMinimumDistanceToRoute(routeName: routeName, gps: currentPositionGPS)
+            
+            // Immediate loading for very close routes (8km - balanced for early loading)
+            if distance < 8000 {
+                loadRoutesWithHighPriority([routeName])
+            }
+        }
+    }
+    
+    private func loadRoutesWithHighPriority(_ routeNames: [String]) {
+        for routeName in routeNames {
+            guard let routeData = interstateRoutes[routeName] else { continue }
+            
+            // Update state to loading
+            routeLoadingStates[routeName] = .loading(progress: 0.0)
+            
+            // Create high-priority loading operation
+            let operation = RouteLoadingOperation(routeName: routeName, routeData: routeData) { [weak self] name, progress in
+                self?.routeLoadingStates[name] = .loading(progress: progress)
+            }
+            
+            // Set maximum priority for immediate loading
+            operation.queuePriority = .veryHigh
+            
+            operation.completionBlock = { [weak self] in
+                DispatchQueue.main.async {
+                    if let result = operation.result {
+                        self?.handleLoadingResult(result.0, state: result.1)
+                    }
+                }
+            }
+            
+            loadingQueue.addOperation(operation)
+        }
+    }
+    
+    // Add function to immediately load closest routes when segment count is low
+    private func loadClosestRoutesImmediately(currentGPS: (lat: Double, lon: Double)) {
+        var routeDistances: [(String, Double)] = []
+        
+        // Calculate distances to all routes
+        for (routeName, _) in interstateRoutes {
+            // Skip if already loaded or loading
+            if let state = routeLoadingStates[routeName] {
+                switch state {
+                case .loaded, .loading:
+                    continue
+                case .unloaded, .failed:
+                    break
+                }
+            }
+            
+            let distance = getMinimumDistanceToRoute(routeName: routeName, gps: currentGPS)
+            routeDistances.append((routeName, distance))
+        }
+        
+        // Sort by distance and load closest routes immediately
+        routeDistances.sort { $0.1 < $1.1 }
+        
+        // Load up to 5 closest routes immediately, regardless of distance
+        let routesToLoadImmediately = Array(routeDistances.prefix(5)).map { $0.0 }
+        
+        for routeName in routesToLoadImmediately {
+            guard let routeData = interstateRoutes[routeName] else { continue }
+            
+            // Load immediately with high priority
+            routeLoadingStates[routeName] = .loading(progress: 0.0)
+            
+            let operation = RouteLoadingOperation(routeName: routeName, routeData: routeData) { [weak self] name, progress in
+                self?.routeLoadingStates[name] = .loading(progress: progress)
+            }
+            
+            operation.queuePriority = .veryHigh
+            
+            operation.completionBlock = { [weak self] in
+                DispatchQueue.main.async {
+                    if let result = operation.result {
+                        self?.handleLoadingResult(result.0, state: result.1)
+                    }
+                }
+            }
+            
+            loadingQueue.addOperation(operation)
+        }
     }
 }
 
@@ -583,5 +670,4 @@ private struct AssociatedKeys {
     static var routeLoadingStates = "routeLoadingStates"
     static var loadingQueue = "loadingQueue"
     static var predictiveLoader = "predictiveLoader"
-    static var memoryTimer = "memoryTimer"
 } 

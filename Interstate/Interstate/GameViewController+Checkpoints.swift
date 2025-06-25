@@ -14,29 +14,12 @@ extension GameViewController {
     // MARK: - Checkpoint Setup
     
     func setupCheckpointGates() {
-        print("🚩 Pre-calculating checkpoint positions...")
-        print("📊 Available route data: \(routeGPSData.count) routes")
-        print("📊 Major cities to process: \(majorCities.count)")
-        
         // Pre-calculate checkpoint positions but don't create visual gates
         for (cityName, lat, lon, population) in majorCities {
             let cityPos = gpsToSceneKit(latitude: lat, longitude: lon)
-            print("🏙️ Processing \(cityName) at \(cityPos)")
             
             // For now, just use city positions directly - highway finding might be the issue
             checkpointPositions[cityName] = (cityPos, population)
-            print("📍 \(cityName) checkpoint position set at city location")
-            
-            // Debug: Check distance from player start position
-            let startPos = gpsToSceneKit(latitude: lastSavedPosition.0, longitude: lastSavedPosition.1)
-            let distanceFromStart = sqrt(pow(cityPos.x - startPos.x, 2) + pow(cityPos.z - startPos.z, 2))
-            print("   Distance from start: \(Int(distanceFromStart))m")
-        }
-        
-        print("✅ \(checkpointPositions.count) checkpoint positions ready for dynamic loading")
-        print("🔍 First few checkpoint positions:")
-        for (name, (pos, pop)) in Array(checkpointPositions.prefix(5)) {
-            print("   \(name): \(pos), pop: \(pop)")
         }
         
         // Test checkpoints removed - using only real city checkpoints now
@@ -278,10 +261,10 @@ extension GameViewController {
                     debugCount += 1
                 }
                 
-                if Float(distance) <= checkpointLoadDistance && !isLoaded {
+                if distance <= checkpointLoadDistance && !isLoaded {
                     checkpointsToLoad.append(cityName)
                     print("✅ Adding \(cityName) to load list (distance: \(Int(distance))m)")
-                } else if Float(distance) > checkpointUnloadDistance && isLoaded {
+                } else if distance > checkpointUnloadDistance && isLoaded {
                     checkpointsToUnload.append(cityName)
                 }
             }
@@ -325,7 +308,7 @@ extension GameViewController {
     
     func getRoadDirectionAt(position: SCNVector3) -> Float {
         var closestDirection: Float = 0.0
-        var minDistance: Float = Float.infinity
+        var minDistance: CGFloat = CGFloat.infinity
         
         // Check all interstate routes to find the direction of the nearest road segment
         for (_, roadPoints) in allRoadPoints {
@@ -336,22 +319,22 @@ extension GameViewController {
                 
                 // Find closest point on this line segment
                 let segmentPoint = closestPointOnLineSegment(
-                    point: (Float(position.x), Float(position.z)),
+                    point: (position.x, position.z),
                     lineStart: start,
                     lineEnd: end
                 )
                 
                 // Calculate distance to this segment
-                let segmentPos = SCNVector3(CGFloat(segmentPoint.0), 0, CGFloat(segmentPoint.1))
+                let segmentPos = SCNVector3(segmentPoint.0, 0, segmentPoint.1)
                 let distance = sqrt(pow(position.x - segmentPos.x, 2) + pow(position.z - segmentPos.z, 2))
                 
-                if Float(distance) < minDistance {
-                    minDistance = Float(distance)
+                if distance < minDistance {
+                    minDistance = distance
                     
                     // Calculate direction of this road segment
                     let deltaX = end.0 - start.0
                     let deltaZ = end.1 - start.1
-                    closestDirection = atan2(deltaZ, deltaX)
+                    closestDirection = atan2(Float(deltaZ), Float(deltaX))
                 }
             }
         }
@@ -364,11 +347,11 @@ extension GameViewController {
         
         var checkpointsToRemove: [String] = []
         var checkpointsMoved = 0
-        let maxDistanceToMove: Float = 16093.0 // 10 miles in meters
+        let maxDistanceToMove: CGFloat = 16093.0 // 10 miles in meters
         
         for (cityName, (checkpointPos, population)) in checkpointPositions {
             var closestHighwayPoint: SCNVector3?
-            var minDistanceToRoad: Float = Float.infinity
+            var minDistanceToRoad: CGFloat = CGFloat.infinity
             var closestRouteName: String = ""
             
             // Find the closest highway point across ALL interstate routes
@@ -378,8 +361,8 @@ extension GameViewController {
                     let distance = sqrt(pow(checkpointPos.x - routePoint.x, 2) + 
                                       pow(checkpointPos.z - routePoint.z, 2))
                     
-                    if Float(distance) < minDistanceToRoad {
-                        minDistanceToRoad = Float(distance)
+                    if distance < minDistanceToRoad {
+                        minDistanceToRoad = distance
                         closestHighwayPoint = SCNVector3(routePoint.x, 0, routePoint.z)
                         closestRouteName = routeName
                     }

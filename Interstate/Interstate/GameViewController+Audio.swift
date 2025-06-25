@@ -14,8 +14,6 @@ extension GameViewController {
     // MARK: - Car Audio System Setup
     
     func setupCarAudio() {
-        print("🔊 Setting up realistic car audio system...")
-        
         // Initialize audio sources
         initializeAudioSources()
         
@@ -27,8 +25,6 @@ extension GameViewController {
         
         // Test the audio system
         testAudioSystem()
-        
-        print("✅ Car audio system initialized successfully!")
     }
     
     private func initializeAudioSources() {
@@ -47,7 +43,7 @@ extension GameViewController {
         tireSquealSound = createAudioSource(named: "tire_squeal.mp3", shouldLoop: true)
         brakeSound = createAudioSource(named: "brake_sound.mp3")
         
-        print("🎵 Loaded \(engineShiftingSounds.count + 5) car audio files")
+        // Audio files loaded
     }
     
     private func createAudioSource(named fileName: String, shouldLoop: Bool = false) -> SCNAudioSource {
@@ -64,7 +60,6 @@ extension GameViewController {
             return fallbackSource
         }
         
-        print("✅ Successfully loaded audio file: \(fileName)")
         audioSource.loops = shouldLoop
         audioSource.isPositional = true
         audioSource.volume = 1.0
@@ -99,15 +94,13 @@ extension GameViewController {
             tireAudioNodes.append(tireNode)
         }
         
-        print("🎯 Created \(tireAudioNodes.count + 2) positional audio nodes")
+        // Audio nodes created
     }
     
     // MARK: - Engine Audio Control
     
     private func startEngine() {
         guard !isEngineRunning else { return }
-        
-        print("🚗 Starting engine...")
         
         // Play engine start sound
         engineAudioNode.runAction(SCNAction.playAudio(engineStartSound, waitForCompletion: false))
@@ -218,8 +211,6 @@ extension GameViewController {
     }
     
     private func performGearShift(from oldGear: Int, to newGear: Int) {
-        print("⚙️ Shifting from gear \(oldGear) to gear \(newGear)")
-        
         // Play appropriate shifting sound
         let shiftSoundIndex = min(newGear - 1, engineShiftingSounds.count - 1)
         if shiftSoundIndex >= 0 && shiftSoundIndex < engineShiftingSounds.count {
@@ -289,7 +280,7 @@ extension GameViewController {
         
         // Volume is controlled by the SCNAudioSource, not the player
         
-        print("🛞 Tire squeal started (intensity: \(String(format: "%.2f", intensity)))")
+        // Tire squeal started
     }
     
     private func stopTireSqueal() {
@@ -301,7 +292,6 @@ extension GameViewController {
         }
         
         tireSquealPlayer = nil
-        print("🛞 Tire squeal stopped")
     }
     
     // MARK: - Audio Update Method
@@ -324,32 +314,9 @@ extension GameViewController {
     // MARK: - Debug Audio Test Method
     
     private func testAudioSystem() {
-        print("🔊 Testing audio system...")
-        
         // Test if we can play a system sound
         NSSound.beep()
         
-        // Test if our audio nodes are properly set up
-        if engineAudioNode != nil {
-            print("✅ Engine audio node exists")
-        } else {
-            print("❌ Engine audio node is nil")
-        }
-        
-        if exhaustAudioNode != nil {
-            print("✅ Exhaust audio node exists")
-        } else {
-            print("❌ Exhaust audio node is nil")
-        }
-        
-        print("🔊 Tire audio nodes count: \(tireAudioNodes.count)")
-        
-        // Test if audio sources loaded
-        print("🎵 Engine start sound loaded: \(engineStartSound != nil)")
-        print("🎵 Engine idle sound loaded: \(engineIdleSound != nil)")
-        print("🎵 Engine rev sound loaded: \(engineRevSound != nil)")
-        print("🎵 Tire squeal sound loaded: \(tireSquealSound != nil)")
-        print("🎵 Brake sound loaded: \(brakeSound != nil)")
-        print("🎵 Gear shift sounds loaded: \(engineShiftingSounds.count)")
+        // Audio system validation completed silently
     }
 }

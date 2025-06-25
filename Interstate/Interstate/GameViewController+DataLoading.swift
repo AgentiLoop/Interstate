@@ -13,10 +13,7 @@ extension GameViewController {
     // MARK: - JSON Data Loading Functions
     
     func loadInterstateRoutesFromJSON() {
-        print("📂 Loading interstate routes from JSON...")
-        
         guard let jsonPath = Bundle.main.path(forResource: "interstate_routes", ofType: "json") else {
-            print("❌ Could not find interstate_routes.json")
             // Try alternative path (in case it's in the project directory during development)
             if let alternativePath = Bundle.main.path(forResource: "Interstate/interstate_routes", ofType: "json") {
                 loadInterstateRoutesFromPath(alternativePath)
@@ -25,8 +22,6 @@ extension GameViewController {
                 let devPath = "\(FileManager.default.currentDirectoryPath)/Interstate/interstate_routes.json"
                 if FileManager.default.fileExists(atPath: devPath) {
                     loadInterstateRoutesFromPath(devPath)
-                } else {
-                    print("❌ Failed to find interstate_routes.json - using empty data")
                 }
             }
             return
@@ -52,7 +47,10 @@ extension GameViewController {
                 
                 // Assign loaded routes directly
                 interstateRoutes = loadedRoutes
-                print("✅ Loaded \(loadedRoutes.count) interstate routes from JSON")
+                
+                // ALSO copy to routeGPSData for the simple road loading system
+                routeGPSData = loadedRoutes
+                print("✅ Loaded \(loadedRoutes.count) interstate routes for simple road loading system")
             }
         } catch {
             print("❌ Error loading interstate routes: \(error)")
@@ -60,10 +58,7 @@ extension GameViewController {
     }
     
     func loadMajorCitiesFromJSON() {
-        print("📂 Loading major cities from JSON...")
-        
         guard let jsonPath = Bundle.main.path(forResource: "major_cities", ofType: "json") else {
-            print("❌ Could not find major_cities.json")
             // Try alternative path
             if let alternativePath = Bundle.main.path(forResource: "Interstate/major_cities", ofType: "json") {
                 loadMajorCitiesFromPath(alternativePath)
@@ -72,8 +67,6 @@ extension GameViewController {
                 let devPath = "\(FileManager.default.currentDirectoryPath)/Interstate/major_cities.json"
                 if FileManager.default.fileExists(atPath: devPath) {
                     loadMajorCitiesFromPath(devPath)
-                } else {
-                    print("❌ Failed to find major_cities.json - using empty data")
                 }
             }
             return
@@ -101,7 +94,6 @@ extension GameViewController {
                 
                 // Assign loaded cities directly
                 majorCities = loadedCities
-                print("✅ Loaded \(loadedCities.count) major cities from JSON")
             }
         } catch {
             print("❌ Error loading major cities: \(error)")
@@ -142,11 +134,9 @@ extension GameViewController {
         // If we have valid saved coordinates, use them
         if savedLat != 0.0 && savedLon != 0.0 {
             lastSavedPosition = (savedLat, savedLon)
-            print("📍 Loaded saved position: \(savedLat), \(savedLon)")
         } else {
             // First time playing - start in Los Angeles
             lastSavedPosition = (34.0522, -118.2437)
-            print("📍 No saved position found, starting in Los Angeles")
         }
     }
     

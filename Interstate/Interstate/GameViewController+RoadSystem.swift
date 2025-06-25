@@ -11,565 +11,453 @@ import Foundation
 
 extension GameViewController {
     
-    // MARK: - Road System Setup
+    // MARK: - SIMPLE ROAD LOADING SYSTEM
+    // Based on 3D game LOD and streaming best practices
     
-    func setupRoads() {
-        print("🚀 Setting up memory-managed road system...")
-        
-        // Setup memory-managed route loading instead of loading all routes
-        setupMemoryManagedRouteSystem()
-        
-        // Debug: Print all available highways from the master list
-        print("🛣️ Master highway list:")
-        let sortedHighways = Array(interstateRoutes.keys).sorted()
-        for highway in sortedHighways {
-            if let coords = interstateRoutes[highway] {
-                print("  - \(highway) (\(coords.count) GPS points)")
-            }
-        }
-        
-        // Check for any duplicate or weird names
-        let uniqueNames = Set(sortedHighways)
-        if uniqueNames.count != sortedHighways.count {
-            print("⚠️ WARNING: Duplicate highway names detected!")
-        }
-        
-        // Add checkpoint gates at cities
-        setupCheckpointGates()
-        
-        print("✅ Memory-managed road system ready!")
-        
-        // Force initial road loading
-        print("🚀 Force loading initial roads...")
-        
-        // FORCED UPDATE: Bypass all thresholds for initial loading
-        lastRoadUpdatePosition = SCNVector3(-99999, -99999, -99999) // Force update
-        updateDynamicRoads()
-        
-        // Also try to manually trigger road generation for any loaded routes
-        print("🔍 Attempting to generate roads for loaded routes...")
-        let currentlyLoaded = Array(loadedRouteData)
-        print("📋 Currently loaded routes: \(currentlyLoaded.joined(separator: ", "))")
-        
-        if !currentlyLoaded.isEmpty {
-            for routeName in currentlyLoaded {
-                if let gpsCoordinates = getRouteData(routeName: routeName) {
-                    let smoothPoints = generateSmoothRoadPoints(from: gpsCoordinates)
-                    routeSmoothPoints[routeName] = smoothPoints
-                    allRoadPoints[routeName] = smoothPoints
-                    print("🛣️ Pre-generated smooth points for \(routeName) (\(smoothPoints.count) points)")
-                }
-            }
-            
-            // Force another road update now that we have smooth points
-            updateDynamicRoads()
-        } else {
-            print("⚠️ No routes loaded yet during initial setup")
-        }
-        
-        print("🚀 Initial road loading completed")
-    }
+    // SIMPLE ROAD LOADING SYSTEM - Based on 3D game LOD and streaming best practices
     
-    // MARK: - Dynamic Road Loading
+    // Reduce frequency counters moved to main GameViewController class
     
+    // Single update function - called from game loop
     func updateDynamicRoads() {
-        // URGENT DEBUG: This should appear every frame
-        NSLog("🚨 DEBUG: updateDynamicRoads ENTRY")
-        print("🚨 URGENT DEBUG: updateDynamicRoads function called!")
+        guard let playerNode = carNode else { return }
         
-        autoreleasepool {
-            let playerPosition = carNode.position
-            NSLog("🚨 DEBUG: Got player position: %f, %f", playerPosition.x, playerPosition.z)
-            
-            print("🔄 updateDynamicRoads called at position (\(Int(playerPosition.x)), \(Int(playerPosition.z)))")
-            
-            // Memory management happens automatically in background thread
-            
-            // Only update if player moved significantly
-            let distanceMoved = sqrt(pow(playerPosition.x - lastRoadUpdatePosition.x, 2) + 
-                                   pow(playerPosition.z - lastRoadUpdatePosition.z, 2))
-            
-            if distanceMoved < CGFloat(roadUpdateThreshold) {
-                print("📍 Player hasn't moved enough (\(Int(distanceMoved))m < \(roadUpdateThreshold)m), skipping road update")
-                return
-            }
-            
-            lastRoadUpdatePosition = playerPosition
-            
-            // Check only loaded routes to save processing
-            let nearbyRoutes = findLoadedNearbyRoutes(playerPosition: playerPosition)
-            
-            if nearbyRoutes.isEmpty {
-                print("❌ No nearby routes found to render!")
-                return
-            }
-            
-            for routeName in nearbyRoutes {
-                autoreleasepool {
-                    // Calculate smooth points on-demand only for loaded routes
-                    if routeSmoothPoints[routeName] == nil {
-                        if let gpsCoordinates = getRouteData(routeName: routeName) {
-                            let smoothPoints = generateSmoothRoadPoints(from: gpsCoordinates)
-                            routeSmoothPoints[routeName] = smoothPoints
-                            allRoadPoints[routeName] = smoothPoints // For compatibility
-                            print("📍 Generated smooth points for \(routeName) on-demand (\(smoothPoints.count) points)")
-                            
-                            // Memory tracking handled by the new system automatically
-                        } else {
-                            print("❌ Could not get GPS coordinates for \(routeName)")
-                        }
-                    }
-                    
-                    if let smoothPoints = routeSmoothPoints[routeName] {
-                        print("🛣️ Processing road segments for \(routeName) (\(smoothPoints.count) smooth points)")
-                        updateRouteSegments(routeName: routeName, smoothPoints: smoothPoints, playerPosition: playerPosition)
-                    } else {
-                        print("❌ No smooth points available for \(routeName)")
-                    }
-                }
-            }
-            
-            // Update edge lines for loaded segments only
-            updateVisibleEdgeLines()
-            
-            print("✅ Road update completed for \(nearbyRoutes.count) routes")
+        // USER REQUIREMENTS - STRICT LIMITS to prevent memory explosion and stalls
+        let SEGMENT_LOAD_DISTANCE: CGFloat = 2000.0    // Increased to ensure roads are found
+        let SEGMENT_UNLOAD_DISTANCE: CGFloat = 3000.0  // Increased accordingly
+        let MAX_SEGMENTS: Int = 350                   // USER'S REQUIRED LIMIT - never exceed!
+        let MIN_SEGMENTS: Int = 100                   // Reasonable minimum
+        
+        // STALL PREVENTION - Only update every 8 frames to prevent constant loading
+        // BUT: Always update on first few frames when no roads are loaded
+        roadUpdateCounter += 1
+        if roadUpdateCounter % 8 != 0 && loadedRoadSegments.count > 10 { return }
+        
+        let playerPosition = playerNode.position
+        
+        // FLOATING POINT PRECISION FIX - World origin rebasing for large coordinates
+        checkAndRebaseWorldOrigin(playerPosition: playerPosition)
+        
+        // Get current segment count
+        let currentSegmentCount = loadedRoadSegments.count
+        
+        // Phase 1: STRICT EMERGENCY unloading if over user's limit
+        if currentSegmentCount > MAX_SEGMENTS {
+            emergencyUnload(playerPosition: playerPosition, maxSegments: MAX_SEGMENTS)
+            return // Don't load anything when over limit - USER REQUIREMENT
+        }
+        
+        // Phase 2: Regular unloading of distant segments  
+        unloadDistantSegments(playerPosition: playerPosition, unloadDistance: SEGMENT_UNLOAD_DISTANCE)
+        
+        // Phase 3: Load nearby segments - ALWAYS try to load if under limit
+        if loadedRoadSegments.count < MAX_SEGMENTS { 
+            loadNearbySegments(playerPosition: playerPosition, loadDistance: SEGMENT_LOAD_DISTANCE, maxSegments: MAX_SEGMENTS)
+        }
+        
+        // Update HUD with current status
+        updateSegmentHUD(maxSegments: MAX_SEGMENTS)
+    }
+    
+    // MARK: - Emergency Unloading
+    private func emergencyUnload(playerPosition: SCNVector3, maxSegments: Int) {
+        // Calculate distances to all loaded segments
+        var segmentDistances: [(String, CGFloat)] = []
+        
+        for (segmentKey, _) in loadedRoadSegments {
+            let distance = calculateSegmentDistance(segmentKey: segmentKey, playerPosition: playerPosition)
+            segmentDistances.append((segmentKey, distance))
+        }
+        
+        // Sort by distance (farthest first)
+        segmentDistances.sort { $0.1 > $1.1 }
+        
+        // Unload the farthest segments until we're at the limit
+        let segmentsToUnload = segmentDistances.count - maxSegments
+        for i in 0..<segmentsToUnload {
+            let segmentKey = segmentDistances[i].0
+            unloadRoadSegment(segmentKey: segmentKey)
         }
     }
     
-    func loadRoadSegmentsInBackground(routeName: String, smoothPoints: [(Float, Float)], segmentsToLoad: Set<Int>) {
-        print("🚧 Loading \(segmentsToLoad.count) road segments for \(routeName) in background")
+    // MARK: - Regular Unloading
+    private func unloadDistantSegments(playerPosition: SCNVector3, unloadDistance: CGFloat) {
+        var segmentsToUnload: [String] = []
         
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
+        for (segmentKey, _) in loadedRoadSegments {
+            let distance = calculateSegmentDistance(segmentKey: segmentKey, playerPosition: playerPosition)
             
-            var roadNodesToAdd: [SCNNode] = []
-            
-            autoreleasepool {
-                for segmentIndex in segmentsToLoad {
-                    if segmentIndex < smoothPoints.count - 1 {
-                        let start = smoothPoints[segmentIndex]
-                        let end = smoothPoints[segmentIndex + 1]
-                        
-                        // Create road node in background
-                        let roadNode = self.createRoadSegmentNode(
-                            from: SCNVector3(start.0, 0, start.1),
-                            to: SCNVector3(end.0, 0, end.1),
-                            routeName: routeName,
-                            segmentIndex: segmentIndex
-                        )
-                        
-                        roadNodesToAdd.append(roadNode)
-                    }
-                }
+            if distance > unloadDistance {
+                segmentsToUnload.append(segmentKey)
             }
-            
-            print("🎨 Created \(roadNodesToAdd.count) road nodes for \(routeName), adding to scene...")
-            
-            // Add nodes to scene on main thread
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                
-                var addedCount = 0
-                for roadNode in roadNodesToAdd {
-                    // Check if segment still doesn't exist
-                    if let nodeName = roadNode.name,
-                       self.scene.rootNode.childNode(withName: nodeName, recursively: true) == nil {
-                        
-                        self.scene.rootNode.addChildNode(roadNode)
-                        
-                        // Initialize arrays if needed
-                        if self.loadedRoadNodes[routeName] == nil {
-                            self.loadedRoadNodes[routeName] = []
-                        }
-                        self.loadedRoadNodes[routeName]?.append(roadNode)
-                        
-                        // Extract segment index from node name
-                        let components = nodeName.components(separatedBy: "_")
-                        if components.count >= 2, let segmentIndex = Int(components[1]) {
-                            if self.loadedRouteSegments[routeName] == nil {
-                                self.loadedRouteSegments[routeName] = Set<Int>()
-                            }
-                            self.loadedRouteSegments[routeName]?.insert(segmentIndex)
-                        }
-                        
-                        addedCount += 1
-                    }
-                }
-                
-                print("✅ Added \(addedCount) road segments to scene for \(routeName)")
-                print("🎯 Total scene children: \(self.scene.rootNode.childNodes.count)")
-            }
+        }
+        
+        for segmentKey in segmentsToUnload {
+            unloadRoadSegment(segmentKey: segmentKey)
         }
     }
     
-    func updateRouteSegments(routeName: String, smoothPoints: [(Float, Float)], playerPosition: SCNVector3) {
-        autoreleasepool {
-            guard var loadedSegments = loadedRouteSegments[routeName] else { return }
-            var nodesToAdd: [SCNNode] = []
-            var segmentsToLoad: Set<Int> = Set()
-            var segmentsToUnload: Set<Int> = Set()
+    // MARK: - Loading Nearby Segments
+    private func loadNearbySegments(playerPosition: SCNVector3, loadDistance: CGFloat, maxSegments: Int) {
+        // FALLBACK: Use interstateRoutes if routeGPSData is empty
+        let routesToUse = routeGPSData.isEmpty ? interstateRoutes : routeGPSData
+        
+        if routesToUse.isEmpty {
+            return
+        }
+        
+        // Find the closest route to the player using the available route data
+        guard let closestRoute = findClosestRouteIn(routes: routesToUse, to: playerPosition) else { 
+            return 
+        }
+        
+        // Get the route data
+        guard let routeData = routesToUse[closestRoute] else { 
+            return 
+        }
+        
+        // Load segments from this route that are close enough
+        var segmentsToLoad: [(String, CGFloat)] = []
+        
+        for (index, (lat, lon)) in routeData.enumerated() {
+            let segmentKey = "\(closestRoute)_\(index)"
             
-            // Check which segments should be loaded
-            for i in 0..<smoothPoints.count - 1 {
-                let start = smoothPoints[i]
-                let end = smoothPoints[i + 1]
-                let segmentCenter = SCNVector3((start.0 + end.0) / 2, 0, (start.1 + end.1) / 2)
+            // Skip if already loaded
+            if loadedRoadSegments[segmentKey] != nil { continue }
+            
+            let segmentPosition = gpsToSceneKit(latitude: lat, longitude: lon)
+            let distance = calculateDistance(from: playerPosition, to: segmentPosition)
+            
+            if distance <= loadDistance {
+                segmentsToLoad.append((segmentKey, distance))
+            }
+        }
+        
+        // Sort by distance (closest first)
+        segmentsToLoad.sort { $0.1 < $1.1 }
+        
+        // Load segments until we hit the limit
+        for (segmentKey, _) in segmentsToLoad {
+            if loadedRoadSegments.count >= maxSegments { break }
+            loadRoadSegment(segmentKey: segmentKey, routeName: closestRoute)
+        }
+    }
+    
+    // MARK: - World Origin Rebasing (Floating Point Precision Fix)
+    
+    private func checkAndRebaseWorldOrigin(playerPosition: SCNVector3) {
+        // FLOATING POINT PRECISION: When coordinates get too large, precision is lost
+        // causing jitter, stalls, and rendering problems. Rebase when player is far from origin.
+        
+        let REBASE_THRESHOLD: CGFloat = 5000.0 // When player is 5km from origin
+        let REBASE_DISTANCE: CGFloat = 3000.0  // How far they've moved since last rebase
+        
+        let distanceFromOrigin = sqrt(playerPosition.x * playerPosition.x + 
+                                    playerPosition.z * playerPosition.z)
+        
+        let distanceFromLastRebase = sqrt(pow(playerPosition.x - lastWorldOriginRebase.x, 2) + 
+                                        pow(playerPosition.z - lastWorldOriginRebase.z, 2))
+        
+        if distanceFromOrigin > REBASE_THRESHOLD && distanceFromLastRebase > REBASE_DISTANCE {
+            print("🔄 WORLD ORIGIN REBASING: Player at (\(Int(playerPosition.x)), \(Int(playerPosition.z))) - precision loss risk")
+            performWorldOriginRebase(playerPosition: playerPosition)
+        }
+    }
+    
+    private func performWorldOriginRebase(playerPosition: SCNVector3) {
+        // WORLD ORIGIN REBASING: Move everything back toward origin to restore precision
+        // This is a proven technique used in large world games
+        
+        let rebaseOffset = SCNVector3(-playerPosition.x, 0, -playerPosition.z)
+        
+        // Move the car back to origin
+        let carY = carNode.position.y
+        carNode.position = SCNVector3(0, carY, 0)
+        
+        // Move all loaded road segments by the offset
+        for (_, roadNode) in loadedRoadSegments {
+            let currentX = roadNode.position.x
+            let currentY = roadNode.position.y
+            let currentZ = roadNode.position.z
+            let newX = currentX + rebaseOffset.x
+            let newZ = currentZ + rebaseOffset.z
+            roadNode.position = SCNVector3(newX, currentY, newZ)
+        }
+        
+        // Move all loaded checkpoints by the offset
+        var newCheckpointPositions: [String: (SCNVector3, Int)] = [:]
+        for (cityName, (position, population)) in checkpointPositions {
+            let currentX = position.x
+            let currentY = position.y
+            let currentZ = position.z
+            let newX = currentX + rebaseOffset.x
+            let newZ = currentZ + rebaseOffset.z
+            let newPosition = SCNVector3(newX, currentY, newZ)
+            newCheckpointPositions[cityName] = (newPosition, population)
+        }
+        checkpointPositions = newCheckpointPositions
+        
+        // Update tracking
+        lastWorldOriginRebase = playerPosition
+        
+        let offsetX = Int(rebaseOffset.x)
+        let offsetZ = Int(rebaseOffset.z)
+        print("✅ World origin rebased: offset (\(offsetX), \(offsetZ))")
+    }
+    
+    // MARK: - Helper Functions
+    
+    /// Calculate distance between two 3D points
+    private func calculateDistance(from point1: SCNVector3, to point2: SCNVector3) -> CGFloat {
+        let deltaX = point1.x - point2.x
+        let deltaY = point1.y - point2.y
+        let deltaZ = point1.z - point2.z
+        return sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ)
+    }
+    
+    private func findClosestRoute(to position: SCNVector3) -> String? {
+        return findClosestRouteIn(routes: routeGPSData, to: position)
+    }
+    
+    private func findClosestRouteIn(routes: [String: [(Double, Double)]], to position: SCNVector3) -> String? {
+        var closestRoute: String?
+        var closestDistance: CGFloat = CGFloat.infinity
+        
+        for (routeName, routeData) in routes {
+            for (lat, lon) in routeData {
+                let routePosition = gpsToSceneKit(latitude: lat, longitude: lon)
+                let distance = calculateDistance(from: position, to: routePosition)
                 
-                let distanceToPlayer = sqrt(pow(playerPosition.x - segmentCenter.x, 2) + 
-                                          pow(playerPosition.z - segmentCenter.z, 2))
-                
-                let isLoaded = loadedSegments.contains(i)
-                
-                if Float(distanceToPlayer) <= roadLoadDistance && !isLoaded {
-                    // Load this segment
-                    segmentsToLoad.insert(i)
+                if distance < closestDistance {
+                    closestDistance = distance
+                    closestRoute = routeName
                 }
-                // REMOVED: Don't unload segments - keep roads visible
-            }
-            
-                         // Load new segments in background to prevent game pauses
-             if !segmentsToLoad.isEmpty {
-                 loadRoadSegmentsInBackground(routeName: routeName, smoothPoints: smoothPoints, segmentsToLoad: segmentsToLoad)
-             }
-            
-            loadedRouteSegments[routeName] = loadedSegments
-            
-            // Silent road loading - removed debug spam
-        }
-    }
-    
-    func createRoadSegmentNode(from start: SCNVector3, to end: SCNVector3, routeName: String, segmentIndex: Int) -> SCNNode {
-        let distance = sqrt(pow(end.x - start.x, 2) + pow(end.z - start.z, 2))
-        
-        // Container for this segment
-        let segmentContainer = SCNNode()
-        segmentContainer.name = "\(routeName)_\(segmentIndex)_container"
-        
-        // Create curved road surface using bezier paths for smoother curves
-        let roadNode = createBezierRoadSegment(from: start, to: end, segmentIndex: segmentIndex)
-        roadNode.name = "\(routeName)_\(segmentIndex)_road"
-        segmentContainer.addChildNode(roadNode)
-        
-        // Add center markings if segment is long enough
-        if distance > 2 { // Adjusted for higher segment density
-            let centerLineNodes = createSmoothCenterLineNodes(from: start, to: end, routeName: routeName, segmentIndex: segmentIndex)
-            for centerNode in centerLineNodes {
-                segmentContainer.addChildNode(centerNode)
             }
         }
         
-        // Add continuous edge lines
-        let edgeNodes = createSegmentEdgeLines(from: start, to: end, routeName: routeName, segmentIndex: segmentIndex)
-        for edgeNode in edgeNodes {
-            segmentContainer.addChildNode(edgeNode)
-        }
-        
-        return segmentContainer
+        return closestRoute
     }
     
-    func createBezierRoadSegment(from start: SCNVector3, to end: SCNVector3, segmentIndex: Int) -> SCNNode {
-        // For very short segments, just use a simple box
-        let distance = sqrt(pow(end.x - start.x, 2) + pow(end.z - start.z, 2))
+    private func calculateSegmentDistance(segmentKey: String, playerPosition: SCNVector3) -> CGFloat {
+        // Extract route name and index from segment key
+        let components = segmentKey.split(separator: "_")
+        guard components.count >= 2,
+              let index = Int(components.last!) else { return CGFloat.infinity }
         
-        // Add 30 pixels (approximately 1.0 units) overlap to each segment
-        let overlapAmount: CGFloat = 1.0  // 30 pixels overlap
-        let extendedLength = CGFloat(distance) + overlapAmount
+        let routeName = components.dropLast().joined(separator: "_")
         
-        // Since we now have 50 segments per section, each segment is very short
-        // This means we can use simple geometry and still achieve smooth curves
-        let roadGeometry = SCNBox(width: 20.0, height: 0.5, length: extendedLength, chamferRadius: 0.05)
+        // Use fallback route source if needed
+        let routesToUse = routeGPSData.isEmpty ? interstateRoutes : routeGPSData
         
-        // Minimal subdivision for performance
-        roadGeometry.widthSegmentCount = 1
-        roadGeometry.lengthSegmentCount = 1
-        roadGeometry.heightSegmentCount = 1
+        guard let routeData = routesToUse[routeName],
+              index < routeData.count else { return CGFloat.infinity }
         
-        // Enhanced road material
+        let (lat, lon) = routeData[index]
+        let segmentPosition = gpsToSceneKit(latitude: lat, longitude: lon)
+        
+        return calculateDistance(from: playerPosition, to: segmentPosition)
+    }
+    
+    private func loadRoadSegment(segmentKey: String, routeName: String) {
+        // Extract index from segment key
+        let components = segmentKey.split(separator: "_")
+        guard let index = Int(components.last!) else { return }
+        
+        // Use fallback route source if needed
+        let routesToUse = routeGPSData.isEmpty ? interstateRoutes : routeGPSData
+        
+        guard let routeData = routesToUse[routeName],
+              index < routeData.count - 1 else { return }
+        
+        // Create road segment
+        let startPoint = routeData[index]
+        let endPoint = routeData[index + 1]
+        
+        let startPos = gpsToSceneKit(latitude: startPoint.0, longitude: startPoint.1)
+        let endPos = gpsToSceneKit(latitude: endPoint.0, longitude: endPoint.1)
+        
+        let roadNode = createRoadSegmentNode(from: startPos, to: endPos, routeName: routeName)
+        
+        // Add to scene and tracking
+        roadSystemNode.addChildNode(roadNode)
+        loadedRoadSegments[segmentKey] = roadNode
+    }
+    
+    private func unloadRoadSegment(segmentKey: String) {
+        guard let roadNode = loadedRoadSegments[segmentKey] else { return }
+        
+        roadNode.removeFromParentNode()
+        loadedRoadSegments.removeValue(forKey: segmentKey)
+    }
+    
+    private func updateSegmentHUD(maxSegments: Int) {
+        let count = loadedRoadSegments.count
+        let status = count >= maxSegments ? "⚠️MAX" : ""
+        
+        DispatchQueue.main.async {
+            self.segmentCountLabel?.stringValue = "\(count)/\(maxSegments) segments \(status)"
+        }
+    }
+    
+    // MARK: - Road Node Creation WITH PROPER MARKINGS
+    private func createRoadSegmentNode(from startPos: SCNVector3, to endPos: SCNVector3, routeName: String) -> SCNNode {
+        let roadNode = SCNNode()
+        
+        // Calculate road properties
+        let deltaX = endPos.x - startPos.x
+        let deltaZ = endPos.z - startPos.z
+        let distance = sqrt(deltaX * deltaX + deltaZ * deltaZ)
+        
+        // Create main road surface
+        let roadGeometry = SCNBox(width: 20.0, height: 0.1, length: CGFloat(distance), chamferRadius: 0)
+        
+        // Road surface material
         let roadMaterial = SCNMaterial()
-        roadMaterial.diffuse.contents = NSColor(red: 0.35, green: 0.35, blue: 0.35, alpha: 1.0)
-        roadMaterial.roughness.contents = 0.8
-        roadMaterial.metalness.contents = 0.1
-        
+        if routeName.contains("I-") {
+            roadMaterial.diffuse.contents = NSColor.darkGray
+        } else {
+            roadMaterial.diffuse.contents = NSColor.gray
+        }
         roadGeometry.materials = [roadMaterial]
         
-        let roadNode = SCNNode(geometry: roadGeometry)
+        // Create road surface node
+        let roadSegmentNode = SCNNode(geometry: roadGeometry)
         
-        // Extend the segment position slightly beyond the endpoints for overlap
-        let dx = Float(end.x - start.x)
-        let dz = Float(end.z - start.z)
-        let normalizedDx = dx / Float(distance)
-        let normalizedDz = dz / Float(distance)
-        let extendDistance = Float(overlapAmount) / 2.0
+        // Position and orient the road
+        let midPoint = SCNVector3(
+            (startPos.x + endPos.x) / 2,
+            0.0,
+            (startPos.z + endPos.z) / 2
+        )
         
-        // Adjust position to account for extended length
-        roadNode.position = SCNVector3((start.x + end.x) / 2, 0, (start.z + end.z) / 2)
+        roadSegmentNode.position = midPoint
         
-        let angle = atan2(end.x - start.x, end.z - start.z)
-        roadNode.eulerAngles = SCNVector3(0, Float(angle), 0)
+        if distance > 0 {
+            let angle = atan2(deltaX, deltaZ)
+            roadSegmentNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+            
+            // Add road markings
+            createHighwayCenterLine(roadNode: roadNode, startPos: startPos, endPos: endPos, angle: angle)
+            createHighwayEdgeLines(roadNode: roadNode, startPos: startPos, endPos: endPos, angle: angle)
+            createHighwayLaneMarkings(roadNode: roadNode, startPos: startPos, endPos: endPos, angle: angle)
+        }
         
+        roadNode.addChildNode(roadSegmentNode)
         return roadNode
     }
     
-    func createSmoothCenterLineNodes(from start: SCNVector3, to end: SCNVector3, routeName: String, segmentIndex: Int) -> [SCNNode] {
-        var centerNodes: [SCNNode] = []
-        let distance = sqrt(pow(end.x - start.x, 2) + pow(end.z - start.z, 2))
+    // MARK: - Highway Markings
+    private func createHighwayCenterLine(roadNode: SCNNode, startPos: SCNVector3, endPos: SCNVector3, angle: CGFloat) {
+        let distance = calculateDistance(from: startPos, to: endPos)
         
-        // With 50 segments per section, each segment is very short
-        // Only add dashes to longer segments to avoid overcrowding
-        if distance < 2.0 {
-            return []  // Skip very short segments
-        }
+        // Yellow center line material  
+        let centerMaterial = SCNMaterial()
+        centerMaterial.diffuse.contents = NSColor.yellow
+        centerMaterial.emission.contents = NSColor.yellow.withAlphaComponent(0.3)
         
-        let dashLength: CGFloat = 4.0  // Even shorter dashes for high-density segments
-        let gapLength: CGFloat = 3.0   // Shorter gaps
-        
-        var currentDistance: CGFloat = 1.0
-        var dashIndex = 0
-        
-        // Calculate road direction for proper dash alignment
-        let roadAngle = atan2(end.x - start.x, end.z - start.z)
+        // Create dashed center line
+        let dashLength: CGFloat = 10.0
+        let gapLength: CGFloat = 5.0
+        var currentDistance: CGFloat = 0.0
         
         while currentDistance + dashLength < distance - 2.0 {
-            let ratio = currentDistance / CGFloat(distance)
-            let dashPosition = SCNVector3(
-                start.x + (end.x - start.x) * CGFloat(ratio),
-                0.35,
-                start.z + (end.z - start.z) * CGFloat(ratio)
-            )
+            let ratio = CGFloat(currentDistance) / CGFloat(distance)
             
-            // Check if not in intersection zone
-            var inIntersection = false
-            for zone in intersectionZones {
-                let distToZone = sqrt(pow(dashPosition.x - zone.x, 2) + pow(dashPosition.z - zone.z, 2))
-                if distToZone < CGFloat(intersectionRadius) {
-                    inIntersection = true
-                    break
-                }
-            }
+            // Calculate position step by step to avoid complex expressions
+            let deltaX = endPos.x - startPos.x
+            let deltaZ = endPos.z - startPos.z
+            let posX = startPos.x + deltaX * ratio
+            let posZ = startPos.z + deltaZ * ratio
+            let dashPosition = SCNVector3(posX, 0.15, posZ)
             
-            if !inIntersection {
-                // Enhanced center dash with better materials
-                let centerDash = SCNBox(width: 0.4, height: 0.12, length: CGFloat(dashLength), chamferRadius: 0.05)
-                
-                let dashMaterial = SCNMaterial()
-                dashMaterial.diffuse.contents = NSColor.yellow
-                dashMaterial.emission.contents = NSColor(red: 0.4, green: 0.4, blue: 0, alpha: 1)
-                dashMaterial.roughness.contents = 0.3
-                
-                centerDash.materials = [dashMaterial]
-                
-                let dashNode = SCNNode(geometry: centerDash)
-                dashNode.position = dashPosition
-                dashNode.eulerAngles = SCNVector3(0, Float(roadAngle), 0)
-                dashNode.name = "\(routeName)_\(segmentIndex)_dash_\(dashIndex)"
-                centerNodes.append(dashNode)
-                dashIndex += 1
-            }
+            let centerDash = SCNBox(width: 0.5, height: 0.05, length: dashLength, chamferRadius: 0)
+            centerDash.materials = [centerMaterial]
+            
+            let dashNode = SCNNode(geometry: centerDash)
+            dashNode.position = dashPosition
+            dashNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+            
+            roadNode.addChildNode(dashNode)
             
             currentDistance += dashLength + gapLength
         }
-        
-        return centerNodes
     }
     
-    func createSegmentEdgeLines(from start: SCNVector3, to end: SCNVector3, routeName: String, segmentIndex: Int) -> [SCNNode] {
-        var edgeNodes: [SCNNode] = []
-        let edgeOffsets: [Float] = [-10.0, 10.0]  // Road edges at ±10 units
+    private func createHighwayEdgeLines(roadNode: SCNNode, startPos: SCNVector3, endPos: SCNVector3, angle: CGFloat) {
+        let distance = calculateDistance(from: startPos, to: endPos)
         
-        let dx = Float(end.x - start.x)
-        let dz = Float(end.z - start.z)
-        let length = sqrt(dx * dx + dz * dz)
+        // White edge line material
+        let edgeMaterial = SCNMaterial()
+        edgeMaterial.diffuse.contents = NSColor.white
+        edgeMaterial.emission.contents = NSColor.white.withAlphaComponent(0.2)
         
-        guard length > 0 else { return [] }
+        // Create edge lines at ±10 units (for 20 unit wide road)
+        let edgeOffsets: [CGFloat] = [-10.0, 10.0]
         
-        let perpX = -dz / length
-        let perpZ = dx / length
-        
-        for (edgeIndex, offset) in edgeOffsets.enumerated() {
-            let edgeStart = SCNVector3(
-                start.x + CGFloat(perpX * offset),
-                0.35,
-                start.z + CGFloat(perpZ * offset)
-            )
-            let edgeEnd = SCNVector3(
-                end.x + CGFloat(perpX * offset),
-                0.35,
-                end.z + CGFloat(perpZ * offset)
-            )
+        for offset in edgeOffsets {
+            // Calculate edge position step by step
+            let perpendicularAngle = angle + CGFloat.pi/2
+            let offsetX = offset * cos(perpendicularAngle)
+            let offsetZ = offset * sin(perpendicularAngle)
+            let edgeStartPos = SCNVector3(startPos.x + offsetX, 0.15, startPos.z + offsetZ)
             
-            let edgeDistance = sqrt(pow(edgeEnd.x - edgeStart.x, 2) + pow(edgeEnd.z - edgeStart.z, 2))
-            
-            // Create continuous white edge line
-            let edgeLine = SCNBox(width: 0.5, height: 0.15, length: CGFloat(edgeDistance), chamferRadius: 0.05)
-            
-            let edgeMaterial = SCNMaterial()
-            edgeMaterial.diffuse.contents = NSColor.white
-            edgeMaterial.emission.contents = NSColor(white: 0.15, alpha: 1.0)
-            edgeMaterial.roughness.contents = 0.2
-            
+            let edgeLine = SCNBox(width: 0.3, height: 0.05, length: CGFloat(distance), chamferRadius: 0)
             edgeLine.materials = [edgeMaterial]
             
             let edgeNode = SCNNode(geometry: edgeLine)
-            edgeNode.position = SCNVector3(
-                (edgeStart.x + edgeEnd.x) / 2,
-                0.35,
-                (edgeStart.z + edgeEnd.z) / 2
-            )
-            edgeNode.name = "\(routeName)_\(segmentIndex)_edgeLine_\(edgeIndex)"
             
-            let angle = atan2(edgeEnd.x - edgeStart.x, edgeEnd.z - edgeStart.z)
-            edgeNode.eulerAngles = SCNVector3(0, Float(angle), 0)
+            // Calculate edge line center position step by step
+            let midX = (startPos.x + endPos.x) / 2
+            let midZ = (startPos.z + endPos.z) / 2
+            let finalX = midX + offsetX
+            let finalZ = midZ + offsetZ
+            edgeNode.position = SCNVector3(finalX, 0.15, finalZ)
+            edgeNode.rotation = SCNVector4(0, 1, 0, Float(angle))
             
-            edgeNodes.append(edgeNode)
-        }
-        
-        return edgeNodes
-    }
-    
-    func updateVisibleEdgeLines() {
-        autoreleasepool {
-            // Create edge lines only for loaded segments
-            for (routeName, segments) in loadedRouteSegments {
-                autoreleasepool {
-                    guard let smoothPoints = routeSmoothPoints[routeName] else { return }
-                    
-                    for segmentIndex in segments {
-                        if segmentIndex < smoothPoints.count - 1 {
-                            let start = smoothPoints[segmentIndex]
-                            let end = smoothPoints[segmentIndex + 1]
-                            createEdgeLinesForSegment(
-                                from: (start.0, start.1),
-                                to: (end.0, end.1),
-                                routeName: routeName,
-                                segmentIndex: segmentIndex
-                            )
-                        }
-                    }
-                }
-            }
+            roadNode.addChildNode(edgeNode)
         }
     }
     
-    func createEdgeLinesForSegment(from start: (Float, Float), to end: (Float, Float), routeName: String, segmentIndex: Int) {
-        let edgeOffsets: [Float] = [-10.0, 10.0]  // Road edges
+    private func createHighwayLaneMarkings(roadNode: SCNNode, startPos: SCNVector3, endPos: SCNVector3, angle: CGFloat) {
+        let distance = calculateDistance(from: startPos, to: endPos)
         
-        for (edgeIndex, offset) in edgeOffsets.enumerated() {
-            let dx = end.0 - start.0
-            let dz = end.1 - start.1
-            let length = sqrt(dx * dx + dz * dz)
-            
-            if length > 0 {
-                let perpX = -dz / length * offset
-                let perpZ = dx / length * offset
-                
-                let edgeStart = SCNVector3(start.0 + perpX, 0.35, start.1 + perpZ)
-                let edgeEnd = SCNVector3(end.0 + perpX, 0.35, end.1 + perpZ)
-                let distance = sqrt(pow(edgeEnd.x - edgeStart.x, 2) + pow(edgeEnd.z - edgeStart.z, 2))
-                
-                // Enhanced edge line with better materials
-                let edgeLine = SCNBox(width: 0.4, height: 0.12, length: CGFloat(distance), chamferRadius: 0.05)
-                
-                let edgeMaterial = SCNMaterial()
-                edgeMaterial.diffuse.contents = NSColor.white
-                edgeMaterial.emission.contents = NSColor(white: 0.1, alpha: 1.0)
-                edgeMaterial.roughness.contents = 0.2
-                
-                edgeLine.materials = [edgeMaterial]
-                
-                let edgeNode = SCNNode(geometry: edgeLine)
-                edgeNode.position = SCNVector3((edgeStart.x + edgeEnd.x) / 2, 0.35, (edgeStart.z + edgeEnd.z) / 2)
-                edgeNode.name = "\(routeName)_\(segmentIndex)_edgeLine_\(edgeIndex)"
-                
-                let angle = atan2(edgeEnd.x - edgeStart.x, edgeEnd.z - edgeStart.z)
-                edgeNode.eulerAngles = SCNVector3(0, Float(angle), 0)
-                scene.rootNode.addChildNode(edgeNode)
-            }
-        }
-    }
-    
-    func findLoadedNearbyRoutes(playerPosition: SCNVector3) -> [String] {
-        var nearbyRoutes: [String] = []
-        let maxRouteCheckDistance: Float = 5000.0 // 5km range for road rendering
+        // White lane marking material
+        let laneMaterial = SCNMaterial()
+        laneMaterial.diffuse.contents = NSColor.white
+        laneMaterial.emission.contents = NSColor.white.withAlphaComponent(0.2)
         
-        // Debug: Print what routes are loaded
-        let loadedRoutes = Array(loadedRouteData)
-        if !loadedRoutes.isEmpty {
-            print("🔍 Checking \(loadedRoutes.count) loaded routes: \(loadedRoutes.joined(separator: ", "))")
-        }
+        // Create lane markings at ±5 units (dividing the 20-unit road into 4 lanes)
+        let laneOffsets: [CGFloat] = [-5.0, 5.0]
         
-        // Only check routes that are currently loaded in memory
-        for routeName in loadedRouteData {
-            guard let gpsCoordinates = getRouteData(routeName: routeName) else {
-                print("❌ Could not get route data for \(routeName)")
-                continue
-            }
+        for offset in laneOffsets {
+            // Create dashed lane markings
+            let dashLength: CGFloat = 6.0
+            let gapLength: CGFloat = 4.0
+            var currentDistance: CGFloat = 0.0
             
-            // Quick check: is any point in this route near the player?
-            var minDistance: Float = Float.infinity
-            
-            // Check every GPS point to be more thorough
-            for (lat, lon) in gpsCoordinates {
-                let routePoint = gpsToSceneKit(latitude: lat, longitude: lon)
-                let distance = sqrt(pow(playerPosition.x - routePoint.x, 2) + 
-                                  pow(playerPosition.z - routePoint.z, 2))
+            while currentDistance + dashLength < distance - 2.0 {
+                let ratio = CGFloat(currentDistance) / CGFloat(distance)
                 
-                if Float(distance) < minDistance {
-                    minDistance = Float(distance)
-                }
-            }
-            
-            print("🛣️ Route \(routeName): closest point \(Int(minDistance))m from player")
-            
-            if minDistance <= maxRouteCheckDistance {
-                nearbyRoutes.append(routeName)
-                print("✅ \(routeName) added to nearby routes")
-            } else {
-                print("❌ \(routeName) too far (\(Int(minDistance))m > \(Int(maxRouteCheckDistance))m)")
-            }
-        }
-        
-        print("🎯 Found \(nearbyRoutes.count) nearby routes: \(nearbyRoutes.joined(separator: ", "))")
-        return nearbyRoutes
-    }
-    
-    // MARK: - Intersection Finding
-    
-    func findAllIntersectionZones() {
-        // Find all points where interstates cross
-        let routeNames = Array(allRoadPoints.keys)
-        
-        for i in 0..<routeNames.count {
-            for j in i+1..<routeNames.count {
-                let route1Points = allRoadPoints[routeNames[i]] ?? []
-                let route2Points = allRoadPoints[routeNames[j]] ?? []
+                // Calculate lane marking position step by step to avoid complex expressions
+                let perpendicularAngle = angle + CGFloat.pi/2
+                let deltaX = endPos.x - startPos.x
+                let deltaZ = endPos.z - startPos.z
+                let baseX = startPos.x + deltaX * ratio
+                let baseZ = startPos.z + deltaZ * ratio
+                let offsetX = offset * cos(perpendicularAngle)
+                let offsetZ = offset * sin(perpendicularAngle)
+                let dashPosition = SCNVector3(baseX + offsetX, 0.15, baseZ + offsetZ)
                 
-                // Check for intersections between all segments
-                for k in 0..<route1Points.count-1 {
-                    for l in 0..<route2Points.count-1 {
-                        let p1 = route1Points[k]
-                        let p2 = route1Points[k+1]
-                        let p3 = route2Points[l]
-                        let p4 = route2Points[l+1]
-                        
-                        if let intersection = lineIntersection(p1: p1, p2: p2, p3: p3, p4: p4) {
-                            let intersectionPoint = SCNVector3(CGFloat(intersection.0), CGFloat(0), CGFloat(intersection.1))
-                            
-                            // Check if we already have an intersection zone near this point
-                            var alreadyExists = false
-                            for zone in intersectionZones {
-                                let dist = sqrt(pow(zone.x - intersectionPoint.x, 2) + pow(zone.z - intersectionPoint.z, 2))
-                                if dist < CGFloat(intersectionRadius * 0.5) {
-                                    alreadyExists = true
-                                    break
-                                }
-                            }
-                            
-                            if !alreadyExists {
-                                intersectionZones.append(intersectionPoint)
-                            }
-                        }
-                    }
-                }
+                let laneDash = SCNBox(width: 0.3, height: 0.05, length: dashLength, chamferRadius: 0)
+                laneDash.materials = [laneMaterial]
+                
+                let dashNode = SCNNode(geometry: laneDash)
+                dashNode.position = dashPosition
+                dashNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+                
+                roadNode.addChildNode(dashNode)
+                
+                currentDistance += dashLength + gapLength
             }
         }
     }

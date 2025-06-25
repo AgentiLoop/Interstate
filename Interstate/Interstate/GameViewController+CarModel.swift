@@ -13,8 +13,6 @@ extension GameViewController {
     // MARK: - Car Model Creation
     
     func createCarNode() -> SCNNode {
-        print("🚗 Creating realistic 3D car with rotating wheels...")
-        
         // Main car container
         let carContainer = SCNNode()
         carContainer.name = "carContainer"
@@ -225,7 +223,6 @@ extension GameViewController {
         rearBumperNode.position = SCNVector3(0, 1.4, -4.15)
         carContainer.addChildNode(rearBumperNode)
         
-        print("✅ Realistic car created with \(carContainer.childNodes.count) components")
         return carContainer
     }
     
