@@ -288,6 +288,9 @@ extension GameViewController {
             }
         }
         
+        // FIRST: Always make sure AI car is on a road
+        ensureAICarOnRoad(&aiCar)
+        
         // Update based on personality
         switch aiCar.personality {
         case .chaser:
@@ -304,125 +307,163 @@ extension GameViewController {
         updateAICarWheels(&aiCar)
     }
     
-    // MARK: - Personality Behaviors
+    // MARK: - Road Following Functions
+    
+    func ensureAICarOnRoad(_ aiCar: inout AICar) {
+        // Find the closest road point
+        let nearestRoad = findNearestRoad(to: aiCar.node.position)
+        
+        // If car is too far from road, snap it back
+        let distanceFromRoad = sqrt(pow(Float(aiCar.node.position.x - nearestRoad.position.x), 2) + 
+                                   pow(Float(aiCar.node.position.z - nearestRoad.position.z), 2))
+        
+        if distanceFromRoad > 10.0 { // More than 10 units off road
+            // Smoothly move back to road
+            let snapFactor: Float = 0.1
+            aiCar.node.position.x = aiCar.node.position.x + CGFloat((Float(nearestRoad.position.x) - Float(aiCar.node.position.x)) * snapFactor)
+            aiCar.node.position.z = aiCar.node.position.z + CGFloat((Float(nearestRoad.position.z) - Float(aiCar.node.position.z)) * snapFactor)
+        }
+        
+        // Update current road
+        aiCar.routeName = nearestRoad.routeName
+    }
+    
+    // MARK: - Personality Behaviors (Updated for Road Following)
     
     func updateAICarChaser(_ aiCar: inout AICar) {
-        // Yellow car - Always pursues player directly (like Blinky)
-        updateAICarPursuit(&aiCar)
+        // Yellow car - Follows player on roads
+        let playerPos = carNode.position
+        let playerHighway = getCurrentHighway(position: playerPos)
+        
+        if aiCar.routeName == playerHighway {
+            // Same road as player - follow along road toward player
+            followRoadTowardTarget(&aiCar, targetPos: playerPos, speed: 85.0)
+        } else {
+            // Different road - navigate highway system
+            navigateToPlayerRoad(&aiCar)
+        }
     }
     
     func updateAICarInterceptor(_ aiCar: inout AICar) {
-        // Green car - Tries to get ahead of player (like Pinky)
+        // Green car - Tries to get ahead on the road
         let playerPos = carNode.position
         let playerHeading = Float(carNode.eulerAngles.y)
         let playerSpeed = carSpeed
         
         // Predict where player will be
-        let predictionTime: Float = 3.0 // Look 3 seconds ahead
+        let predictionTime: Float = 4.0
         let predictedDistance = playerSpeed * predictionTime
         let predictedX = playerPos.x + CGFloat(sin(playerHeading) * predictedDistance)
         let predictedZ = playerPos.z + CGFloat(cos(playerHeading) * predictedDistance)
+        let predictedPos = SCNVector3(predictedX, 0, predictedZ)
         
-        // Drive toward predicted position
-        updateAICarTowardPosition(&aiCar, targetPos: SCNVector3(predictedX, 0, predictedZ), targetSpeed: 85.0)
+        followRoadTowardTarget(&aiCar, targetPos: predictedPos, speed: 95.0)
     }
     
     func updateAICarRacer(_ aiCar: inout AICar) {
-        // Orange car - Speeds past and stays ahead
-        let playerPos = carNode.position
-        let aiPos = aiCar.node.position
-        
-        // Calculate relative position
-        let dx = Float(aiPos.x - playerPos.x)
-        let dz = Float(aiPos.z - playerPos.z)
-        let playerHeading = Float(carNode.eulerAngles.y)
-        let relativeAngle = atan2(dx, dz) - playerHeading
-        
-        // Check if we're ahead of the player
-        let isAhead = cos(relativeAngle) > 0
-        
-        if !aiCar.hasPassedPlayer && !isAhead {
-            // Haven't passed yet - speed up and try to pass
-            updateAICarPursuit(&aiCar)
-            aiCar.targetSpeed = 110.0 // Very fast to overtake
-        } else {
-            // We've passed or are ahead - stay ahead
-            aiCar.hasPassedPlayer = true
+        // Orange car - Races ahead on the road
+        if !aiCar.hasPassedPlayer {
+            // Try to pass by going fast
+            let playerPos = carNode.position
+            followRoadTowardTarget(&aiCar, targetPos: playerPos, speed: 110.0)
             
-            // Drive forward fast on the current road
-            let targetSpeed: Float = max(carSpeed + 20, 90.0) // Always faster than player
-            updateAICarOnRoad(&aiCar, targetSpeed: targetSpeed)
+            // Check if we've passed
+            let dx = Float(aiCar.node.position.x - playerPos.x)
+            let dz = Float(aiCar.node.position.z - playerPos.z)
+            let playerHeading = Float(carNode.eulerAngles.y)
+            let relativeAngle = atan2(dx, dz) - playerHeading
+            let isAhead = cos(relativeAngle) > 0
+            
+            if isAhead {
+                aiCar.hasPassedPlayer = true
+            }
+        } else {
+            // Stay ahead by following road at high speed
+            followRoadForward(&aiCar, speed: max(carSpeed + 20, 90.0))
         }
     }
     
     func updateAICarWanderer(_ aiCar: inout AICar) {
-        // Magenta car - Unpredictable behavior
+        // Magenta car - Varied behavior
         let currentTime = CACurrentMediaTime()
-        let behaviorCycle = Int(currentTime / 15.0) % 3 // Change behavior every 15 seconds
+        let behaviorCycle = Int(currentTime / 15.0) % 3
         
         switch behaviorCycle {
         case 0:
-            // Follow player
-            updateAICarPursuit(&aiCar)
+            // Follow player on roads
+            updateAICarChaser(&aiCar)
         case 1:
-            // Drive independently on roads
-            updateAICarOnRoad(&aiCar, targetSpeed: 80.0)
+            // Just cruise on current road
+            followRoadForward(&aiCar, speed: 75.0)
         case 2:
             // Try to intercept
             updateAICarInterceptor(&aiCar)
         default:
-            updateAICarPursuit(&aiCar)
+            followRoadForward(&aiCar, speed: 80.0)
         }
     }
     
-    // MARK: - Helper Movement Functions
+    // MARK: - Road Following Movement
     
-    func updateAICarTowardPosition(_ aiCar: inout AICar, targetPos: SCNVector3, targetSpeed: Float) {
+    func followRoadTowardTarget(_ aiCar: inout AICar, targetPos: SCNVector3, speed: Float) {
         let deltaTime: Float = 1.0 / 60.0
         
-        // Calculate direction to target
-        let dx = Float(targetPos.x - aiCar.node.position.x)
-        let dz = Float(targetPos.z - aiCar.node.position.z)
-        let distanceToTarget = sqrt(dx * dx + dz * dz)
+        // Get current road segment
+        guard let routePoints = interstateRoutes[aiCar.routeName],
+              routePoints.count >= 2 else {
+            // No valid road - find one
+            ensureAICarOnRoad(&aiCar)
+            return
+        }
         
-        // Calculate desired heading
+        // Find next waypoint on road toward target
+        let nextWaypoint = findNextWaypointTowardTarget(aiCar: aiCar, targetPos: targetPos, routePoints: routePoints)
+        
+        // Calculate smooth path to next waypoint
+        let dx = Float(nextWaypoint.x - aiCar.node.position.x)
+        let dz = Float(nextWaypoint.z - aiCar.node.position.z)
+        let distanceToWaypoint = sqrt(dx * dx + dz * dz)
+        
+        if distanceToWaypoint < 5.0 {
+            // Close to waypoint - advance to next segment
+            aiCar.routePointIndex = (aiCar.routePointIndex + 1) % (routePoints.count - 1)
+        }
+        
+        // Calculate desired heading along road
         let desiredHeading = atan2(dx, dz)
         let currentHeading = Float(aiCar.node.eulerAngles.y)
         
-        // Calculate heading difference
+        // Smooth heading adjustment
         var headingDiff = desiredHeading - currentHeading
         while headingDiff > Float.pi { headingDiff -= 2 * Float.pi }
         while headingDiff < -Float.pi { headingDiff += 2 * Float.pi }
         
-        // Steering based on speed
-        let maxSteeringAngle: Float = 0.5
-        let speedFactor = max(0.1, min(1.0, 20.0 / (aiCar.currentSpeed + 1.0)))
-        let steeringRate: Float = 3.0 * speedFactor
+        // VERY SMOOTH steering for road following
+        let maxSteeringAngle: Float = 0.3 // Reduced for smoother road following
+        let steeringRate: Float = 2.0 // Smooth steering rate
         
-        let desiredSteering = max(-maxSteeringAngle, min(maxSteeringAngle, headingDiff * 2.0))
-        let steeringDiff = desiredSteering - aiCar.steeringAngle
-        aiCar.steeringAngle += steeringDiff * min(1.0, steeringRate * deltaTime)
+        aiCar.steeringAngle = max(-maxSteeringAngle, min(maxSteeringAngle, headingDiff * 0.5))
         
-        // Apply steering
-        if abs(aiCar.currentSpeed) > 0.1 {
+        // Apply steering physics
+        if abs(speed) > 0.1 {
             let turningRadius = aiCar.wheelBase / tan(abs(aiCar.steeringAngle) + 0.001)
-            let angularVelocity = aiCar.currentSpeed / turningRadius
+            let angularVelocity = speed / turningRadius
             aiCar.node.eulerAngles.y += CGFloat(angularVelocity * deltaTime * (aiCar.steeringAngle > 0 ? 1 : -1))
         }
         
-        // Speed control
-        aiCar.targetSpeed = targetSpeed
-        let maxAcceleration: Float = 40.0
-        let maxBraking: Float = 60.0
+        // Smooth speed control
+        let targetSpeed = speed
+        let maxAcceleration: Float = 30.0
+        let maxBraking: Float = 40.0
         
-        let speedDiff = aiCar.targetSpeed - aiCar.currentSpeed
+        let speedDiff = targetSpeed - aiCar.currentSpeed
         if speedDiff > 0 {
             aiCar.currentSpeed += min(speedDiff, maxAcceleration * deltaTime)
         } else {
             aiCar.currentSpeed += max(speedDiff, -maxBraking * deltaTime)
         }
         
-        // Move forward
+        // Move forward along heading
         let moveDistance = aiCar.currentSpeed * deltaTime
         let carHeading = Float(aiCar.node.eulerAngles.y)
         
@@ -431,184 +472,105 @@ extension GameViewController {
         aiCar.node.position.y = 1.1
     }
     
-    func updateAICarOnRoad(_ aiCar: inout AICar, targetSpeed: Float) {
-        // Drive forward on current road at specified speed
-        let deltaTime: Float = 1.0 / 60.0
-        
-        // Find next road point to follow
-        if let routePoints = interstateRoutes[aiCar.routeName], routePoints.count > 2 {
-            // Get current segment
-            let segmentIndex = min(aiCar.routePointIndex, routePoints.count - 2)
-            let nextIndex = segmentIndex + 1
-            
-            let currentPoint = routePoints[segmentIndex]
-            let nextPoint = routePoints[nextIndex]
-            
-            let pos1 = gpsToSceneKit(latitude: currentPoint.0, longitude: currentPoint.1)
-            let pos2 = gpsToSceneKit(latitude: nextPoint.0, longitude: nextPoint.1)
-            
-            // Update position on segment
-            let segmentLength = sqrt(pow(Float(pos2.x - pos1.x), 2) + pow(Float(pos2.z - pos1.z), 2))
-            let moveDistance = aiCar.currentSpeed * deltaTime
-            aiCar.positionOnSegment += moveDistance / segmentLength
-            
-            // Move to next segment if needed
-            if aiCar.positionOnSegment >= 1.0 {
-                aiCar.routePointIndex = (aiCar.routePointIndex + 1) % (routePoints.count - 1)
-                aiCar.positionOnSegment = 0.0
-            }
-            
-            // Get target position
-            let targetPos = SCNVector3(
-                pos1.x + (pos2.x - pos1.x) * CGFloat(min(1.0, aiCar.positionOnSegment + 0.3)),
-                0,
-                pos1.z + (pos2.z - pos1.z) * CGFloat(min(1.0, aiCar.positionOnSegment + 0.3))
-            )
-            
-            // Drive toward target
-            updateAICarTowardPosition(&aiCar, targetPos: targetPos, targetSpeed: targetSpeed)
-        } else {
-            // Fallback to pursuit if no road
-            updateAICarPursuit(&aiCar)
+    func followRoadForward(_ aiCar: inout AICar, speed: Float) {
+        // Just follow the current road forward
+        guard let routePoints = interstateRoutes[aiCar.routeName],
+              routePoints.count >= 2 else {
+            ensureAICarOnRoad(&aiCar)
+            return
         }
+        
+        let segmentIndex = min(aiCar.routePointIndex, routePoints.count - 2)
+        let nextIndex = segmentIndex + 1
+        
+        let currentPoint = routePoints[segmentIndex]
+        let nextPoint = routePoints[nextIndex]
+        
+        let pos1 = gpsToSceneKit(latitude: currentPoint.0, longitude: currentPoint.1)
+        let pos2 = gpsToSceneKit(latitude: nextPoint.0, longitude: nextPoint.1)
+        
+        // Follow to next point
+        followRoadTowardTarget(&aiCar, targetPos: pos2, speed: speed)
     }
     
-    func updateAICarWheels(_ aiCar: inout AICar) {
-        let wheelRotationSpeed = aiCar.currentSpeed * (1.0 / 60.0) * 0.1
+    func findNextWaypointTowardTarget(aiCar: AICar, targetPos: SCNVector3, routePoints: [(Double, Double)]) -> SCNVector3 {
+        // Get current and next road points
+        let segmentIndex = min(aiCar.routePointIndex, routePoints.count - 2)
+        let nextIndex = segmentIndex + 1
         
-        aiCar.node.enumerateChildNodes { (node, _) in
-            if let name = node.name, name.contains("wheel") {
-                // Rotate wheels based on speed
-                node.eulerAngles.x -= CGFloat(wheelRotationSpeed)
-                
-                // Turn front wheels based on steering angle
-                if name.contains("wheel_0") || name.contains("wheel_1") {
-                    node.eulerAngles.y = CGFloat(aiCar.steeringAngle)
+        let currentPoint = routePoints[segmentIndex]
+        let nextPoint = routePoints[nextIndex]
+        
+        let pos1 = gpsToSceneKit(latitude: currentPoint.0, longitude: currentPoint.1)
+        let pos2 = gpsToSceneKit(latitude: nextPoint.0, longitude: nextPoint.1)
+        
+        // For now, just aim for the next point on the road
+        // This ensures we follow the road geometry
+        return pos2
+    }
+    
+    func navigateToPlayerRoad(_ aiCar: inout AICar) {
+        // Find route to player's road using highway connections
+        let playerPos = carNode.position
+        let playerHighway = getCurrentHighway(position: playerPos)
+        
+        if let connections = highwayConnections[aiCar.routeName] {
+            // Check if any connection leads to player's highway
+            for (connectedHighway, _, _) in connections {
+                if connectedHighway == playerHighway {
+                    // Find the connection point between the two highways
+                    if let connectionPoint = findConnectionPoint(from: aiCar.routeName, to: connectedHighway) {
+                        // Head toward connection point
+                        followRoadTowardTarget(&aiCar, targetPos: connectionPoint, speed: 90.0)
+                        return
+                    }
                 }
             }
         }
+        
+        // No direct connection - just follow current road
+        followRoadForward(&aiCar, speed: 85.0)
     }
     
-    func updateAICarSpin(_ aiCar: inout AICar) {
-        let deltaTime: Float = 1.0 / 60.0
+    func findConnectionPoint(from fromRoute: String, to toRoute: String) -> SCNVector3? {
+        // Find where two highways connect
+        guard let fromCoords = interstateRoutes[fromRoute],
+              let toCoords = interstateRoutes[toRoute],
+              !fromCoords.isEmpty,
+              !toCoords.isEmpty else { return nil }
         
-        // Continue spinning with physics
-        aiCar.spinRotation += 8.0 * deltaTime
-        aiCar.node.eulerAngles.y += CGFloat(8.0 * deltaTime)
+        var minDist = Float.infinity
+        var connectionPoint: SCNVector3?
         
-        // Decelerate
-        aiCar.currentSpeed = max(0, aiCar.currentSpeed - 40.0 * deltaTime)
+        // Check endpoints and some midpoints
+        let fromPoints = [
+            gpsToSceneKit(latitude: fromCoords.first!.0, longitude: fromCoords.first!.1),
+            gpsToSceneKit(latitude: fromCoords.last!.0, longitude: fromCoords.last!.1)
+        ]
         
-        // Move forward slightly while spinning (conservation of momentum)
-        let moveDistance = aiCar.currentSpeed * deltaTime * 0.3
-        let spinHeading = Float(aiCar.node.eulerAngles.y)
-        aiCar.node.position.x += CGFloat(sin(spinHeading) * moveDistance)
-        aiCar.node.position.z += CGFloat(cos(spinHeading) * moveDistance)
+        let toPoints = [
+            gpsToSceneKit(latitude: toCoords.first!.0, longitude: toCoords.first!.1),
+            gpsToSceneKit(latitude: toCoords.last!.0, longitude: toCoords.last!.1)
+        ]
         
-        // Stop spinning after 1.5 rotations
-        if aiCar.spinRotation > Float.pi * 3 {
-            aiCar.isSpinning = false
-            aiCar.spinRotation = 0
-            aiCar.currentSpeed = 0
-            aiCar.steeringAngle = 0
-        }
-    }
-    
-    func updateAICarFleeing(_ aiCar: inout AICar) {
-        let deltaTime: Float = 1.0 / 60.0
-        let playerPos = carNode.position
-        
-        // Calculate vector AWAY from player
-        let dx = Float(aiCar.node.position.x - playerPos.x)
-        let dz = Float(aiCar.node.position.z - playerPos.z)
-        let distanceToPlayer = sqrt(dx * dx + dz * dz)
-        
-        // Normalize the flee direction
-        let fleeX = dx / distanceToPlayer
-        let fleeZ = dz / distanceToPlayer
-        
-        // Calculate desired heading (away from player)
-        let desiredHeading = atan2(fleeX, fleeZ)
-        let currentHeading = Float(aiCar.node.eulerAngles.y)
-        
-        // Calculate heading difference
-        var headingDiff = desiredHeading - currentHeading
-        while headingDiff > Float.pi { headingDiff -= 2 * Float.pi }
-        while headingDiff < -Float.pi { headingDiff += 2 * Float.pi }
-        
-        // PANIC STEERING - turn faster when fleeing
-        let maxSteeringAngle: Float = 0.8 // Higher for panic
-        let steeringRate: Float = 5.0 // Very fast steering
-        
-        let desiredSteering = max(-maxSteeringAngle, min(maxSteeringAngle, headingDiff * 4.0))
-        let steeringDiff = desiredSteering - aiCar.steeringAngle
-        aiCar.steeringAngle += steeringDiff * min(1.0, steeringRate * deltaTime)
-        
-        // Apply steering
-        if abs(aiCar.currentSpeed) > 0.1 {
-            let turningRadius = aiCar.wheelBase / tan(abs(aiCar.steeringAngle) + 0.001)
-            let angularVelocity = aiCar.currentSpeed / turningRadius
-            aiCar.node.eulerAngles.y += CGFloat(angularVelocity * deltaTime * (aiCar.steeringAngle > 0 ? 1 : -1))
+        // Find closest points
+        for fromPoint in fromPoints {
+            for toPoint in toPoints {
+                let dist = sqrt(pow(Float(fromPoint.x - toPoint.x), 2) + 
+                               pow(Float(fromPoint.z - toPoint.z), 2))
+                if dist < minDist {
+                    minDist = dist
+                    // Use the midpoint as the connection point
+                    connectionPoint = SCNVector3(
+                        (fromPoint.x + toPoint.x) / 2,
+                        0,
+                        (fromPoint.z + toPoint.z) / 2
+                    )
+                }
+            }
         }
         
-        // EXTREME FLEE SPEED - to reach 100-150 miles in 10 seconds!
-        let targetSpeed: Float = 200.0 // Extremely high speed (~450 mph) to cover distance quickly
-        
-        // Very quick acceleration when fleeing
-        let maxAcceleration: Float = 100.0 // Ultra-fast acceleration
-        let speedDiff = targetSpeed - aiCar.currentSpeed
-        if speedDiff > 0 {
-            aiCar.currentSpeed += min(speedDiff, maxAcceleration * deltaTime)
-        }
-        
-        // Move forward based on heading
-        let moveDistance = aiCar.currentSpeed * deltaTime
-        let carHeading = Float(aiCar.node.eulerAngles.y)
-        
-        aiCar.node.position.x += CGFloat(sin(carHeading) * moveDistance)
-        aiCar.node.position.z += CGFloat(cos(carHeading) * moveDistance)
-        aiCar.node.position.y = 1.1
-        
-        // Update route name based on current position
-        let currentHighway = getCurrentHighway(position: aiCar.node.position)
-        if currentHighway != "" && currentHighway != aiCar.routeName {
-            aiCar.routeName = currentHighway
-        }
-    }
-    
-    func updateAICarPursuit(_ aiCar: inout AICar) {
-        // Basic pursuit behavior - drive directly toward player
-        let deltaTime: Float = 1.0 / 60.0
-        let playerPos = carNode.position
-        
-        // Calculate direct vector to player
-        let dx = Float(playerPos.x - aiCar.node.position.x)
-        let dz = Float(playerPos.z - aiCar.node.position.z)
-        let distanceToPlayer = sqrt(dx * dx + dz * dz)
-        
-        // SPEED CONTROL - go faster when far away
-        let targetSpeed: Float
-        if distanceToPlayer > 1000 {
-            targetSpeed = 100.0 // Max speed when very far
-        } else if distanceToPlayer > 500 {
-            targetSpeed = 85.0
-        } else if distanceToPlayer > 200 {
-            targetSpeed = 75.0
-        } else if distanceToPlayer > 50 {
-            targetSpeed = 65.0
-        } else {
-            targetSpeed = max(carSpeed, 50.0) // Match player speed when close
-        }
-        
-        // Drive toward player position
-        updateAICarTowardPosition(&aiCar, targetPos: playerPos, targetSpeed: targetSpeed)
-        
-        // Update route name based on current position
-        let currentHighway = getCurrentHighway(position: aiCar.node.position)
-        if currentHighway != "" && currentHighway != aiCar.routeName {
-            aiCar.routeName = currentHighway
-            print("🚗 AI car switched to highway: \(currentHighway)")
-        }
+        return connectionPoint
     }
     
     // MARK: - Collision Detection
@@ -730,5 +692,76 @@ extension GameViewController {
             print("➕ Creating missing AI car #\(missingIndex + 1)")
             spawnAICar(carIndex: missingIndex)
         }
+    }
+    
+    // MARK: - Car Physics Functions
+    
+    func updateAICarWheels(_ aiCar: inout AICar) {
+        let wheelRotationSpeed = aiCar.currentSpeed * (1.0 / 60.0) * 0.1
+        
+        aiCar.node.enumerateChildNodes { (node, _) in
+            if let name = node.name, name.contains("wheel") {
+                // Rotate wheels based on speed
+                node.eulerAngles.x -= CGFloat(wheelRotationSpeed)
+                
+                // Turn front wheels based on steering angle
+                if name.contains("wheel_0") || name.contains("wheel_1") {
+                    node.eulerAngles.y = CGFloat(aiCar.steeringAngle)
+                }
+            }
+        }
+    }
+    
+    func updateAICarSpin(_ aiCar: inout AICar) {
+        let deltaTime: Float = 1.0 / 60.0
+        
+        // Continue spinning with physics
+        aiCar.spinRotation += 8.0 * deltaTime
+        aiCar.node.eulerAngles.y += CGFloat(8.0 * deltaTime)
+        
+        // Decelerate
+        aiCar.currentSpeed = max(0, aiCar.currentSpeed - 40.0 * deltaTime)
+        
+        // Move forward slightly while spinning (conservation of momentum)
+        let moveDistance = aiCar.currentSpeed * deltaTime * 0.3
+        let spinHeading = Float(aiCar.node.eulerAngles.y)
+        aiCar.node.position.x += CGFloat(sin(spinHeading) * moveDistance)
+        aiCar.node.position.z += CGFloat(cos(spinHeading) * moveDistance)
+        
+        // Stop spinning after 1.5 rotations
+        if aiCar.spinRotation > Float.pi * 3 {
+            aiCar.isSpinning = false
+            aiCar.spinRotation = 0
+            aiCar.currentSpeed = 0
+            aiCar.steeringAngle = 0
+        }
+    }
+    
+    func updateAICarFleeing(_ aiCar: inout AICar) {
+        // Flee along roads at high speed
+        let deltaTime: Float = 1.0 / 60.0
+        
+        // Find the road segment furthest from player
+        guard let routePoints = interstateRoutes[aiCar.routeName],
+              routePoints.count >= 2 else {
+            ensureAICarOnRoad(&aiCar)
+            return
+        }
+        
+        // Drive forward on road at extreme speed
+        let targetSpeed: Float = 150.0 // High speed but following road
+        followRoadForward(&aiCar, speed: targetSpeed)
+        
+        // Keep track of route for proper road following
+        let currentHighway = getCurrentHighway(position: aiCar.node.position)
+        if currentHighway != "" && currentHighway != aiCar.routeName {
+            aiCar.routeName = currentHighway
+        }
+    }
+    
+    func updateAICarPursuit(_ aiCar: inout AICar) {
+        // Pursuit along roads (used as fallback)
+        let playerPos = carNode.position
+        followRoadTowardTarget(&aiCar, targetPos: playerPos, speed: 85.0)
     }
 } 
