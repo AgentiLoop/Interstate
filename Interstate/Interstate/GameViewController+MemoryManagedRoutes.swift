@@ -57,9 +57,9 @@ struct RouteMemoryFootprint {
 /// Route loading state with accurate tracking
 enum RouteLoadingState {
     case unloaded
-    case loading(progress: Float)
+    case loading(progress: CGFloat)
     case loaded(memoryFootprint: RouteMemoryFootprint)
-    case failed
+    case failed(error: Error)
     
     var isLoaded: Bool {
         if case .loaded = self { return true }
@@ -152,9 +152,9 @@ class RouteLoadingOperation: Operation, @unchecked Sendable {
     let routeData: Any
     var result: (String, RouteLoadingState)?
     
-    private let progressCallback: ((String, Float) -> Void)?
+    private let progressCallback: ((String, CGFloat) -> Void)?
     
-    init(routeName: String, routeData: Any, progressCallback: ((String, Float) -> Void)? = nil) {
+    init(routeName: String, routeData: Any, progressCallback: ((String, CGFloat) -> Void)? = nil) {
         self.routeName = routeName
         self.routeData = routeData
         self.progressCallback = progressCallback
@@ -195,7 +195,7 @@ class RouteLoadingOperation: Operation, @unchecked Sendable {
                     processedSteps += chunkSize
                     let progress = CGFloat(processedSteps) / CGFloat(totalSteps)
                     DispatchQueue.main.async {
-                        self.progressCallback?(self.routeName, min(Float(progress), 1.0))
+                        self.progressCallback?(self.routeName, min(progress, 1.0))
                     }
                 }
             }

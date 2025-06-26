@@ -180,7 +180,7 @@ extension GameViewController {
                         0,
                         pos1.z + segmentVec.z * CGFloat(t)
                     )
-                    
+                
                     let dist = sqrt(pow(CGFloat(position.x - closestPoint.x), 2) + 
                                    pow(CGFloat(position.z - closestPoint.z), 2))
                     
@@ -485,10 +485,10 @@ extension GameViewController {
         
         let currentPoint = routePoints[segmentIndex]
         let nextPoint = routePoints[nextIndex]
-        
+            
         let pos1 = gpsToSceneKit(latitude: currentPoint.0, longitude: currentPoint.1)
         let pos2 = gpsToSceneKit(latitude: nextPoint.0, longitude: nextPoint.1)
-        
+            
         // Follow to next point
         followRoadTowardTarget(&aiCar, targetPos: pos2, speed: speed)
     }
@@ -513,7 +513,7 @@ extension GameViewController {
         // Find route to player's road using highway connections
         let playerPos = carNode.position
         let playerHighway = getCurrentHighway(position: playerPos)
-        
+                
         if let connections = highwayConnections[aiCar.routeName] {
             // Check if any connection leads to player's highway
             for (connectedHighway, _, _) in connections {
@@ -703,7 +703,7 @@ extension GameViewController {
             if let name = node.name, name.contains("wheel") {
                 // Rotate wheels based on speed
                 node.eulerAngles.x -= CGFloat(wheelRotationSpeed)
-                
+            
                 // Turn front wheels based on steering angle
                 if name.contains("wheel_0") || name.contains("wheel_1") {
                     node.eulerAngles.y = CGFloat(aiCar.steeringAngle)

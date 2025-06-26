@@ -284,7 +284,7 @@ extension GameViewController {
         tireAudioNodes.forEach { $0.removeAction(forKey: "tireSqueal") }
         
         // Calculate volume based on intensity
-        let volume = Float(intensity * 0.5) // SceneKit audio still needs Float for volume
+        let volume = CGFloat(intensity * 0.5) // Using CGFloat as requested
         
         // Create new tire squeal action with volume
         let squealAction = SCNAction.playAudio(tireSquealSound, waitForCompletion: false)
