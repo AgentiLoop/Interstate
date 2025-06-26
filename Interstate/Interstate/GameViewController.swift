@@ -21,6 +21,13 @@ struct PathPoint {
 
 // MARK: - AI Car Structure
 
+enum AICarPersonality {
+    case chaser      // Yellow - Always pursues player directly (like Blinky)
+    case interceptor // Green - Tries to get ahead of player (like Pinky)
+    case racer       // Orange - Speeds past and stays ahead
+    case wanderer    // Magenta - Sometimes follows, sometimes independent
+}
+
 struct AICar {
     let node: SCNNode
     var currentSpeed: Float
@@ -38,6 +45,8 @@ struct AICar {
     var wheelBase: Float = 4.0 // Distance between axles for physics calculations
     var isFleeing: Bool = false // Whether car is fleeing after collision
     var fleeStartTime: TimeInterval = 0 // When fleeing started
+    var personality: AICarPersonality // Unique behavior type
+    var hasPassedPlayer: Bool = false // Track if this car has overtaken the player
 }
 
 class GameViewController: NSViewController {
