@@ -13,13 +13,13 @@ extension GameViewController {
     // MARK: - JSON Data Loading Functions
     
     func loadInterstateRoutesFromJSON() {
-        guard let jsonPath = Bundle.main.path(forResource: "interstate_routes", ofType: "json") else {
+        guard let jsonPath = Bundle.main.path(forResource: "interstate_routes_with_connections", ofType: "json") else {
             // Try alternative path (in case it's in the project directory during development)
-            if let alternativePath = Bundle.main.path(forResource: "Interstate/interstate_routes", ofType: "json") {
+            if let alternativePath = Bundle.main.path(forResource: "Interstate/interstate_routes_with_connections", ofType: "json") {
                 loadInterstateRoutesFromPath(alternativePath)
             } else {
                 // Try direct file path for development
-                let devPath = "\(FileManager.default.currentDirectoryPath)/Interstate/interstate_routes.json"
+                let devPath = "\(FileManager.default.currentDirectoryPath)/Interstate/interstate_routes_with_connections.json"
                 if FileManager.default.fileExists(atPath: devPath) {
                     loadInterstateRoutesFromPath(devPath)
                 }
@@ -51,6 +51,29 @@ extension GameViewController {
                 // ALSO copy to routeGPSData for the simple road loading system
                 routeGPSData = loadedRoutes
                 print("✅ Loaded \(loadedRoutes.count) interstate routes for simple road loading system")
+                
+                // Load connections if they exist
+                if let connections = jsonDict["connections"] as? [String: [[String: Any]]] {
+                    var loadedConnections: [String: [(String, Float, String)]] = [:]
+                    
+                    for (fromRoute, connList) in connections {
+                        var routeConnections: [(String, Float, String)] = []
+                        
+                        for conn in connList {
+                            if let toRoute = conn["to"] as? String,
+                               let distance = conn["distance"] as? Double,
+                               let type = conn["type"] as? String {
+                                routeConnections.append((toRoute, Float(distance), type))
+                            }
+                        }
+                        
+                        loadedConnections[fromRoute] = routeConnections
+                    }
+                    
+                    // Store connections in GameViewController
+                    highwayConnections = loadedConnections
+                    print("✅ Loaded highway connections for \(loadedConnections.count) routes")
+                }
             }
         } catch {
             print("❌ Error loading interstate routes: \(error)")

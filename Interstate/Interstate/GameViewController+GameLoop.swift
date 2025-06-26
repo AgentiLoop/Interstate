@@ -20,6 +20,7 @@ extension GameViewController {
             updateDynamicRoads() // This now includes memory-managed route updates
             updateDynamicCheckpoints() // Load/unload checkpoint signs based on proximity
             checkForCheckpointCollision() // Check for checkpoint hits
+            updateAICars() // Update AI cars and check collisions
             updateCarAudio() // Update realistic car audio system
             updateHUD()
             updateRadarMap()

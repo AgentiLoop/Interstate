@@ -15,6 +15,11 @@ extension GameViewController {
     func updateCarPhysics() {
         let deltaTime: Float = 1.0 / 60.0
         
+        // Don't update normal physics if spinning out
+        if isPlayerSpinning {
+            return
+        }
+        
         // Update speed based on input - MORE REALISTIC FEEL
         if isAccelerating {
             carSpeed = min(carSpeed + acceleration * deltaTime, maxSpeed)

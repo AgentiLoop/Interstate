@@ -24,9 +24,8 @@ extension GameViewController {
         
         // Test checkpoints removed - using only real city checkpoints now
         
-        // Clean up checkpoints that are not near roads
-        // DISABLED: This was causing checkpoints to swap positions
-        // removeCheckpointsNotOnRoads()
+        // Analyze which checkpoints need dirt roads
+        analyzeCheckpointDistances()
     }
     
     // MARK: - Checkpoint Creation
@@ -158,47 +157,57 @@ extension GameViewController {
     
     func changeCheckpointBannerToRed(cityName: String) {
         // Find the specific banner node for this checkpoint and change it to red
+        var bannerFound = false
+        
         scene.rootNode.enumerateChildNodes { (node, _) in
-            // Look for nodes with names containing this city's checkpoint
-            if let nodeName = node.name,
-               nodeName.contains("banner_\(cityName)") || nodeName.contains("checkpoint_\(cityName)") {
-                // This is a node related to this checkpoint
-                
-                // If it's a banner node (has geometry), update it
+            // Look for the banner node specifically
+            if let nodeName = node.name, nodeName == "banner_\(cityName)" {
+                // This is the banner for this checkpoint
                 if let geometry = node.geometry as? SCNBox,
                    let material = geometry.firstMaterial {
-                    // Change banner to red with "COMPLETED!" text - KEEP THE SAME CITY NAME
+                    // Change banner to red with completed texture
                     let redBannerTexture = createBannerTexture(cityName: cityName, isCompleted: true)
                     material.diffuse.contents = redBannerTexture
-                    material.emission.contents = redBannerTexture // Use same texture for colored glow
+                    material.emission.contents = redBannerTexture
                     material.emission.intensity = 0.3
-                    material.lightingModel = .constant // Keep bright
+                    material.lightingModel = .constant
+                    bannerFound = true
                     print("🔴 Changed \(cityName) banner to red (completed)")
                 }
             }
-            
-            // Also check for banner nodes by position but with tighter tolerance
-            if let geometry = node.geometry as? SCNBox,
-               let material = geometry.firstMaterial,
-               node.position.y > 11.5 && node.position.y < 13.5 { // Banners are at y=12.55
-                
-                // Check if this banner is VERY close to the checkpoint
-                if let (checkpointPos, _) = checkpointPositions[cityName] {
-                    let distance = sqrt(pow(node.position.x - checkpointPos.x, 2) + 
-                                      pow(node.position.z - checkpointPos.z, 2))
-                    
-                    // Much tighter distance check - only if banner is directly over checkpoint
-                    if distance < 5.0 { // Within 5 units (was 50)
-                        // Change banner to red with "COMPLETED!" text - KEEP THE SAME CITY NAME
-                        let redBannerTexture = createBannerTexture(cityName: cityName, isCompleted: true)
-                        material.diffuse.contents = redBannerTexture
-                        material.emission.contents = redBannerTexture // Use same texture for colored glow
-                        material.emission.intensity = 0.3
-                        material.lightingModel = .constant // Keep bright
-                        print("🔴 Changed \(cityName) banner to red (completed) - found by position")
+        }
+        
+        // If we didn't find the banner by name, try to find it by proximity to checkpoint
+        if !bannerFound {
+            if let (checkpointPos, _) = checkpointPositions[cityName] {
+                scene.rootNode.enumerateChildNodes { (node, _) in
+                    // Look for banner geometry at the right height
+                    if let geometry = node.geometry as? SCNBox,
+                       let material = geometry.firstMaterial,
+                       abs(node.position.y - 12.55) < 0.1 { // Banner height
+                        
+                        // Check if this banner is near the checkpoint
+                        let distance = sqrt(pow(node.position.x - checkpointPos.x, 2) + 
+                                          pow(node.position.z - checkpointPos.z, 2))
+                        
+                        // Within reasonable distance of checkpoint
+                        if distance < 20.0 {
+                            // Change banner to red
+                            let redBannerTexture = createBannerTexture(cityName: cityName, isCompleted: true)
+                            material.diffuse.contents = redBannerTexture
+                            material.emission.contents = redBannerTexture
+                            material.emission.intensity = 0.3
+                            material.lightingModel = .constant
+                            bannerFound = true
+                            print("🔴 Changed \(cityName) banner to red (found by position)")
+                        }
                     }
                 }
             }
+        }
+        
+        if !bannerFound {
+            print("⚠️ Could not find banner for checkpoint: \(cityName)")
         }
     }
     
@@ -411,15 +420,14 @@ extension GameViewController {
         return closestDirection
     }
     
-    func removeCheckpointsNotOnRoads() {
-        print("🔍 Cleaning up checkpoint data - moving checkpoints to nearest highways...")
+    func analyzeCheckpointDistances() {
+        print("🔍 Analyzing checkpoint distances from highways...")
         
-        var checkpointsToRemove: [String] = []
-        var checkpointsMoved = 0
-        let maxDistanceToMove: CGFloat = 16093.0 // 10 miles in meters
+        var checkpointsOnDirtRoads = 0
+        var checkpointsOnHighways = 0
+        let tenMilesInMeters: CGFloat = 16093.0 // 10 miles in meters
         
         for (cityName, (checkpointPos, population)) in checkpointPositions {
-            var closestHighwayPoint: SCNVector3?
             var minDistanceToRoad: CGFloat = CGFloat.infinity
             var closestRouteName: String = ""
             
@@ -432,54 +440,29 @@ extension GameViewController {
                     
                     if distance < minDistanceToRoad {
                         minDistanceToRoad = distance
-                        closestHighwayPoint = SCNVector3(routePoint.x, 0, routePoint.z)
                         closestRouteName = routeName
                     }
                 }
             }
             
-            if minDistanceToRoad <= maxDistanceToMove {
-                if let highwayPoint = closestHighwayPoint {
-                    // Check if this would create a duplicate position
-                    var isDuplicate = false
-                    for (otherCity, (otherPos, _)) in checkpointPositions {
-                        if otherCity != cityName {
-                            let distToOther = sqrt(pow(highwayPoint.x - otherPos.x, 2) + 
-                                                 pow(highwayPoint.z - otherPos.z, 2))
-                            if distToOther < 100.0 { // Within 100m of another checkpoint
-                                isDuplicate = true
-                                print("⚠️ \(cityName) would overlap with \(otherCity) at highway position")
-                                break
-                            }
-                        }
-                    }
-                    
-                    if !isDuplicate {
-                        // Move checkpoint to the highway
-                        checkpointPositions[cityName] = (highwayPoint, population)
-                        checkpointsMoved += 1
-                        print("📍 Moved \(cityName) to \(closestRouteName) highway (was \(Int(minDistanceToRoad))m away)")
-                    } else {
-                        print("⚠️ Keeping \(cityName) at original position to avoid overlap")
-                    }
+            // JUST LOG - DON'T MOVE ANYTHING!
+            if minDistanceToRoad <= tenMilesInMeters {
+                if minDistanceToRoad < 1000 { // Within 1km
+                    print("📍 \(cityName) is directly on \(closestRouteName) (distance: \(Int(minDistanceToRoad))m)")
+                    checkpointsOnHighways += 1
                 } else {
-                    print("✅ \(cityName) already on highway")
+                    print("🛤️ \(cityName) is \(Int(minDistanceToRoad/1609)) miles from \(closestRouteName) - needs dirt road")
+                    checkpointsOnDirtRoads += 1
                 }
             } else {
-                // Too far from any highway - remove it
-                checkpointsToRemove.append(cityName)
-                print("❌ Removing \(cityName) - too far from highways (\(Int(minDistanceToRoad/1609))mi away)")
+                print("🏜️ \(cityName) is \(Int(minDistanceToRoad/1609)) miles from nearest highway - remote dirt road city")
+                checkpointsOnDirtRoads += 1
             }
         }
         
-        // Remove checkpoints that are too far from any highway
-        for cityName in checkpointsToRemove {
-            checkpointPositions.removeValue(forKey: cityName)
-        }
-        
-        print("🧹 Data cleanup completed:")
-        print("   📍 Moved \(checkpointsMoved) checkpoints to highways")
-        print("   ❌ Removed \(checkpointsToRemove.count) checkpoints (>10mi from highways)")
-        print("   ✅ \(checkpointPositions.count) checkpoints now on highways")
+        print("🧹 Checkpoint analysis completed:")
+        print("   🛣️ \(checkpointsOnHighways) cities directly on interstates")
+        print("   🛤️ \(checkpointsOnDirtRoads) cities need dirt road connections")
+        print("   ✅ \(checkpointPositions.count) total checkpoints preserved")
     }
 }

@@ -281,6 +281,8 @@ extension GameViewController {
         
         directionLayer.path = trianglePath
         radarMapView.layer?.insertSublayer(directionLayer, below: radarCarLayer)
+        
+        // NO AI CARS ON RADAR - as requested!
     }
     
     // MARK: - Layout Updates

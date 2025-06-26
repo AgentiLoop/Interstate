@@ -13,6 +13,10 @@ extension GameViewController {
     // MARK: - Car Model Creation
     
     func createCarNode() -> SCNNode {
+        return createCarNode(color: NSColor.systemBlue)
+    }
+    
+    func createCarNode(color: NSColor) -> SCNNode {
         // Main car container
         let carContainer = SCNNode()
         carContainer.name = "carContainer"
@@ -20,7 +24,7 @@ extension GameViewController {
         // Car body - main chassis
         let bodyGeometry = SCNBox(width: 4.0, height: 1.5, length: 8.0, chamferRadius: 0.3)
         let bodyMaterial = SCNMaterial()
-        bodyMaterial.diffuse.contents = NSColor.systemBlue
+        bodyMaterial.diffuse.contents = color
         bodyMaterial.metalness.contents = 0.7
         bodyMaterial.roughness.contents = 0.3
         bodyMaterial.lightingModel = .physicallyBased

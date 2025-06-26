@@ -152,7 +152,7 @@ extension GameViewController {
     
 
     
-    private func generateTwistyDirtPath(from start: SCNVector3, to end: SCNVector3) -> [SCNVector3] {
+    func generateTwistyDirtPath(from start: SCNVector3, to end: SCNVector3) -> [SCNVector3] {
         // USE THE SAME SMOOTH GENERATION AS REGULAR ROADS!
         var controlPoints: [SCNVector3] = []
         
@@ -219,7 +219,7 @@ extension GameViewController {
         return smoothPath.map { SCNVector3(CGFloat($0.0), 0, CGFloat($0.1)) }
     }
     
-    private func createDirtRoadSegments(path: [SCNVector3], cityName: String) {
+    func createDirtRoadSegments(path: [SCNVector3], cityName: String) {
         // Convert path to 2D points format
         var points: [(CGFloat, CGFloat)] = []
         for point in path {
