@@ -135,24 +135,28 @@ extension GameViewController {
         handleAccelerationSounds()
     }
     
-    private func calculateEngineRPM(speedKmh: Float) -> Float {
-        // Realistic gear ratios for a 6-speed transmission
-        let gearRatios: [Float] = [0, 3.8, 2.1, 1.4, 1.0, 0.8, 0.6] // Index 0 unused
-        let finalDriveRatio: Float = 3.9
-        let wheelCircumference: Float = 2.0 // meters
+    private func calculateEngineRPM(speedKmh: CGFloat) -> CGFloat {
+        // More realistic RPM calculation based on current gear
+        let gearRatios: [CGFloat] = [3.5, 2.5, 1.8, 1.2, 0.9, 0.7] // 6-speed transmission
+        let finalDriveRatio: CGFloat = 3.9
+        let wheelCircumference: CGFloat = 2.0 // meters
         
-        if currentGear >= 1 && currentGear <= 6 {
-            let wheelRPM = (speedKmh / 3.6) * 60 / wheelCircumference
-            let rpm = wheelRPM * gearRatios[currentGear] * finalDriveRatio
-            
-            // Clamp RPM to realistic range
+        let speedMs = speedKmh / 3.6
+        let wheelRPM = (speedMs / wheelCircumference) * 60
+        let transmissionRPM = wheelRPM * finalDriveRatio * gearRatios[currentGear - 1]
+        
+        // Add some variance for realism
+        let variance = CGFloat.random(in: -50...50)
+        let rpm = transmissionRPM + variance
+        
+        // Ensure RPM stays within realistic bounds
+        if currentGear == 1 && speedKmh < 10 {
+            // Low speed in first gear - higher idle RPM
             let calculatedRPM = max(800, min(maxRPM, rpm))
-            engineRPM = calculatedRPM // Update the instance variable
             return calculatedRPM
+        } else {
+            return max(600, min(maxRPM, rpm))
         }
-        
-        engineRPM = 800 // Update instance variable to idle
-        return 800 // Idle RPM
     }
     
     private func updateEngineSoundParameters() {
@@ -182,37 +186,45 @@ extension GameViewController {
     
     // MARK: - Gear Shifting System
     
-    private func checkForGearShift(speedKmh: Float) {
+    private func checkForGearShift(speedKmh: CGFloat) {
+        let currentGearOpt = calculateOptimalGear(speedKmh: speedKmh)
+        
+        // Calculate speed difference for shift sound triggering
         let speedDifference = abs(speedKmh - lastSpeedForGearShift)
         
-        // Only check for shifts if speed has changed significantly
-        guard speedDifference > 2.0 else { return }
-        
-        let newGear = calculateOptimalGear(speedKmh: speedKmh)
-        
-        if newGear != currentGear {
-            performGearShift(from: currentGear, to: newGear)
-            currentGear = newGear
+        // Only play shift sound if:
+        // 1. We've actually changed gears
+        // 2. There's been a significant speed change (at least 15 km/h)
+        // 3. Enough time has passed since last shift (handled by removeAction)
+        if currentGearOpt != currentGear && speedDifference > 15 {
+            currentGear = currentGearOpt
+            playGearShiftSound()
         }
         
         lastSpeedForGearShift = speedKmh
     }
     
-    private func calculateOptimalGear(speedKmh: Float) -> Int {
-        // Realistic shift points for a performance car
+    private func calculateOptimalGear(speedKmh: CGFloat) -> Int {
+        // Realistic gear shift points for a 6-speed transmission
         switch speedKmh {
-        case 0..<15: return 1
-        case 15..<35: return 2
-        case 35..<60: return 3
-        case 60..<90: return 4
-        case 90..<130: return 5
-        default: return 6
+        case 0..<20:
+            return 1
+        case 20..<40:
+            return 2
+        case 40..<70:
+            return 3
+        case 70..<100:
+            return 4
+        case 100..<140:
+            return 5
+        default:
+            return 6
         }
     }
     
-    private func performGearShift(from oldGear: Int, to newGear: Int) {
+    private func playGearShiftSound() {
         // Play appropriate shifting sound
-        let shiftSoundIndex = min(newGear - 1, engineShiftingSounds.count - 1)
+        let shiftSoundIndex = min(currentGear - 1, engineShiftingSounds.count - 1)
         if shiftSoundIndex >= 0 && shiftSoundIndex < engineShiftingSounds.count {
             let shiftSound = engineShiftingSounds[shiftSoundIndex]
             engineAudioNode.runAction(SCNAction.playAudio(shiftSound, waitForCompletion: false))
@@ -239,7 +251,7 @@ extension GameViewController {
             // Add tire squeal if braking hard
             let brakingForce = abs(carSpeed) / maxSpeed
             if brakingForce > 0.3 && tireSquealPlayer == nil {
-                startTireSqueal(intensity: brakingForce)
+                startTireSqueal(intensity: CGFloat(brakingForce))
             }
         } else {
             stopTireSqueal()
@@ -251,14 +263,14 @@ extension GameViewController {
         if isAccelerating && carSpeed < 20.0 && carSpeed > 2.0 {
             let accelerationForce = acceleration / 20.0 // Normalize
             if accelerationForce > 0.6 && tireSquealPlayer == nil {
-                startTireSqueal(intensity: accelerationForce * 0.7)
+                startTireSqueal(intensity: CGFloat(accelerationForce * 0.7))
             }
         }
         
         // Handle cornering tire squeal
         let corneringForce = abs(steeringAngle) / maxSteeringAngle
         if corneringForce > 0.7 && carSpeed > 30.0 && tireSquealPlayer == nil {
-            startTireSqueal(intensity: corneringForce * 0.8)
+            startTireSqueal(intensity: CGFloat(corneringForce * 0.8))
         }
         
         // Stop tire squeal if conditions are no longer met
@@ -267,30 +279,24 @@ extension GameViewController {
         }
     }
     
-    private func startTireSqueal(intensity: Float) {
-        guard tireSquealPlayer == nil else { return }
+    private func startTireSqueal(intensity: CGFloat) {
+        // Remove any existing squeal action
+        tireAudioNodes.forEach { $0.removeAction(forKey: "tireSqueal") }
         
-        tireSquealPlayer = SCNAudioPlayer(source: tireSquealSound)
+        // Calculate volume based on intensity
+        let volume = Float(intensity) * 0.5 // Convert back to Float for audio volume
         
-        // Play from rear tires
-        if tireAudioNodes.count >= 4 {
-            tireAudioNodes[2].addAudioPlayer(tireSquealPlayer!) // Rear left
-            tireAudioNodes[3].addAudioPlayer(tireSquealPlayer!) // Rear right
+        // Create new tire squeal action with volume
+        let squealAction = SCNAction.playAudio(tireSquealSound, waitForCompletion: false)
+        
+        // Play on both tire audio nodes for stereo effect
+        tireAudioNodes.forEach { node in
+            node.runAction(squealAction, forKey: "tireSqueal")
         }
-        
-        // Volume is controlled by the SCNAudioSource, not the player
-        
-        // Tire squeal started
     }
     
     private func stopTireSqueal() {
-        guard let player = tireSquealPlayer else { return }
-        
-        // Remove from all tire nodes
-        for tireNode in tireAudioNodes {
-            tireNode.removeAudioPlayer(player)
-        }
-        
+        tireAudioNodes.forEach { $0.removeAction(forKey: "tireSqueal") }
         tireSquealPlayer = nil
     }
     

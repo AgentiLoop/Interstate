@@ -115,7 +115,7 @@ extension GameViewController {
         let currentHighway = getCurrentHighway(position: carPosition)
         
         // Calculate compass heading
-        let heading = Float(carNode.eulerAngles.y)
+        let heading = CGFloat(carNode.eulerAngles.y)
         let compassDirection = getCompassDirection(heading: heading)
         let nearestCity = getNearestCity(position: carPosition)
         
@@ -269,7 +269,7 @@ extension GameViewController {
         directionLayer.fillColor = NSColor.yellow.cgColor
         directionLayer.strokeColor = NSColor.clear.cgColor
         
-        let heading = Float(carNode.eulerAngles.y)
+        let heading = CGFloat(carNode.eulerAngles.y)
         let dirX = sin(heading) * 10
         let dirZ = cos(heading) * 10
         
@@ -310,12 +310,12 @@ extension GameViewController {
     
     // MARK: - HUD Helper Functions
     
-    func getCompassDirection(heading: Float) -> String {
+    func getCompassDirection(heading: CGFloat) -> String {
         // Convert SceneKit heading to compass degrees
         // In SceneKit movement code: 0 radians = +Z (south), π/2 = +X (east), π = -Z (north), 3π/2 = -X (west)
         // For compass: 0° = North, 90° = East, 180° = South, 270° = West
         
-        var degrees = heading * 180 / Float.pi
+        var degrees = heading * 180 / CGFloat.pi
         
         // Convert SceneKit coordinate system to standard compass
         // SceneKit 0° = South, so we need to subtract from 180° to get North as 0°
@@ -396,4 +396,6 @@ extension GameViewController {
         
         return "Loaded: \(totalRoutes) routes, \(segmentCount)/\(maxSegments) segments\(segmentWarning), \(loadedCheckpointCount) checkpoints"
     }
+    
+
 }

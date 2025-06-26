@@ -13,8 +13,8 @@ extension GameViewController {
     // MARK: - Player Path Tracking
     struct PathPoint {
         let position: SCNVector3
-        let heading: Float
-        let speed: Float
+        let heading: CGFloat
+        let speed: CGFloat
         let timestamp: TimeInterval
     }
     
@@ -89,19 +89,19 @@ extension GameViewController {
         
         // Spawn at random distance between 10-25 miles from player
         let playerPos = self.carNode.position
-        let playerHeading = Float(self.carNode.eulerAngles.y)
+        let playerHeading = CGFloat(self.carNode.eulerAngles.y)
         
         // Convert miles to game units (1 mile = 1609.34 meters, 1 meter = 0.01 game units)
-        let minDistanceMiles: Float = 25.0  // Spawn between 25-75 miles
-        let maxDistanceMiles: Float = 75.0
-        let minDistance: Float = minDistanceMiles * 1609.34 * 0.01 // ~402 units
-        let maxDistance: Float = maxDistanceMiles * 1609.34 * 0.01 // ~1207 units
+        let minDistanceMiles: CGFloat = 25.0  // Spawn between 25-75 miles
+        let maxDistanceMiles: CGFloat = 75.0
+        let minDistance: CGFloat = minDistanceMiles * 1609.34 * 0.01 // ~402 units
+        let maxDistance: CGFloat = maxDistanceMiles * 1609.34 * 0.01 // ~1207 units
         
         // Random distance between min and max
-        let spawnDistance = Float.random(in: minDistance...maxDistance)
+        let spawnDistance = CGFloat.random(in: minDistance...maxDistance)
         
         // Random angle around the player (0 to 2π)
-        let randomAngle = Float.random(in: 0...(2 * Float.pi))
+        let randomAngle = CGFloat.random(in: 0...(2 * CGFloat.pi))
         
         // Calculate spawn position
         let spawnX = playerPos.x + CGFloat(sin(randomAngle) * spawnDistance)
@@ -118,7 +118,7 @@ extension GameViewController {
         // Create AI car data with physics properties
         let aiCar = AICar(
             node: carNode,
-            currentSpeed: Float.random(in: 50...70), // Start with some speed
+            currentSpeed: CGFloat.random(in: 50...70), // Start with some speed
             targetSpeed: 75.0,
             routeName: nearestRoad.routeName,
             routePointIndex: 0,
@@ -147,13 +147,13 @@ extension GameViewController {
     
     struct RoadInfo {
         let position: SCNVector3
-        let heading: Float
+        let heading: CGFloat
         let routeName: String
     }
     
     func findNearestRoad(to position: SCNVector3) -> RoadInfo {
         var nearestRoad = RoadInfo(position: position, heading: 0, routeName: "")
-        var minDistance = Float.infinity
+        var minDistance = CGFloat.infinity
         
         // Search through all loaded routes
         for (routeName, points) in interstateRoutes {
@@ -170,9 +170,9 @@ extension GameViewController {
                 let segmentVec = SCNVector3(pos2.x - pos1.x, 0, pos2.z - pos1.z)
                 let toPoint = SCNVector3(position.x - pos1.x, 0, position.z - pos1.z)
                 
-                let segmentLengthSq = Float(segmentVec.x * segmentVec.x + segmentVec.z * segmentVec.z)
+                let segmentLengthSq = CGFloat(segmentVec.x * segmentVec.x + segmentVec.z * segmentVec.z)
                 if segmentLengthSq > 0 {
-                    let dotProduct = Float(toPoint.x * segmentVec.x + toPoint.z * segmentVec.z)
+                    let dotProduct = CGFloat(toPoint.x * segmentVec.x + toPoint.z * segmentVec.z)
                     let t = max(0, min(1, dotProduct / segmentLengthSq))
                     
                     let closestPoint = SCNVector3(
@@ -181,14 +181,14 @@ extension GameViewController {
                         pos1.z + segmentVec.z * CGFloat(t)
                     )
                     
-                    let dist = sqrt(pow(Float(position.x - closestPoint.x), 2) + 
-                                   pow(Float(position.z - closestPoint.z), 2))
+                    let dist = sqrt(pow(CGFloat(position.x - closestPoint.x), 2) + 
+                                   pow(CGFloat(position.z - closestPoint.z), 2))
                     
                     if dist < minDistance {
                         minDistance = dist
                         
                         // Calculate heading of this road segment
-                        let heading = atan2(Float(pos2.x - pos1.x), Float(pos2.z - pos1.z))
+                        let heading = atan2(CGFloat(pos2.x - pos1.x), CGFloat(pos2.z - pos1.z))
                         
                         nearestRoad = RoadInfo(
                             position: SCNVector3(closestPoint.x, 1.1, closestPoint.z),
@@ -212,7 +212,7 @@ extension GameViewController {
         if currentTime - lastPathUpdateTime > 0.1 {
             let pathPoint = PathPoint(
                 position: carNode.position,
-                heading: Float(carNode.eulerAngles.y),
+                heading: CGFloat(carNode.eulerAngles.y),
                 speed: carSpeed,
                 timestamp: currentTime
             )
@@ -262,7 +262,7 @@ extension GameViewController {
     }
     
     func updateAICarMovement(_ aiCar: inout AICar) {
-        let deltaTime: Float = 1.0 / 60.0
+        let deltaTime: CGFloat = 1.0 / 60.0
         
         // Check if car is fleeing
         if aiCar.isFleeing {
@@ -275,8 +275,8 @@ extension GameViewController {
                 
                 // Calculate distance reached
                 let playerPos = carNode.position
-                let distanceToPlayer = sqrt(pow(Float(aiCar.node.position.x - playerPos.x), 2) + 
-                                           pow(Float(aiCar.node.position.z - playerPos.z), 2))
+                let distanceToPlayer = sqrt(pow(CGFloat(aiCar.node.position.x - playerPos.x), 2) + 
+                                           pow(CGFloat(aiCar.node.position.z - playerPos.z), 2))
                 let distanceMiles = distanceToPlayer / (1609.34 * 0.01)
                 
                 print("🏃 AI car stopped fleeing after 10 seconds, reached \(Int(distanceMiles)) miles away")
@@ -314,14 +314,14 @@ extension GameViewController {
         let nearestRoad = findNearestRoad(to: aiCar.node.position)
         
         // If car is too far from road, snap it back
-        let distanceFromRoad = sqrt(pow(Float(aiCar.node.position.x - nearestRoad.position.x), 2) + 
-                                   pow(Float(aiCar.node.position.z - nearestRoad.position.z), 2))
+        let distanceFromRoad = sqrt(pow(CGFloat(aiCar.node.position.x - nearestRoad.position.x), 2) + 
+                                   pow(CGFloat(aiCar.node.position.z - nearestRoad.position.z), 2))
         
         if distanceFromRoad > 10.0 { // More than 10 units off road
             // Smoothly move back to road
-            let snapFactor: Float = 0.1
-            aiCar.node.position.x = aiCar.node.position.x + CGFloat((Float(nearestRoad.position.x) - Float(aiCar.node.position.x)) * snapFactor)
-            aiCar.node.position.z = aiCar.node.position.z + CGFloat((Float(nearestRoad.position.z) - Float(aiCar.node.position.z)) * snapFactor)
+            let snapFactor: CGFloat = 0.1
+            aiCar.node.position.x = aiCar.node.position.x + CGFloat((CGFloat(nearestRoad.position.x) - CGFloat(aiCar.node.position.x)) * snapFactor)
+            aiCar.node.position.z = aiCar.node.position.z + CGFloat((CGFloat(nearestRoad.position.z) - CGFloat(aiCar.node.position.z)) * snapFactor)
         }
         
         // Update current road
@@ -347,11 +347,11 @@ extension GameViewController {
     func updateAICarInterceptor(_ aiCar: inout AICar) {
         // Green car - Tries to get ahead on the road
         let playerPos = carNode.position
-        let playerHeading = Float(carNode.eulerAngles.y)
+        let playerHeading = CGFloat(carNode.eulerAngles.y)
         let playerSpeed = carSpeed
         
         // Predict where player will be
-        let predictionTime: Float = 4.0
+        let predictionTime: CGFloat = 4.0
         let predictedDistance = playerSpeed * predictionTime
         let predictedX = playerPos.x + CGFloat(sin(playerHeading) * predictedDistance)
         let predictedZ = playerPos.z + CGFloat(cos(playerHeading) * predictedDistance)
@@ -368,9 +368,9 @@ extension GameViewController {
             followRoadTowardTarget(&aiCar, targetPos: playerPos, speed: 110.0)
             
             // Check if we've passed
-            let dx = Float(aiCar.node.position.x - playerPos.x)
-            let dz = Float(aiCar.node.position.z - playerPos.z)
-            let playerHeading = Float(carNode.eulerAngles.y)
+            let dx = CGFloat(aiCar.node.position.x - playerPos.x)
+            let dz = CGFloat(aiCar.node.position.z - playerPos.z)
+            let playerHeading = CGFloat(carNode.eulerAngles.y)
             let relativeAngle = atan2(dx, dz) - playerHeading
             let isAhead = cos(relativeAngle) > 0
             
@@ -405,8 +405,8 @@ extension GameViewController {
     
     // MARK: - Road Following Movement
     
-    func followRoadTowardTarget(_ aiCar: inout AICar, targetPos: SCNVector3, speed: Float) {
-        let deltaTime: Float = 1.0 / 60.0
+    func followRoadTowardTarget(_ aiCar: inout AICar, targetPos: SCNVector3, speed: CGFloat) {
+        let deltaTime: CGFloat = 1.0 / 60.0
         
         // Get current road segment
         guard let routePoints = interstateRoutes[aiCar.routeName],
@@ -420,8 +420,8 @@ extension GameViewController {
         let nextWaypoint = findNextWaypointTowardTarget(aiCar: aiCar, targetPos: targetPos, routePoints: routePoints)
         
         // Calculate smooth path to next waypoint
-        let dx = Float(nextWaypoint.x - aiCar.node.position.x)
-        let dz = Float(nextWaypoint.z - aiCar.node.position.z)
+        let dx = CGFloat(nextWaypoint.x - aiCar.node.position.x)
+        let dz = CGFloat(nextWaypoint.z - aiCar.node.position.z)
         let distanceToWaypoint = sqrt(dx * dx + dz * dz)
         
         if distanceToWaypoint < 5.0 {
@@ -431,16 +431,16 @@ extension GameViewController {
         
         // Calculate desired heading along road
         let desiredHeading = atan2(dx, dz)
-        let currentHeading = Float(aiCar.node.eulerAngles.y)
+        let currentHeading = CGFloat(aiCar.node.eulerAngles.y)
         
         // Smooth heading adjustment
         var headingDiff = desiredHeading - currentHeading
-        while headingDiff > Float.pi { headingDiff -= 2 * Float.pi }
-        while headingDiff < -Float.pi { headingDiff += 2 * Float.pi }
+        while headingDiff > CGFloat.pi { headingDiff -= 2 * CGFloat.pi }
+        while headingDiff < -CGFloat.pi { headingDiff += 2 * CGFloat.pi }
         
         // VERY SMOOTH steering for road following
-        let maxSteeringAngle: Float = 0.3 // Reduced for smoother road following
-        let steeringRate: Float = 2.0 // Smooth steering rate
+        let maxSteeringAngle: CGFloat = 0.3 // Reduced for smoother road following
+        let steeringRate: CGFloat = 2.0 // Smooth steering rate
         
         aiCar.steeringAngle = max(-maxSteeringAngle, min(maxSteeringAngle, headingDiff * 0.5))
         
@@ -453,8 +453,8 @@ extension GameViewController {
         
         // Smooth speed control
         let targetSpeed = speed
-        let maxAcceleration: Float = 30.0
-        let maxBraking: Float = 40.0
+        let maxAcceleration: CGFloat = 30.0
+        let maxBraking: CGFloat = 40.0
         
         let speedDiff = targetSpeed - aiCar.currentSpeed
         if speedDiff > 0 {
@@ -465,14 +465,14 @@ extension GameViewController {
         
         // Move forward along heading
         let moveDistance = aiCar.currentSpeed * deltaTime
-        let carHeading = Float(aiCar.node.eulerAngles.y)
+        let carHeading = CGFloat(aiCar.node.eulerAngles.y)
         
         aiCar.node.position.x += CGFloat(sin(carHeading) * moveDistance)
         aiCar.node.position.z += CGFloat(cos(carHeading) * moveDistance)
         aiCar.node.position.y = 1.1
     }
     
-    func followRoadForward(_ aiCar: inout AICar, speed: Float) {
+    func followRoadForward(_ aiCar: inout AICar, speed: CGFloat) {
         // Just follow the current road forward
         guard let routePoints = interstateRoutes[aiCar.routeName],
               routePoints.count >= 2 else {
@@ -539,7 +539,7 @@ extension GameViewController {
               !fromCoords.isEmpty,
               !toCoords.isEmpty else { return nil }
         
-        var minDist = Float.infinity
+        var minDist = CGFloat.infinity
         var connectionPoint: SCNVector3?
         
         // Check endpoints and some midpoints
@@ -556,8 +556,8 @@ extension GameViewController {
         // Find closest points
         for fromPoint in fromPoints {
             for toPoint in toPoints {
-                let dist = sqrt(pow(Float(fromPoint.x - toPoint.x), 2) + 
-                               pow(Float(fromPoint.z - toPoint.z), 2))
+                let dist = sqrt(pow(CGFloat(fromPoint.x - toPoint.x), 2) + 
+                               pow(CGFloat(fromPoint.z - toPoint.z), 2))
                 if dist < minDist {
                     minDist = dist
                     // Use the midpoint as the connection point
@@ -580,19 +580,19 @@ extension GameViewController {
         let aiPos = aiCar.node.position
         
         // Calculate distance
-        let distance = sqrt(pow(Float(playerPos.x - aiPos.x), 2) + 
-                          pow(Float(playerPos.z - aiPos.z), 2))
+        let distance = sqrt(pow(CGFloat(playerPos.x - aiPos.x), 2) + 
+                          pow(CGFloat(playerPos.z - aiPos.z), 2))
         
         // Check for collision (slightly larger collision distance for realism)
         if distance < collisionDistance * 1.2 {
             // Calculate collision angle
-            let collisionAngle = atan2(Float(aiPos.x - playerPos.x), Float(aiPos.z - playerPos.z))
-            let playerHeading = Float(carNode.eulerAngles.y)
+            let collisionAngle = atan2(CGFloat(aiPos.x - playerPos.x), CGFloat(aiPos.z - playerPos.z))
+            let playerHeading = CGFloat(carNode.eulerAngles.y)
             
             // Determine spin direction based on collision angle
             var angleDiff = collisionAngle - playerHeading
-            while angleDiff > Float.pi { angleDiff -= 2 * Float.pi }
-            while angleDiff < -Float.pi { angleDiff += 2 * Float.pi }
+            while angleDiff > CGFloat.pi { angleDiff -= 2 * CGFloat.pi }
+            while angleDiff < -CGFloat.pi { angleDiff += 2 * CGFloat.pi }
             
             // Trigger player spin-out
             isPlayerSpinning = true
@@ -614,24 +614,24 @@ extension GameViewController {
     }
     
     func updatePlayerSpin() {
-        let deltaTime: Float = 1.0 / 60.0
+        let deltaTime: CGFloat = 1.0 / 60.0
         
         // Spin the car with physics
         playerSpinAngle += playerSpinVelocity * deltaTime
         carNode.eulerAngles.y += CGFloat(playerSpinVelocity * deltaTime)
         
         // Reduce car speed dramatically but keep some momentum
-        let brakingForce: Float = 50.0
+        let brakingForce: CGFloat = 50.0
         carSpeed = max(0, carSpeed - brakingForce * deltaTime)
         
         // Move slightly while spinning (conservation of momentum)
         let moveDistance = carSpeed * deltaTime * 0.3
-        let spinHeading = Float(carNode.eulerAngles.y)
+        let spinHeading = CGFloat(carNode.eulerAngles.y)
         carNode.position.x += CGFloat(sin(spinHeading) * moveDistance)
         carNode.position.z += CGFloat(cos(spinHeading) * moveDistance)
         
         // Reduce spin velocity (friction)
-        let friction: Float = 5.0
+        let friction: CGFloat = 5.0
         if playerSpinVelocity > 0 {
             playerSpinVelocity = max(0, playerSpinVelocity - friction * deltaTime)
         } else {
@@ -662,12 +662,12 @@ extension GameViewController {
     
     func checkAndRespawnDistantAICars() {
         let playerPos = carNode.position
-        let maxDistance: Float = 3000.0 // Respawn if more than ~185 miles away (increased from 125 miles)
+        let maxDistance: CGFloat = 3000.0 // Respawn if more than ~185 miles away (increased from 125 miles)
         
         for i in 0..<aiCars.count {
             let aiCar = aiCars[i]
-            let distance = sqrt(pow(Float(aiCar.node.position.x - playerPos.x), 2) + 
-                               pow(Float(aiCar.node.position.z - playerPos.z), 2))
+            let distance = sqrt(pow(CGFloat(aiCar.node.position.x - playerPos.x), 2) + 
+                               pow(CGFloat(aiCar.node.position.z - playerPos.z), 2))
             
             // If AI car is too far away, remove and respawn
             if distance > maxDistance {
@@ -713,7 +713,7 @@ extension GameViewController {
     }
     
     func updateAICarSpin(_ aiCar: inout AICar) {
-        let deltaTime: Float = 1.0 / 60.0
+        let deltaTime: CGFloat = 1.0 / 60.0
         
         // Continue spinning with physics
         aiCar.spinRotation += 8.0 * deltaTime
@@ -724,12 +724,12 @@ extension GameViewController {
         
         // Move forward slightly while spinning (conservation of momentum)
         let moveDistance = aiCar.currentSpeed * deltaTime * 0.3
-        let spinHeading = Float(aiCar.node.eulerAngles.y)
+        let spinHeading = CGFloat(aiCar.node.eulerAngles.y)
         aiCar.node.position.x += CGFloat(sin(spinHeading) * moveDistance)
         aiCar.node.position.z += CGFloat(cos(spinHeading) * moveDistance)
         
         // Stop spinning after 1.5 rotations
-        if aiCar.spinRotation > Float.pi * 3 {
+        if aiCar.spinRotation > CGFloat.pi * 3 {
             aiCar.isSpinning = false
             aiCar.spinRotation = 0
             aiCar.currentSpeed = 0
@@ -739,7 +739,7 @@ extension GameViewController {
     
     func updateAICarFleeing(_ aiCar: inout AICar) {
         // Flee along roads at high speed
-        let deltaTime: Float = 1.0 / 60.0
+        let deltaTime: CGFloat = 1.0 / 60.0
         
         // Find the road segment furthest from player
         guard let routePoints = interstateRoutes[aiCar.routeName],
@@ -749,7 +749,7 @@ extension GameViewController {
         }
         
         // Drive forward on road at extreme speed
-        let targetSpeed: Float = 150.0 // High speed but following road
+        let targetSpeed: CGFloat = 150.0 // High speed but following road
         followRoadForward(&aiCar, speed: targetSpeed)
         
         // Keep track of route for proper road following

@@ -26,8 +26,8 @@ extension GameViewController {
         cameraNode.position = SCNVector3(carStartPos.x, CGFloat(cameraHeight) + 0.5, carStartPos.z - CGFloat(cameraDistance))
         
         // Point camera ahead of the car to show more road
-        let initialLookAhead: Float = 10.0
-        cameraNode.look(at: SCNVector3(carStartPos.x, 0.5, carStartPos.z + CGFloat(initialLookAhead)), up: SCNVector3(0, 1, 0), localFront: SCNVector3(0, 0, -1))
+        let initialLookAhead: CGFloat = 10.0
+        cameraNode.look(at: SCNVector3(carStartPos.x, 0.5, carStartPos.z + initialLookAhead), up: SCNVector3(0, 1, 0), localFront: SCNVector3(0, 0, -1))
         
         // Add camera directly to scene, NOT as child of car
         scene.rootNode.addChildNode(cameraNode)
@@ -39,29 +39,30 @@ extension GameViewController {
     // MARK: - Camera Update
     
     func updateCameraPosition() {
-        // PROPER THIRD-PERSON DRIVING CAMERA - FOLLOWS CAR SMOOTHLY
-        let carPosition = carNode.position
-        let carHeading = Float(carNode.eulerAngles.y)
+        let dampingFactor: CGFloat = 0.15
         
-        // Calculate ideal camera position behind and above the car
-        let cameraOffsetX = sin(carHeading + Float.pi) * cameraDistance
-        let cameraOffsetZ = cos(carHeading + Float.pi) * cameraDistance
+        // Get car's heading
+        let carHeading = carNode.eulerAngles.y
+        
+        // Calculate camera offset based on car direction (behind the car)
+        let cameraOffsetX = sin(carHeading + CGFloat.pi) * cameraDistance
+        let cameraOffsetZ = cos(carHeading + CGFloat.pi) * cameraDistance
         
         targetCameraPosition = SCNVector3(
-            carPosition.x + CGFloat(cameraOffsetX),
-            carPosition.y + CGFloat(cameraHeight), // Height relative to car
-            carPosition.z + CGFloat(cameraOffsetZ)
+            carNode.position.x + cameraOffsetX,
+            carNode.position.y + cameraHeight,
+            carNode.position.z + cameraOffsetZ
         )
         
         // Camera should look ahead of the car to show more road
-        let lookAheadDistance: Float = 10.0  // Standard look-ahead for road visibility
+        let lookAheadDistance: CGFloat = 10.0  // Standard look-ahead for road visibility
         let lookAheadX = sin(carHeading) * lookAheadDistance
         let lookAheadZ = cos(carHeading) * lookAheadDistance
         
         targetCameraLookAt = SCNVector3(
-            carPosition.x + CGFloat(lookAheadX),
-            carPosition.y, // Look at road level ahead
-            carPosition.z + CGFloat(lookAheadZ)
+            carNode.position.x + lookAheadX,
+            carNode.position.y, // Look at road level ahead
+            carNode.position.z + lookAheadZ
         )
         
         // Smoothly move camera to target position

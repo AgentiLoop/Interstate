@@ -14,8 +14,8 @@ import Darwin
 
 struct PathPoint {
     let position: SCNVector3
-    let heading: Float
-    let speed: Float
+    let heading: CGFloat
+    let speed: CGFloat
     let timestamp: TimeInterval
 }
 
@@ -30,23 +30,23 @@ enum AICarPersonality {
 
 struct AICar {
     let node: SCNNode
-    var currentSpeed: Float
-    var targetSpeed: Float
+    var currentSpeed: CGFloat
+    var targetSpeed: CGFloat
     var routeName: String
     var routePointIndex: Int
-    var positionOnSegment: Float // 0.0 to 1.0 between two route points
+    var positionOnSegment: CGFloat // 0.0 to 1.0 between two route points
     var lane: Int // -1 = left lane, 1 = right lane
     var color: NSColor
     var isSpinning: Bool = false
-    var spinRotation: Float = 0.0
+    var spinRotation: CGFloat = 0.0
     var isGoingForward: Bool = true // Direction on the road
     var pathTargetIndex: Int = 0 // Index in player path to follow
-    var steeringAngle: Float = 0.0 // Current steering angle for realistic turning
-    var wheelBase: Float = 4.0 // Distance between axles for physics calculations
+    var steeringAngle: CGFloat = 0.0 // Current steering angle for realistic turning
+    var wheelBase: CGFloat = 4.0 // Distance between axles for physics calculations
     var isFleeing: Bool = false // Whether car is fleeing after collision
     var fleeStartTime: TimeInterval = 0 // When fleeing started
-    var personality: AICarPersonality // Unique behavior type
-    var hasPassedPlayer: Bool = false // Track if this car has overtaken the player
+    var personality: AICarPersonality
+    var hasPassedPlayer: Bool = false
 }
 
 class GameViewController: NSViewController {
@@ -60,11 +60,11 @@ class GameViewController: NSViewController {
     // MARK: - Car Properties
     
     var carNode: SCNNode!
-    var carSpeed: Float = 0.0
-    var maxSpeed: Float = 89.4  // m/s (~200 mph)
-    var acceleration: Float = 10.0
-    var deceleration: Float = 15.0
-    var steeringAngle: Float = 0.0  // Current steering wheel angle
+    var carSpeed: CGFloat = 0.0
+    var maxSpeed: CGFloat = 89.4  // m/s (~200 mph)
+    var acceleration: CGFloat = 10.0
+    var deceleration: CGFloat = 15.0
+    var steeringAngle: CGFloat = 0.0  // Current steering wheel angle
     var isAccelerating = false
     var isBraking = false
     var isTurningLeft = false
@@ -87,10 +87,10 @@ class GameViewController: NSViewController {
     
     // Audio state tracking
     var currentGear: Int = 1
-    var engineRPM: Float = 800.0  // Idle RPM
-    var maxRPM: Float = 6500.0
+    var engineRPM: CGFloat = 800.0  // Idle RPM
+    var maxRPM: CGFloat = 6500.0
     var isEngineRunning: Bool = false
-    var lastSpeedForGearShift: Float = 0.0
+    var lastSpeedForGearShift: CGFloat = 0.0
     
     // Audio nodes for positional audio
     var engineAudioNode: SCNNode!
@@ -101,9 +101,9 @@ class GameViewController: NSViewController {
     
     var targetCameraPosition = SCNVector3(0, 0, 0)
     var targetCameraLookAt = SCNVector3(0, 0, 0)
-    let cameraFollowSpeed: Float = 6.0 // Smooth following for high-speed driving
-    let cameraHeight: Float = 8.0 // Good height for road visibility
-    let cameraDistance: Float = 15.0 // Standard distance for good road visibility
+    let cameraFollowSpeed: CGFloat = 6.0 // Smooth following for high-speed driving
+    let cameraHeight: CGFloat = 8.0 // Good height for road visibility
+    let cameraDistance: CGFloat = 15.0 // Standard distance for good road visibility
     
     // MARK: - HUD Properties
     
@@ -124,7 +124,7 @@ class GameViewController: NSViewController {
     
     // MARK: - Steering Properties
     
-    let maxSteeringAngle: Float = 35.0  // Realistic steering angle
+    let maxSteeringAngle: CGFloat = 35.0  // Realistic steering angle
     
     // MARK: - Game Timer
     
@@ -149,7 +149,7 @@ class GameViewController: NSViewController {
     
     var allRoadPoints: [String: [(CGFloat, CGFloat)]] = [:]
     var intersectionZones: [SCNVector3] = []
-    let intersectionRadius: Float = 30.0  // Radius of intersection zones
+    let intersectionRadius: CGFloat = 30.0  // Radius of intersection zones
     
     // MARK: - GPS Conversion Properties
     
@@ -222,8 +222,8 @@ class GameViewController: NSViewController {
     
     var aiCars: [AICar] = []
     let maxAICars = 4  // Exactly 4 ghost AI cars
-    let aiCarSpawnDistance: Float = 300.0 // Spawn within 300m of player
-    let aiCarDespawnDistance: Float = 1000.0 // Keep AI cars within 1km of player
+    let aiCarSpawnDistance: CGFloat = 300.0 // Spawn within 300m of player
+    let aiCarDespawnDistance: CGFloat = 1000.0 // Keep AI cars within 1km of player
     let aiCarColors: [NSColor] = [
         NSColor(red: 1.0, green: 1.0, blue: 0.0, alpha: 1.0),     // Bright yellow
         NSColor(red: 0.0, green: 1.0, blue: 0.0, alpha: 1.0),     // Bright green
@@ -238,9 +238,9 @@ class GameViewController: NSViewController {
     
     // Collision detection
     var isPlayerSpinning: Bool = false
-    var playerSpinVelocity: Float = 0.0
-    var playerSpinAngle: Float = 0.0
-    let collisionDistance: Float = 5.0 // Collision detection radius
+    var playerSpinVelocity: CGFloat = 0.0
+    var playerSpinAngle: CGFloat = 0.0
+    let collisionDistance: CGFloat = 5.0 // Collision detection radius
     
     // MARK: - View Lifecycle
     

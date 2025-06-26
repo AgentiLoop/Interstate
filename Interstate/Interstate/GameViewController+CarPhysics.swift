@@ -2,7 +2,7 @@
 //  GameViewController+CarPhysics.swift
 //  Interstate
 //
-//  Car physics and movement handling
+//  Realistic car physics with arcade-style handling
 //
 
 import SceneKit
@@ -13,7 +13,7 @@ extension GameViewController {
     // MARK: - Car Physics Update
     
     func updateCarPhysics() {
-        let deltaTime: Float = 1.0 / 60.0
+        let deltaTime: CGFloat = 1.0 / 60.0
         
         // Don't update normal physics if spinning out
         if isPlayerSpinning {
@@ -35,7 +35,7 @@ extension GameViewController {
         }
         
         // Update steering based on continuous input - ONLY IF CAR IS MOVING!
-        let steeringSpeed: Float = 30.0 // Reduced from 40 for less oversteering
+        let steeringSpeed: CGFloat = 30.0 // Reduced from 40 for less oversteering
         
         // Car must be moving to steer (minimum speed threshold)
         let canSteer = abs(carSpeed) > 1.0  // Need at least 1 m/s to steer
@@ -47,7 +47,7 @@ extension GameViewController {
                 steeringAngle = min(steeringAngle + steeringSpeed * deltaTime, maxSteeringAngle)
             } else {
                 // Return steering to center when not actively steering
-                let returnSpeed: Float = 60.0 * deltaTime  // Faster return to match faster steering
+                let returnSpeed: CGFloat = 60.0 * deltaTime  // Faster return to match faster steering
                 if steeringAngle > 0.1 {
                     steeringAngle = max(steeringAngle - returnSpeed, 0)
                 } else if steeringAngle < -0.1 {
@@ -58,7 +58,7 @@ extension GameViewController {
             }
         } else {
             // If car is stopped, gradually return wheels to center
-            let returnSpeed: Float = 20.0 * deltaTime  // Faster return when stopped too
+            let returnSpeed: CGFloat = 20.0 * deltaTime  // Faster return when stopped too
             if abs(steeringAngle) > 0.1 {
                 if steeringAngle > 0 {
                     steeringAngle = max(steeringAngle - returnSpeed, 0)
@@ -75,22 +75,22 @@ extension GameViewController {
             
             if abs(steeringAngle) > 0.1 {
                 // Proper steering physics - FIXED DIRECTION
-                let steeringRadians = -steeringAngle * Float.pi / 180.0  // NEGATIVE for correct direction
+                let steeringRadians = -steeringAngle * CGFloat.pi / 180.0  // NEGATIVE for correct direction
                 let speedFactor = min(abs(carSpeed) / 10.0, 1.0) // Steering effectiveness based on speed
                 let turnRate = steeringRadians * speedFactor
                 
                 // Apply rotation based on forward/reverse
-                let direction: Float = carSpeed >= 0 ? 1.0 : -1.0  // Reverse steering when backing up
+                let direction: CGFloat = carSpeed >= 0 ? 1.0 : -1.0  // Reverse steering when backing up
                 let angularVelocity = turnRate * direction * deltaTime * 2.0  // 2x for better response
                 
                 // Rotate car
-                let currentY = Float(carNode.eulerAngles.y)
+                let currentY = CGFloat(carNode.eulerAngles.y)
                 let newY = currentY + angularVelocity
                 carNode.eulerAngles = SCNVector3(0, newY, 0)
             }
             
             // Move car forward in the direction it's facing
-            let currentHeading = Float(carNode.eulerAngles.y)
+            let currentHeading = CGFloat(carNode.eulerAngles.y)
             let moveX = sin(currentHeading) * carSpeed * deltaTime
             let moveZ = cos(currentHeading) * carSpeed * deltaTime
             
@@ -114,7 +114,7 @@ extension GameViewController {
                 // Front wheels also turn left/right based on steering
                 if name == "wheel_0" || name == "wheel_1" { // Front wheels
                     // FIXED: Negate steering angle for correct direction
-                    node.eulerAngles.y = CGFloat(-steeringAngle * Float.pi / 180.0)
+                    node.eulerAngles.y = CGFloat(-steeringAngle * CGFloat.pi / 180.0)
                 }
             }
         }

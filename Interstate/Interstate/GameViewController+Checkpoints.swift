@@ -35,14 +35,14 @@ extension GameViewController {
         let (roadPosition, roadDirection) = findNearestRoadPositionAndDirection(at: position)
         
         // Calculate perpendicular direction (90 degrees to road)
-        let perpendicularAngle = roadDirection + Float.pi / 2
+        let perpendicularAngle = roadDirection + CGFloat.pi / 2
         
         // Place poles on BOTH SIDES of the road - 15.6 units from center (30% wider)
-        let poleOffset: Float = 15.6
-        let leftPoleX = roadPosition.x + CGFloat(cos(perpendicularAngle) * poleOffset)
-        let leftPoleZ = roadPosition.z + CGFloat(sin(perpendicularAngle) * poleOffset)
-        let rightPoleX = roadPosition.x - CGFloat(cos(perpendicularAngle) * poleOffset)
-        let rightPoleZ = roadPosition.z - CGFloat(sin(perpendicularAngle) * poleOffset)
+        let poleOffset: CGFloat = 15.6
+        let leftPoleX = roadPosition.x + cos(perpendicularAngle) * poleOffset
+        let leftPoleZ = roadPosition.z + sin(perpendicularAngle) * poleOffset
+        let rightPoleX = roadPosition.x - cos(perpendicularAngle) * poleOffset
+        let rightPoleZ = roadPosition.z - sin(perpendicularAngle) * poleOffset
         
         // Gate poles - TALLER and BRIGHTER for visibility
         let poleMaterial = SCNMaterial()
@@ -75,15 +75,15 @@ extension GameViewController {
         
         // Calculate exact distance between poles
         let poleDistance = sqrt(pow(leftPoleX - rightPoleX, 2) + pow(leftPoleZ - rightPoleZ, 2))
-        let bannerGeometry = SCNBox(width: CGFloat(poleDistance), height: 6.9, length: 0.3, chamferRadius: 0)
+        let bannerGeometry = SCNBox(width: poleDistance, height: 6.9, length: 0.3, chamferRadius: 0)
         bannerGeometry.materials = [bannerMaterial]
         
         let banner = SCNNode(geometry: bannerGeometry)
         banner.name = "banner_\(cityName)" // Add unique name to banner
         
         // Position at exact midpoint between poles - TOP OF BANNER MEETS TOP OF POLES
-        let midX = (leftPoleX + rightPoleX) / 2
-        let midZ = (leftPoleZ + rightPoleZ) / 2
+        let midX = (leftPoleX + rightPoleX) / 2.0
+        let midZ = (leftPoleZ + rightPoleZ) / 2.0
         banner.position = SCNVector3(midX, 12.55, midZ)  // y=12.55 so top is at y=16 (same as pole tops)
         
         // Use look(at:) to orient banner from left pole to right pole
@@ -317,9 +317,9 @@ extension GameViewController {
     
     // MARK: - Helper Functions
     
-    func findNearestRoadPositionAndDirection(at position: SCNVector3) -> (SCNVector3, Float) {
+    func findNearestRoadPositionAndDirection(at position: SCNVector3) -> (SCNVector3, CGFloat) {
         var closestRoadPoint = position
-        var closestDirection: Float = 0.0
+        var closestDirection: CGFloat = 0.0
         var minDistance: CGFloat = CGFloat.infinity
         
         // Use the actual route GPS data to find road position and direction
@@ -356,7 +356,7 @@ extension GameViewController {
                     // Calculate direction of this road segment
                     let deltaX = endPos.x - startPos.x
                     let deltaZ = endPos.z - startPos.z
-                    closestDirection = atan2(Float(deltaZ), Float(deltaX))
+                    closestDirection = atan2(CGFloat(deltaZ), CGFloat(deltaX))
                 }
             }
         }
@@ -369,8 +369,8 @@ extension GameViewController {
         return (closestRoadPoint, closestDirection)
     }
     
-    func findNearestRoadDirection(at position: SCNVector3) -> Float {
-        var closestDirection: Float = 0.0
+    func findNearestRoadDirection(at position: SCNVector3) -> CGFloat {
+        var closestDirection: CGFloat = 0.0
         var minDistance: CGFloat = CGFloat.infinity
         
         // Use the actual route GPS data to find road direction
@@ -406,7 +406,7 @@ extension GameViewController {
                     // Calculate direction of this road segment
                     let deltaX = endPos.x - startPos.x
                     let deltaZ = endPos.z - startPos.z
-                    closestDirection = atan2(Float(deltaZ), Float(deltaX))
+                    closestDirection = atan2(CGFloat(deltaZ), CGFloat(deltaX))
                 }
             }
         }
@@ -464,5 +464,57 @@ extension GameViewController {
         print("   🛣️ \(checkpointsOnHighways) cities directly on interstates")
         print("   🛤️ \(checkpointsOnDirtRoads) cities need dirt road connections")
         print("   ✅ \(checkpointPositions.count) total checkpoints preserved")
+    }
+    
+
+    
+
+    
+    func updateCheckpointBannerColors() {
+        // Update which cities show as red (50+ mph completed)
+        for cityName in checkpointsReached {
+            // Find nearest highway checkpoint
+            if let (checkpointPos, _) = checkpointPositions[cityName] {
+                var minDistance = CGFloat.infinity
+                var closestDirection: CGFloat = 0.0
+                
+                // Look through all loaded routes to find closest approach
+                for (routeName, gpsCoordinates) in interstateRoutes {
+                    // Skip if this route isn't loaded
+                    guard !gpsCoordinates.isEmpty else { continue }
+                    
+                    // Convert GPS coords to scene positions
+                    for i in 0..<gpsCoordinates.count-1 {
+                        let pos1 = gpsToSceneKit(latitude: gpsCoordinates[i].0, longitude: gpsCoordinates[i].1)
+                        let pos2 = gpsToSceneKit(latitude: gpsCoordinates[i+1].0, longitude: gpsCoordinates[i+1].1)
+                        
+                        // Calculate distance from checkpoint to this road segment
+                        let segmentVec = SCNVector3(pos2.x - pos1.x, 0, pos2.z - pos1.z)
+                        let toCheckpoint = SCNVector3(checkpointPos.x - pos1.x, 0, checkpointPos.z - pos1.z)
+                        
+                        let segmentLength = sqrt(segmentVec.x * segmentVec.x + segmentVec.z * segmentVec.z)
+                        if segmentLength > 0.1 {
+                            let t = max(0, min(1, (toCheckpoint.x * segmentVec.x + toCheckpoint.z * segmentVec.z) / (segmentLength * segmentLength)))
+                            let closestPoint = SCNVector3(pos1.x + segmentVec.x * t, 0, pos1.z + segmentVec.z * t)
+                            
+                            let deltaX = checkpointPos.x - closestPoint.x
+                            let deltaZ = checkpointPos.z - closestPoint.z
+                            let distance = sqrt(deltaX * deltaX + deltaZ * deltaZ)
+                            
+                            if distance < minDistance && distance < 200 { // Within 200 units of highway
+                                minDistance = distance
+                                // Calculate direction of road at this point
+                                closestDirection = atan2(CGFloat(deltaZ), CGFloat(deltaX))
+                            }
+                        }
+                    }
+                }
+                
+                // If we found a nearby road segment
+                if minDistance < 200 {
+                    changeCheckpointBannerToRed(cityName: cityName)
+                }
+            }
+        }
     }
 }
