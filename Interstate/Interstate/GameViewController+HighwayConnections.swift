@@ -138,7 +138,7 @@ extension GameViewController {
     
     // MARK: - Generate Smooth Connector Path
     
-    private func generateSmoothConnectorPath(from start: SCNVector3, to end: SCNVector3, curveAmount: Float) -> [SCNVector3] {
+    private func generateSmoothConnectorPath(from start: SCNVector3, to end: SCNVector3, curveAmount: CGFloat) -> [SCNVector3] {
         var controlPoints: [SCNVector3] = []
         
         // Add start point
@@ -184,7 +184,7 @@ extension GameViewController {
             let p3 = i < controlPoints.count - 2 ? controlPoints[i+2] : controlPoints[i+1]
             
             for j in 0..<segmentsPerSection {
-                let t = Float(j) / Float(segmentsPerSection)
+                let t = CGFloat(j) / CGFloat(segmentsPerSection)
                 let smoothPoint = catmullRomSpline(p0, p1, p2, p3, t)
                 smoothPath.append(smoothPoint)
             }
@@ -195,4 +195,50 @@ extension GameViewController {
         
         return smoothPath
     }
+    
+    private func calculateCubicBezier(p0: SCNVector3, p1: SCNVector3, p2: SCNVector3, p3: SCNVector3, t: CGFloat) -> SCNVector3 {
+        let oneMinusT = 1.0 - t
+        let oneMinusT2 = oneMinusT * oneMinusT
+        let oneMinusT3 = oneMinusT2 * oneMinusT
+        let t2 = t * t
+        let t3 = t2 * t
+        
+        let x = oneMinusT3 * p0.x + 3 * oneMinusT2 * t * p1.x + 3 * oneMinusT * t2 * p2.x + t3 * p3.x
+        let z = oneMinusT3 * p0.z + 3 * oneMinusT2 * t * p1.z + 3 * oneMinusT * t2 * p2.z + t3 * p3.z
+        
+        return SCNVector3(x, 0, z)
+    }
+    
+    private func generateSmoothConnectionPath(from startPos: SCNVector3, startDir: SCNVector3,
+                                              to endPos: SCNVector3, endDir: SCNVector3) -> [SCNVector3] {
+        var smoothPath: [SCNVector3] = []
+        
+        // Calculate control points for a smooth cubic Bezier curve
+        let controlDistance: CGFloat = 100.0 // Adjust for curve smoothness
+        
+        let p0 = startPos
+        let p1 = SCNVector3(
+            startPos.x + startDir.x * controlDistance,
+            0,
+            startPos.z + startDir.z * controlDistance
+        )
+        let p2 = SCNVector3(
+            endPos.x - endDir.x * controlDistance,
+            0,
+            endPos.z - endDir.z * controlDistance
+        )
+        let p3 = endPos
+        
+        // Generate smooth curve points
+        let segments = 50
+        for i in 0...segments {
+            let t = CGFloat(i) / CGFloat(segments)
+            let point = calculateCubicBezier(p0: p0, p1: p1, p2: p2, p3: p3, t: t)
+            smoothPath.append(point)
+        }
+        
+        return smoothPath
+    }
+
+
 } 

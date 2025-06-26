@@ -54,16 +54,16 @@ extension GameViewController {
                 
                 // Load connections if they exist
                 if let connections = jsonDict["connections"] as? [String: [[String: Any]]] {
-                    var loadedConnections: [String: [(String, Float, String)]] = [:]
+                    var loadedConnections: [String: [(String, CGFloat, String)]] = [:]
                     
                     for (fromRoute, connList) in connections {
-                        var routeConnections: [(String, Float, String)] = []
+                        var routeConnections: [(String, CGFloat, String)] = []
                         
                         for conn in connList {
                             if let toRoute = conn["to"] as? String,
                                let distance = conn["distance"] as? Double,
                                let type = conn["type"] as? String {
-                                routeConnections.append((toRoute, Float(distance), type))
+                                routeConnections.append((toRoute, CGFloat(distance), type))
                             }
                         }
                         

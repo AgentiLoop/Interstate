@@ -163,7 +163,7 @@ class GameViewController: NSViewController {
     
     var interstateRoutes: [String: [(Double, Double)]] = [:]  // Will be loaded from JSON
     var majorCities: [(String, Double, Double, Int)] = []  // Will be loaded from JSON
-    var highwayConnections: [String: [(String, Float, String)]] = [:]  // Precomputed highway connections
+    var highwayConnections: [String: [(String, CGFloat, String)]] = [:]  // Precomputed highway connections
     
     // MARK: - Audio Update Properties
     

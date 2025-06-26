@@ -390,7 +390,7 @@ extension GameViewController {
         
         if distance > 0 {
             let angle = atan2(deltaX, deltaZ)
-            roadSegmentNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+            roadSegmentNode.rotation = SCNVector4(0, 1, 0, angle)
         }
         
         roadNode.addChildNode(roadSegmentNode)
@@ -506,7 +506,7 @@ extension GameViewController {
             
             // Rotate to align with direction
             let angle = atan2(end.x - start.x, end.z - start.z)
-            lineNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+            lineNode.rotation = SCNVector4(0, 1, 0, angle)
             
             parent.addChildNode(lineNode)
         }
@@ -567,8 +567,9 @@ extension GameViewController {
                             (dashStart.z + dashEnd.z) / 2
                         )
                         
+                        // Rotate to align with direction
                         let angle = atan2(dashEnd.x - dashStart.x, dashEnd.z - dashStart.z)
-                        dashNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+                        dashNode.rotation = SCNVector4(0, 1, 0, angle)
                         
                         parent.addChildNode(dashNode)
                     }

@@ -91,8 +91,8 @@ class MemoryBudgetManager {
         }
     }
     
-    var usagePercentage: Float {
-        return Float(currentUsage) / Float(maxBudgetBytes)
+    var usagePercentage: CGFloat {
+        return CGFloat(currentUsage) / CGFloat(maxBudgetBytes)
     }
     
     func canAllocate(_ routeName: String, footprint: RouteMemoryFootprint) -> Bool {
@@ -193,9 +193,9 @@ class RouteLoadingOperation: Operation, @unchecked Sendable {
                     // No more Thread.sleep - this was causing delays!
                     
                     processedSteps += chunkSize
-                    let progress = Float(processedSteps) / Float(totalSteps)
+                    let progress = CGFloat(processedSteps) / CGFloat(totalSteps)
                     DispatchQueue.main.async {
-                        self.progressCallback?(self.routeName, min(progress, 1.0))
+                        self.progressCallback?(self.routeName, min(Float(progress), 1.0))
                     }
                 }
             }
@@ -234,7 +234,7 @@ class PredictiveLoader {
         )
         
         // Predict position
-        let deltaTime = Float(secondsAhead)
+        let deltaTime = CGFloat(secondsAhead)
         let deltaTimeCG = CGFloat(deltaTime)
         
         let predictedX = currentPosition.x + (normalizedVelocity.x * deltaTimeCG)
@@ -353,7 +353,7 @@ extension GameViewController {
         
         // If we're over 80% usage, be more aggressive about eviction
         if usagePercentage > 0.8 {
-            let targetReduction = Int(Float(200 * 1024 * 1024) * 0.2) // Free 20% of 200MB budget
+            let targetReduction = Int(CGFloat(200 * 1024 * 1024) * 0.2) // Free 20% of 200MB budget
             let routesToEvict = memoryBudgetManager.getRoutesToEvict(toFreeBytes: targetReduction)
             unloadRoutes(routesToEvict)
         }
@@ -670,4 +670,6 @@ private struct AssociatedKeys {
     static var routeLoadingStates = "routeLoadingStates"
     static var loadingQueue = "loadingQueue"
     static var predictiveLoader = "predictiveLoader"
-} 
+}
+
+ 

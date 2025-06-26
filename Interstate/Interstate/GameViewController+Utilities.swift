@@ -41,19 +41,16 @@ extension GameViewController {
     }
     
     func gpsToSceneKit(latitude: Double, longitude: Double) -> SCNVector3 {
-        // Convert GPS coordinates to meters from center
-        let deltaLat = latitude - centerLatitude
-        let deltaLon = longitude - centerLongitude
+        // Convert GPS to meters relative to center
+        let metersEast = (longitude - centerLongitude) * cos(latitude * .pi / 180) * 111319.9
+        let metersNorth = (latitude - centerLatitude) * 111319.9
         
-        // Convert to meters
-        let metersNorth = deltaLat * latitudeScale
-        let metersEast = deltaLon * longitudeScale
+        // Apply scale: 1 meter = 0.01 scene units
+        let sceneScale = 0.01
+        let x = CGFloat(metersEast * sceneScale)
+        let z = CGFloat(-metersNorth * sceneScale)  // Negative because +Z is south in SceneKit
         
-        // Apply scene scale and return as SCNVector3
-        let x = Float(metersEast * sceneScale)
-        let z = Float(-metersNorth * sceneScale)  // Negative because +Z is south in SceneKit
-        
-        return SCNVector3(CGFloat(x), 0, CGFloat(z))
+        return SCNVector3(x, 0, z)
     }
     
     // MARK: - Highway Detection
@@ -198,21 +195,22 @@ extension GameViewController {
     
     // MARK: - Catmull-Rom Spline
     
-    func catmullRomSpline(_ p0: SCNVector3, _ p1: SCNVector3, _ p2: SCNVector3, _ p3: SCNVector3, _ t: Float) -> SCNVector3 {
+    func catmullRomSpline(_ p0: SCNVector3, _ p1: SCNVector3, _ p2: SCNVector3, _ p3: SCNVector3, _ t: CGFloat) -> SCNVector3 {
         let t2 = t * t
         let t3 = t2 * t
         
-        let x = 0.5 * (2 * p1.x + (-p0.x + p2.x) * CGFloat(t) + 
-                       (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * CGFloat(t2) + 
-                       (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * CGFloat(t3))
+        // Calculate Catmull-Rom spline coordinates
+        let x = 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + 
+                      (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + 
+                      (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3)
         
-        let y = 0.5 * (2 * p1.y + (-p0.y + p2.y) * CGFloat(t) + 
-                       (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * CGFloat(t2) + 
-                       (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * CGFloat(t3))
+        let y = 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + 
+                      (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + 
+                      (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)
         
-        let z = 0.5 * (2 * p1.z + (-p0.z + p2.z) * CGFloat(t) + 
-                       (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * CGFloat(t2) + 
-                       (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * CGFloat(t3))
+        let z = 0.5 * (2 * p1.z + (-p0.z + p2.z) * t + 
+                      (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 + 
+                      (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3)
         
         return SCNVector3(x, y, z)
     }
@@ -241,7 +239,7 @@ extension GameViewController {
             
             // Generate smooth points between p1 and p2 using Catmull-Rom spline
             for j in 0..<segmentsPerSection {
-                let t = Float(j) / Float(segmentsPerSection)
+                let t = CGFloat(j) / CGFloat(segmentsPerSection)
                 let smoothPoint = catmullRomSpline(p0, p1, p2, p3, t)
                 smoothPoints.append((smoothPoint.x, smoothPoint.z))
             }

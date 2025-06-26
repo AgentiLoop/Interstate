@@ -20,7 +20,7 @@ extension GameViewController {
     }
     
     private func processCitiesForRoadPlacement() {
-        let tenMilesInMeters: Float = 16093.0 // 10 miles
+        let tenMilesInMeters: CGFloat = 16093.0 // 10 miles
         
         // Process EVERY city
         for city in majorCities {
@@ -28,7 +28,7 @@ extension GameViewController {
             
             // Find closest point on any interstate
             var closestInterstatePoint: (SCNVector3, String, Int)? = nil
-            var minDistance: Float = Float.infinity
+            var minDistance: CGFloat = CGFloat.infinity
             
             for (routeName, gpsCoords) in interstateRoutes {
                 for i in 0..<gpsCoords.count {
@@ -36,8 +36,8 @@ extension GameViewController {
                     let highwayPos = gpsToSceneKit(latitude: lat, longitude: lon)
                     let distance = sqrt(pow(cityPos.x - highwayPos.x, 2) + pow(cityPos.z - highwayPos.z, 2))
                     
-                    if Float(distance) < minDistance {
-                        minDistance = Float(distance)
+                    if CGFloat(distance) < minDistance {
+                        minDistance = CGFloat(distance)
                         closestInterstatePoint = (highwayPos, routeName, i)
                     }
                 }
@@ -81,7 +81,7 @@ extension GameViewController {
     
     private func findTwoInterstateConnectionPoints(cityPos: SCNVector3) -> [SCNVector3] {
         var connectionPoints: [SCNVector3] = []
-        var allHighwayPoints: [(SCNVector3, Float, String)] = [] // position, distance, route
+        var allHighwayPoints: [(SCNVector3, CGFloat, String)] = [] // position, distance, route
         
         // Collect all highway points with their distances
         for (routeName, gpsCoords) in interstateRoutes {
@@ -89,7 +89,7 @@ extension GameViewController {
                 let (lat, lon) = gpsCoords[i]
                 let highwayPos = gpsToSceneKit(latitude: lat, longitude: lon)
                 let distance = sqrt(pow(cityPos.x - highwayPos.x, 2) + pow(cityPos.z - highwayPos.z, 2))
-                allHighwayPoints.append((highwayPos, Float(distance), routeName))
+                allHighwayPoints.append((highwayPos, CGFloat(distance), routeName))
             }
         }
         
@@ -99,8 +99,8 @@ extension GameViewController {
         // Find two connection points that are:
         // 1. Both reasonably close to the city (within 50 miles / 80km)
         // 2. Separated from each other by at least 10km
-        let maxConnectionDistance: Float = 80000.0 // 50 miles
-        let minSeparation: Float = 10000.0 // 10km between connection points
+        let maxConnectionDistance: CGFloat = 80000.0 // 50 miles
+        let minSeparation: CGFloat = 10000.0 // 10km between connection points
         
         if let firstPoint = allHighwayPoints.first(where: { $0.1 <= maxConnectionDistance }) {
             connectionPoints.append(firstPoint.0)
@@ -110,7 +110,7 @@ extension GameViewController {
                 if point.1 > maxConnectionDistance { break }
                 
                 let separation = sqrt(pow(point.0.x - firstPoint.0.x, 2) + pow(point.0.z - firstPoint.0.z, 2))
-                if Float(separation) >= minSeparation {
+                if CGFloat(separation) >= minSeparation {
                     connectionPoints.append(point.0)
                     break
                 }
@@ -122,7 +122,7 @@ extension GameViewController {
             connectionPoints.removeAll()
             
             // Find points in different quadrants relative to the city
-            var quadrantPoints: [Int: [(SCNVector3, Float)]] = [:]
+            var quadrantPoints: [Int: [(SCNVector3, CGFloat)]] = [:]
             
             for point in allHighwayPoints {
                 if point.1 > maxConnectionDistance { continue }
@@ -139,7 +139,7 @@ extension GameViewController {
             }
             
             // Pick closest points from different quadrants
-            let sortedQuadrants = quadrantPoints.sorted { $0.value.first?.1 ?? Float.infinity < $1.value.first?.1 ?? Float.infinity }
+            let sortedQuadrants = quadrantPoints.sorted { $0.value.first?.1 ?? CGFloat.infinity < $1.value.first?.1 ?? CGFloat.infinity }
             for (_, points) in sortedQuadrants.prefix(2) {
                 if let closestInQuadrant = points.min(by: { $0.1 < $1.1 }) {
                     connectionPoints.append(closestInQuadrant.0)
@@ -192,7 +192,7 @@ extension GameViewController {
         controlPoints.append(end)
         
         // Now use the SAME smooth road generation as highways
-        var smoothPath: [(Float, Float)] = []
+        var smoothPath: [(CGFloat, CGFloat)] = []
         let segmentsPerSection = 50 // Same high-quality smoothing as highways
         
         for i in 0..<controlPoints.count - 1 {
@@ -204,15 +204,15 @@ extension GameViewController {
             
             // Generate smooth points using Catmull-Rom spline - SAME AS HIGHWAYS
             for j in 0..<segmentsPerSection {
-                let t = Float(j) / Float(segmentsPerSection)
+                let t = CGFloat(j) / CGFloat(segmentsPerSection)
                 let smoothPoint = catmullRomSpline(p0, p1, p2, p3, t)
-                smoothPath.append((Float(smoothPoint.x), Float(smoothPoint.z)))
+                smoothPath.append((CGFloat(smoothPoint.x), CGFloat(smoothPoint.z)))
             }
         }
         
         // Add final point
         if let lastPoint = controlPoints.last {
-            smoothPath.append((Float(lastPoint.x), Float(lastPoint.z)))
+            smoothPath.append((CGFloat(lastPoint.x), CGFloat(lastPoint.z)))
         }
         
         // Convert back to SCNVector3 array
@@ -305,7 +305,7 @@ extension GameViewController {
         
         if distance > 0 {
             let angle = atan2(deltaX, deltaZ)
-            roadSegmentNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+            roadSegmentNode.rotation = SCNVector4(0, 1, 0, CGFloat(angle))
         }
         
         roadNode.addChildNode(roadSegmentNode)
@@ -419,7 +419,7 @@ extension GameViewController {
             
             // Rotate to align with direction
             let angle = atan2(end.x - start.x, end.z - start.z)
-            lineNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+            lineNode.rotation = SCNVector4(0, 1, 0, CGFloat(angle))
             
             parent.addChildNode(lineNode)
         }
@@ -479,7 +479,7 @@ extension GameViewController {
                         )
                         
                         let angle = atan2(dashEnd.x - dashStart.x, dashEnd.z - dashStart.z)
-                        dashNode.rotation = SCNVector4(0, 1, 0, Float(angle))
+                        dashNode.rotation = SCNVector4(0, 1, 0, CGFloat(angle))
                         
                         parent.addChildNode(dashNode)
                     }
