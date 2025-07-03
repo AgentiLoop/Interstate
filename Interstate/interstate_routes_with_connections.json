@@ -1664,6 +1664,16 @@
         "to": "I-70",
         "distance": 0,
         "type": "direct"
+      },
+      {
+        "to": "I-5",
+        "distance": 12.672134775394142,
+        "type": "dirt"
+      },
+      {
+        "to": "I-86 West",
+        "distance": 56.3995489154614,
+        "type": "dirt"
       }
     ],
     "I-44": [
@@ -1896,6 +1906,11 @@
         "to": "I-65",
         "distance": 0,
         "type": "direct"
+      },
+      {
+        "to": "I-79",
+        "distance": 38.5145256254604,
+        "type": "dirt"
       }
     ],
     "I-20": [
@@ -2116,6 +2131,16 @@
           40.7128,
           -74.006
         ]
+      },
+      {
+        "to": "I-88 West",
+        "distance": 0.0,
+        "type": "paved"
+      },
+      {
+        "to": "I-99",
+        "distance": 6.122229779287142,
+        "type": "paved"
       }
     ],
     "I-71": [
@@ -2210,6 +2235,11 @@
         "to": "I-93",
         "distance": 0,
         "type": "direct"
+      },
+      {
+        "to": "I-10",
+        "distance": 0.0,
+        "type": "paved"
       }
     ],
     "I-72": [
@@ -2376,6 +2406,11 @@
         "to": "I-95",
         "distance": 0,
         "type": "direct"
+      },
+      {
+        "to": "I-88 East",
+        "distance": 26.551791469452407,
+        "type": "dirt"
       }
     ],
     "I-84 East": [
@@ -2464,6 +2499,139 @@
         "to": "I-94",
         "distance": 0,
         "type": "direct"
+      }
+    ],
+    "I-10": [
+      {
+        "to": "I-95",
+        "distance": 0.0,
+        "type": "paved"
+      },
+      {
+        "to": "I-25",
+        "distance": 0.12254977644242786,
+        "type": "paved"
+      }
+    ],
+    "I-25": [
+      {
+        "to": "I-10",
+        "distance": 0.12254977644242786,
+        "type": "paved"
+      },
+      {
+        "to": "I-76 West",
+        "distance": 0.0,
+        "type": "paved"
+      }
+    ],
+    "I-5": [
+      {
+        "to": "I-15",
+        "distance": 12.672134775394142,
+        "type": "dirt"
+      },
+      {
+        "to": "I-84 West",
+        "distance": 0.0,
+        "type": "paved"
+      }
+    ],
+    "I-73": [
+      {
+        "to": "I-74",
+        "distance": 12.982121402948133,
+        "type": "dirt"
+      },
+      {
+        "to": "I-74",
+        "distance": 21.71224626868489,
+        "type": "dirt"
+      }
+    ],
+    "I-74": [
+      {
+        "to": "I-73",
+        "distance": 12.982121402948133,
+        "type": "dirt"
+      },
+      {
+        "to": "I-73",
+        "distance": 21.71224626868489,
+        "type": "dirt"
+      }
+    ],
+    "I-76 West": [
+      {
+        "to": "I-25",
+        "distance": 0.0,
+        "type": "paved"
+      }
+    ],
+    "I-79": [
+      {
+        "to": "I-64",
+        "distance": 38.5145256254604,
+        "type": "dirt"
+      }
+    ],
+    "I-82": [
+      {
+        "to": "I-84 West",
+        "distance": 25.044513545968424,
+        "type": "dirt"
+      }
+    ],
+    "I-84 West": [
+      {
+        "to": "I-82",
+        "distance": 25.044513545968424,
+        "type": "dirt"
+      },
+      {
+        "to": "I-5",
+        "distance": 0.0,
+        "type": "paved"
+      }
+    ],
+    "I-86 East": [
+      {
+        "to": "I-88 East",
+        "distance": 48.11412475345355,
+        "type": "dirt"
+      }
+    ],
+    "I-88 East": [
+      {
+        "to": "I-86 East",
+        "distance": 48.11412475345355,
+        "type": "dirt"
+      },
+      {
+        "to": "I-87",
+        "distance": 26.551791469452407,
+        "type": "dirt"
+      }
+    ],
+    "I-86 West": [
+      {
+        "to": "I-15",
+        "distance": 56.3995489154614,
+        "type": "dirt"
+      }
+    ],
+    "I-88 West": [
+      {
+        "to": "I-80",
+        "distance": 0.0,
+        "type": "paved"
+      }
+    ],
+    "I-99": [
+      {
+        "to": "I-80",
+        "distance": 6.122229779287142,
+        "type": "paved"
       }
     ]
   }

@@ -10,45 +10,6 @@ import QuartzCore
 import AVFoundation
 import Darwin
 
-// MARK: - Player Path Tracking Structure
-
-struct PathPoint {
-    let position: SCNVector3
-    let heading: CGFloat
-    let speed: CGFloat
-    let timestamp: TimeInterval
-}
-
-// MARK: - AI Car Structure
-
-enum AICarPersonality {
-    case chaser      // Yellow - Always pursues player directly (like Blinky)
-    case interceptor // Green - Tries to get ahead of player (like Pinky)
-    case racer       // Orange - Speeds past and stays ahead
-    case wanderer    // Magenta - Sometimes follows, sometimes independent
-}
-
-struct AICar {
-    let node: SCNNode
-    var currentSpeed: CGFloat
-    var targetSpeed: CGFloat
-    var routeName: String
-    var routePointIndex: Int
-    var positionOnSegment: CGFloat // 0.0 to 1.0 between two route points
-    var lane: Int // -1 = left lane, 1 = right lane
-    var color: NSColor
-    var isSpinning: Bool = false
-    var spinRotation: CGFloat = 0.0
-    var isGoingForward: Bool = true // Direction on the road
-    var pathTargetIndex: Int = 0 // Index in player path to follow
-    var steeringAngle: CGFloat = 0.0 // Current steering angle for realistic turning
-    var wheelBase: CGFloat = 4.0 // Distance between axles for physics calculations
-    var isFleeing: Bool = false // Whether car is fleeing after collision
-    var fleeStartTime: TimeInterval = 0 // When fleeing started
-    var personality: AICarPersonality
-    var hasPassedPlayer: Bool = false
-}
-
 class GameViewController: NSViewController {
     
     // MARK: - Scene and Camera Properties
@@ -218,29 +179,8 @@ class GameViewController: NSViewController {
     var activeRoutes: Set<String> = Set()
     var lastActiveRouteCheck: Date = Date()
     
-    // MARK: - AI Car Properties
-    
-    var aiCars: [AICar] = []
-    let maxAICars = 4  // Exactly 4 ghost AI cars
-    let aiCarSpawnDistance: CGFloat = 300.0 // Spawn within 300m of player
-    let aiCarDespawnDistance: CGFloat = 1000.0 // Keep AI cars within 1km of player
-    let aiCarColors: [NSColor] = [
-        NSColor(red: 1.0, green: 1.0, blue: 0.0, alpha: 1.0),     // Bright yellow
-        NSColor(red: 0.0, green: 1.0, blue: 0.0, alpha: 1.0),     // Bright green
-        NSColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0),     // Bright orange
-        NSColor(red: 1.0, green: 0.0, blue: 1.0, alpha: 1.0)      // Magenta
-    ]
-    var masterCarModel: SCNNode? // Master car model for cloning
-    
-    // Player path tracking for ghost AI cars
-    var playerPath: [PathPoint] = []
-    var lastPathUpdateTime: TimeInterval = 0
-    
-    // Collision detection
-    var isPlayerSpinning: Bool = false
-    var playerSpinVelocity: CGFloat = 0.0
-    var playerSpinAngle: CGFloat = 0.0
-    let collisionDistance: CGFloat = 5.0 // Collision detection radius
+    // Debug
+    var frameCount: Int = 0
     
     // MARK: - View Lifecycle
     
@@ -264,7 +204,6 @@ class GameViewController: NSViewController {
         setupCheckpointGates()  // Initialize checkpoint positions
         setupDirtRoads()  // Add dirt roads to off-road cities
         setupHighwayConnections()  // Connect nearby highways
-        setupAICars()  // Initialize AI cars
         setupControls()
         setupHUD()
         setupRadarMap()

@@ -13,15 +13,17 @@ extension GameViewController {
     // MARK: - JSON Data Loading Functions
     
     func loadInterstateRoutesFromJSON() {
-        guard let jsonPath = Bundle.main.path(forResource: "interstate_routes_with_connections", ofType: "json") else {
-            // Try alternative path (in case it's in the project directory during development)
-            if let alternativePath = Bundle.main.path(forResource: "Interstate/interstate_routes_with_connections", ofType: "json") {
-                loadInterstateRoutesFromPath(alternativePath)
+        // LOAD THE ACTUALLY FIXED DATA WITH NO DEAD ENDS!
+        guard let jsonPath = Bundle.main.path(forResource: "interstate_routes_ACTUALLY_FIXED", ofType: "json") else {
+            // Try alternative path during development
+            let devPath = "\(FileManager.default.currentDirectoryPath)/Interstate/interstate_routes_ACTUALLY_FIXED.json"
+            if FileManager.default.fileExists(atPath: devPath) {
+                loadInterstateRoutesFromPath(devPath)
             } else {
-                // Try direct file path for development
-                let devPath = "\(FileManager.default.currentDirectoryPath)/Interstate/interstate_routes_with_connections.json"
-                if FileManager.default.fileExists(atPath: devPath) {
-                    loadInterstateRoutesFromPath(devPath)
+                // Fallback to old file if new one not found
+                print("⚠️ ACTUALLY FIXED data not found, falling back to broken data!")
+                if let fallbackPath = Bundle.main.path(forResource: "interstate_routes_with_connections", ofType: "json") {
+                    loadInterstateRoutesFromPath(fallbackPath)
                 }
             }
             return

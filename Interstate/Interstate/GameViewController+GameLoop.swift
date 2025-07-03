@@ -20,10 +20,11 @@ extension GameViewController {
             updateDynamicRoads() // This now includes memory-managed route updates
             updateDynamicCheckpoints() // Load/unload checkpoint signs based on proximity
             checkForCheckpointCollision() // Check for checkpoint hits
-            updateAICars() // Update AI cars and check collisions
             updateCarAudio() // Update realistic car audio system
             updateHUD()
             updateRadarMap()
+            
+            frameCount += 1
             
             // Periodic memory status logging (every 15 seconds and only if routes are loaded)
 //            let currentTime = Int(Date().timeIntervalSince1970)
