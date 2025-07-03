@@ -455,7 +455,7 @@ extension GameViewController {
                     checkpointsOnDirtRoads += 1
                 }
             } else {
-                print("🏜️ \(cityName) is \(Int(minDistanceToRoad/1609)) miles from nearest highway - remote dirt road city")
+              //  print("🏜️ \(cityName) is \(Int(minDistanceToRoad/1609)) miles from nearest highway - remote dirt road city")
                 checkpointsOnDirtRoads += 1
             }
         }

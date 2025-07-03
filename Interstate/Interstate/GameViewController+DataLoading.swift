@@ -14,15 +14,15 @@ extension GameViewController {
     
     func loadInterstateRoutesFromJSON() {
         // LOAD THE ACTUALLY FIXED DATA WITH NO DEAD ENDS!
-        guard let jsonPath = Bundle.main.path(forResource: "interstate_routes_ACTUALLY_FIXED", ofType: "json") else {
+        guard let jsonPath = Bundle.main.path(forResource: "interstate_routes", ofType: "json") else {
             // Try alternative path during development
-            let devPath = "\(FileManager.default.currentDirectoryPath)/Interstate/interstate_routes_ACTUALLY_FIXED.json"
+            let devPath = "\(FileManager.default.currentDirectoryPath)/Interstate/interstate_routes.json"
             if FileManager.default.fileExists(atPath: devPath) {
                 loadInterstateRoutesFromPath(devPath)
             } else {
                 // Fallback to old file if new one not found
                 print("⚠️ ACTUALLY FIXED data not found, falling back to broken data!")
-                if let fallbackPath = Bundle.main.path(forResource: "interstate_routes_with_connections", ofType: "json") {
+                if let fallbackPath = Bundle.main.path(forResource: "interstate_routes", ofType: "json") {
                     loadInterstateRoutesFromPath(fallbackPath)
                 }
             }
@@ -35,26 +35,49 @@ extension GameViewController {
     func loadInterstateRoutesFromPath(_ path: String) {
         do {
             let jsonData = try Data(contentsOf: URL(fileURLWithPath: path))
-            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any],
-               let routes = jsonDict["interstateRoutes"] as? [String: [[Double]]] {
+            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
                 
-                // Convert the loaded data to the expected format
-                var loadedRoutes: [String: [(Double, Double)]] = [:]
-                for (routeName, coordinates) in routes {
-                    let coordPairs = coordinates.map { coord -> (Double, Double) in
-                        return (coord[0], coord[1])
+                // Load INTERSTATE routes (green, show on radar)
+                if let routes = jsonDict["interstateRoutes"] as? [String: [[Double]]] {
+                    var loadedRoutes: [String: [(Double, Double)]] = [:]
+                    for (routeName, coordinates) in routes {
+                        let coordPairs = coordinates.map { coord -> (Double, Double) in
+                            return (coord[0], coord[1])
+                        }
+                        loadedRoutes[routeName] = coordPairs
                     }
-                    loadedRoutes[routeName] = coordPairs
+                    interstateRoutes = loadedRoutes
+                    routeGPSData = loadedRoutes  // Only interstates for radar/GPS
+                    print("✅ Loaded \(loadedRoutes.count) interstate routes")
                 }
                 
-                // Assign loaded routes directly
-                interstateRoutes = loadedRoutes
+                // Load PAVED routes (lighter gray, no radar)
+                if let pavedRoutesData = jsonDict["pavedRoutes"] as? [String: [[Double]]] {
+                    var loadedPavedRoutes: [String: [(Double, Double)]] = [:]
+                    for (routeName, coordinates) in pavedRoutesData {
+                        let coordPairs = coordinates.map { coord -> (Double, Double) in
+                            return (coord[0], coord[1])
+                        }
+                        loadedPavedRoutes[routeName] = coordPairs
+                    }
+                    pavedRoutes = loadedPavedRoutes
+                    print("✅ Loaded \(loadedPavedRoutes.count) paved routes")
+                }
                 
-                // ALSO copy to routeGPSData for the simple road loading system
-                routeGPSData = loadedRoutes
-                print("✅ Loaded \(loadedRoutes.count) interstate routes for simple road loading system")
+                // Load DIRT routes (orange, no radar)
+                if let dirtRoutesData = jsonDict["dirtRoutes"] as? [String: [[Double]]] {
+                    var loadedDirtRoutes: [String: [(Double, Double)]] = [:]
+                    for (routeName, coordinates) in dirtRoutesData {
+                        let coordPairs = coordinates.map { coord -> (Double, Double) in
+                            return (coord[0], coord[1])
+                        }
+                        loadedDirtRoutes[routeName] = coordPairs
+                    }
+                    dirtRoutes = loadedDirtRoutes
+                    print("✅ Loaded \(loadedDirtRoutes.count) dirt routes")
+                }
                 
-                // Load connections if they exist
+                // Load connections if they exist (optional)
                 if let connections = jsonDict["connections"] as? [String: [[String: Any]]] {
                     var loadedConnections: [String: [(String, CGFloat, String)]] = [:]
                     
@@ -72,13 +95,12 @@ extension GameViewController {
                         loadedConnections[fromRoute] = routeConnections
                     }
                     
-                    // Store connections in GameViewController
                     highwayConnections = loadedConnections
-                    print("✅ Loaded highway connections for \(loadedConnections.count) routes")
+                    print("✅ Loaded connections for \(loadedConnections.count) routes")
                 }
             }
         } catch {
-            print("❌ Error loading interstate routes: \(error)")
+            print("❌ Error loading route data: \(error)")
         }
     }
     

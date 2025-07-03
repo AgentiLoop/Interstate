@@ -99,20 +99,35 @@ extension GameViewController {
     
     // MARK: - Loading Nearby Segments
     private func loadNearbySegments(playerPosition: SCNVector3, loadDistance: CGFloat, maxSegments: Int) {
-        // FALLBACK: Use interstateRoutes if routeGPSData is empty
-        let routesToUse = routeGPSData.isEmpty ? interstateRoutes : routeGPSData
+        // Load from ALL route types: interstate, paved, and dirt
+        var allRoutes: [String: [(Double, Double)]] = [:]
         
-        if routesToUse.isEmpty {
+        // Add interstate routes (green)
+        for (name, coords) in interstateRoutes {
+            allRoutes[name] = coords
+        }
+        
+        // Add paved routes (light gray)
+        for (name, coords) in pavedRoutes {
+            allRoutes["paved_\(name)"] = coords
+        }
+        
+        // Add dirt routes (orange)
+        for (name, coords) in dirtRoutes {
+            allRoutes["dirt_\(name)"] = coords
+        }
+        
+        if allRoutes.isEmpty {
             return
         }
         
-        // Find the closest route to the player using the available route data
-        guard let closestRoute = findClosestRouteIn(routes: routesToUse, to: playerPosition) else { 
+        // Find the closest route to the player using all route data
+        guard let closestRoute = findClosestRouteIn(routes: allRoutes, to: playerPosition) else { 
             return 
         }
         
         // Get the route data and generate smooth points
-        guard let routeData = routesToUse[closestRoute] else { 
+        guard let routeData = allRoutes[closestRoute] else { 
             return 
         }
         
@@ -260,13 +275,21 @@ extension GameViewController {
         
         let routeName = components.dropLast().joined(separator: "_")
         
-        // Use fallback route source if needed
-        let routesToUse = routeGPSData.isEmpty ? interstateRoutes : routeGPSData
+        // Look in all route types
+        var routeData: [(Double, Double)]?
         
-        guard let routeData = routesToUse[routeName] else { return CGFloat.infinity }
+        if let data = interstateRoutes[routeName] {
+            routeData = data
+        } else if let data = pavedRoutes[routeName.replacingOccurrences(of: "paved_", with: "")] {
+            routeData = data
+        } else if let data = dirtRoutes[routeName.replacingOccurrences(of: "dirt_", with: "")] {
+            routeData = data
+        }
+        
+        guard let routeCoords = routeData else { return CGFloat.infinity }
         
         // Generate smooth points and find closest point in this segment
-        let smoothPoints = generateSmoothRoadPoints(from: routeData)
+        let smoothPoints = generateSmoothRoadPoints(from: routeCoords)
         let segmentLength = 500
         
         let startIndex = segmentIndex * segmentLength
@@ -287,14 +310,23 @@ extension GameViewController {
     }
     
     private func loadRoadSegment(segmentKey: String, routeName: String) {
-        // Extract route name and create smooth curve segment
-        // Use fallback route source if needed
-        let routesToUse = routeGPSData.isEmpty ? interstateRoutes : routeGPSData
+        // Look for route data in all route types
+        var routeData: [(Double, Double)]?
         
-        guard let routeData = routesToUse[routeName] else { return }
+        if routeName.hasPrefix("dirt_") {
+            let cleanName = routeName.replacingOccurrences(of: "dirt_", with: "")
+            routeData = dirtRoutes[cleanName]
+        } else if routeName.hasPrefix("paved_") {
+            let cleanName = routeName.replacingOccurrences(of: "paved_", with: "")
+            routeData = pavedRoutes[cleanName]
+        } else {
+            routeData = interstateRoutes[routeName]
+        }
+        
+        guard let coords = routeData else { return }
         
         // Generate smooth road points using existing Catmull-Rom spline system
-        let smoothPoints = generateSmoothRoadPoints(from: routeData)
+        let smoothPoints = generateSmoothRoadPoints(from: coords)
         
         // Create longer curved road segments instead of individual straight segments
         let segmentLength = 500 // Points per segment for smooth curves
@@ -307,7 +339,15 @@ extension GameViewController {
         let endIndex = min(startIndex + segmentLength, smoothPoints.count - 1)
         let segmentPoints = Array(smoothPoints[startIndex...endIndex])
         
-        let roadNode = createSmoothRoadSegmentNode(points: segmentPoints, routeName: routeName)
+        // Determine route type and create appropriate road segment
+        let roadNode: SCNNode
+        if routeName.hasPrefix("dirt_") {
+            roadNode = createDirtRoadSegmentNode(points: segmentPoints, routeName: routeName)
+        } else if routeName.hasPrefix("paved_") {
+            roadNode = createPavedRoadSegmentNode(points: segmentPoints, routeName: routeName)
+        } else {
+            roadNode = createSmoothRoadSegmentNode(points: segmentPoints, routeName: routeName)
+        }
         
         // Add to scene and tracking
         roadSystemNode.addChildNode(roadNode)
@@ -328,6 +368,259 @@ extension GameViewController {
         DispatchQueue.main.async {
             self.segmentCountLabel?.stringValue = "\(count)/\(maxSegments) segments \(status)"
         }
+    }
+    
+    // MARK: - Road Creation Functions for Different Types
+    
+    private func createPavedRoadSegmentNode(points: [(CGFloat, CGFloat)], routeName: String) -> SCNNode {
+        let roadNode = SCNNode()
+        
+        // Create curved road segments with light gray paved material
+        guard points.count >= 2 else { return roadNode }
+        
+        // Create individual road pieces along the curve
+        for i in 0..<points.count - 1 {
+            let startPoint = points[i]
+            let endPoint = points[i + 1]
+            
+            let startPos = SCNVector3(startPoint.0, 0, startPoint.1)
+            let endPos = SCNVector3(endPoint.0, 0, endPoint.1)
+            
+            let roadPiece = createPavedRoadPiece(from: startPos, to: endPos, routeName: routeName)
+            roadNode.addChildNode(roadPiece)
+        }
+        
+        // Add road markings for paved roads
+        createPavedRoadMarkings(roadNode: roadNode, points: points, routeName: routeName)
+        
+        return roadNode
+    }
+    
+    private func createPavedRoadPiece(from startPos: SCNVector3, to endPos: SCNVector3, routeName: String) -> SCNNode {
+        let roadNode = SCNNode()
+        
+        // Calculate road properties
+        let deltaX = endPos.x - startPos.x
+        let deltaZ = endPos.z - startPos.z
+        let distance = sqrt(deltaX * deltaX + deltaZ * deltaZ)
+        
+        // Create main road surface
+        let roadGeometry = SCNBox(width: 20.0, height: 0.1, length: CGFloat(distance) + 0.5, chamferRadius: 0)
+        
+        // Light gray paved road material
+        let pavedMaterial = SCNMaterial()
+        pavedMaterial.diffuse.contents = NSColor(red: 0.7, green: 0.7, blue: 0.7, alpha: 1.0) // Light gray
+        pavedMaterial.emission.contents = NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.0)
+        pavedMaterial.roughness.contents = 0.6
+        pavedMaterial.metalness.contents = 0.1
+        roadGeometry.materials = [pavedMaterial]
+        
+        // Create road surface node
+        let roadSegmentNode = SCNNode(geometry: roadGeometry)
+        
+        // Position and orient the road
+        let midPoint = SCNVector3(
+            (startPos.x + endPos.x) / 2,
+            0.0,
+            (startPos.z + endPos.z) / 2
+        )
+        
+        roadSegmentNode.position = midPoint
+        
+        if distance > 0 {
+            let angle = atan2(deltaX, deltaZ)
+            roadSegmentNode.rotation = SCNVector4(0, 1, 0, CGFloat(angle))
+        }
+        
+        roadNode.addChildNode(roadSegmentNode)
+        return roadNode
+    }
+    
+    private func createPavedRoadMarkings(roadNode: SCNNode, points: [(CGFloat, CGFloat)], routeName: String) {
+        // Create standard white lines for paved roads
+        createStandardRoadMarkings(roadNode: roadNode, points: points, centerColor: .white, edgeColor: .white)
+    }
+    
+    private func createStandardRoadMarkings(roadNode: SCNNode, points: [(CGFloat, CGFloat)], centerColor: NSColor, edgeColor: NSColor) {
+        guard points.count >= 10 else { return }
+        
+        // Create edge lines
+        let edgeOffsets: [CGFloat] = [-10.0, 10.0] // Left and right edges
+        
+        for offset in edgeOffsets {
+            // Calculate smooth normals for the entire curve
+            var normals: [(CGFloat, CGFloat)] = []
+            
+            for i in 0..<points.count {
+                let normal: (CGFloat, CGFloat)
+                
+                if i == 0 && points.count > 1 {
+                    let dx = points[1].0 - points[0].0
+                    let dz = points[1].1 - points[0].1
+                    let len = sqrt(dx*dx + dz*dz)
+                    normal = (-dz/len, dx/len)
+                } else if i == points.count - 1 && i > 0 {
+                    let dx = points[i].0 - points[i-1].0
+                    let dz = points[i].1 - points[i-1].1
+                    let len = sqrt(dx*dx + dz*dz)
+                    normal = (-dz/len, dx/len)
+                } else if i > 0 && i < points.count - 1 {
+                    let dx = points[i+1].0 - points[i-1].0
+                    let dz = points[i+1].1 - points[i-1].1
+                    let len = sqrt(dx*dx + dz*dz)
+                    normal = (-dz/len, dx/len)
+                } else {
+                    normal = (1, 0)
+                }
+                
+                normals.append(normal)
+            }
+            
+            // Create edge points using smooth normals
+            var edgePoints: [SCNVector3] = []
+            for i in 0..<points.count {
+                let point = points[i]
+                let normal = normals[i]
+                
+                let edgeX = point.0 + offset * normal.0
+                let edgeZ = point.1 + offset * normal.1
+                edgePoints.append(SCNVector3(edgeX, 0.15, edgeZ))
+            }
+            
+            // Create a continuous curved line from the edge points
+            createContinuousCurvedLine(points: edgePoints, color: edgeColor, width: 0.5, parent: roadNode)
+        }
+        
+        // Create center dashed line
+        var centerPoints: [SCNVector3] = []
+        for point in points {
+            centerPoints.append(SCNVector3(point.0, 0.15, point.1))
+        }
+        
+        createDashedCurvedLine(points: centerPoints, color: centerColor, width: 0.5, 
+                              dashLength: 10.0, gapLength: 15.0, parent: roadNode)
+    }
+    
+    private func createDirtRoadSegmentNode(points: [(CGFloat, CGFloat)], routeName: String) -> SCNNode {
+        let roadNode = SCNNode()
+        
+        // Create curved road segments with orange dirt material
+        guard points.count >= 2 else { return roadNode }
+        
+        // Create individual road pieces along the curve
+        for i in 0..<points.count - 1 {
+            let startPoint = points[i]
+            let endPoint = points[i + 1]
+            
+            let startPos = SCNVector3(startPoint.0, 0, startPoint.1)
+            let endPos = SCNVector3(endPoint.0, 0, endPoint.1)
+            
+            let roadPiece = createDirtRoadPiece(from: startPos, to: endPos, routeName: routeName)
+            roadNode.addChildNode(roadPiece)
+        }
+        
+        // Add road markings for dirt roads (minimal markings)
+        createDirtRoadMarkings(roadNode: roadNode, points: points, routeName: routeName)
+        
+        return roadNode
+    }
+    
+    private func createDirtRoadPiece(from startPos: SCNVector3, to endPos: SCNVector3, routeName: String) -> SCNNode {
+        let roadNode = SCNNode()
+        
+        // Calculate road properties
+        let deltaX = endPos.x - startPos.x
+        let deltaZ = endPos.z - startPos.z
+        let distance = sqrt(deltaX * deltaX + deltaZ * deltaZ)
+        
+        // Create main road surface
+        let roadGeometry = SCNBox(width: 18.0, height: 0.05, length: CGFloat(distance) + 0.5, chamferRadius: 0)
+        
+        // Orange dirt road material
+        let dirtMaterial = SCNMaterial()
+        dirtMaterial.diffuse.contents = NSColor(red: 0.8, green: 0.4, blue: 0.2, alpha: 1.0) // Orange dirt
+        dirtMaterial.emission.contents = NSColor(red: 0.05, green: 0.02, blue: 0.01, alpha: 1.0)
+        dirtMaterial.roughness.contents = 0.8 // Very rough for dirt
+        dirtMaterial.metalness.contents = 0.0 // No metallic for dirt
+        roadGeometry.materials = [dirtMaterial]
+        
+        // Create road surface node
+        let roadSegmentNode = SCNNode(geometry: roadGeometry)
+        
+        // Position and orient the road
+        let midPoint = SCNVector3(
+            (startPos.x + endPos.x) / 2,
+            -0.05, // Slightly lower than paved roads
+            (startPos.z + endPos.z) / 2
+        )
+        
+        roadSegmentNode.position = midPoint
+        
+        if distance > 0 {
+            let angle = atan2(deltaX, deltaZ)
+            roadSegmentNode.rotation = SCNVector4(0, 1, 0, CGFloat(angle))
+        }
+        
+        roadNode.addChildNode(roadSegmentNode)
+        return roadNode
+    }
+    
+    private func createDirtRoadMarkings(roadNode: SCNNode, points: [(CGFloat, CGFloat)], routeName: String) {
+        // Dirt roads have minimal markings - just faded edge lines, no center line
+        createMinimalRoadMarkings(roadNode: roadNode, points: points, edgeColor: NSColor(red: 0.6, green: 0.3, blue: 0.15, alpha: 0.6))
+    }
+    
+    private func createMinimalRoadMarkings(roadNode: SCNNode, points: [(CGFloat, CGFloat)], edgeColor: NSColor) {
+        guard points.count >= 10 else { return }
+        
+        // Create only edge lines for dirt roads
+        let edgeOffsets: [CGFloat] = [-9.0, 9.0] // Slightly narrower for dirt roads
+        
+        for offset in edgeOffsets {
+            // Calculate smooth normals for the entire curve
+            var normals: [(CGFloat, CGFloat)] = []
+            
+            for i in 0..<points.count {
+                let normal: (CGFloat, CGFloat)
+                
+                if i == 0 && points.count > 1 {
+                    let dx = points[1].0 - points[0].0
+                    let dz = points[1].1 - points[0].1
+                    let len = sqrt(dx*dx + dz*dz)
+                    normal = (-dz/len, dx/len)
+                } else if i == points.count - 1 && i > 0 {
+                    let dx = points[i].0 - points[i-1].0
+                    let dz = points[i].1 - points[i-1].1
+                    let len = sqrt(dx*dx + dz*dz)
+                    normal = (-dz/len, dx/len)
+                } else if i > 0 && i < points.count - 1 {
+                    let dx = points[i+1].0 - points[i-1].0
+                    let dz = points[i+1].1 - points[i-1].1
+                    let len = sqrt(dx*dx + dz*dz)
+                    normal = (-dz/len, dx/len)
+                } else {
+                    normal = (1, 0)
+                }
+                
+                normals.append(normal)
+            }
+            
+            // Create edge points using smooth normals
+            var edgePoints: [SCNVector3] = []
+            for i in 0..<points.count {
+                let point = points[i]
+                let normal = normals[i]
+                
+                let edgeX = point.0 + offset * normal.0
+                let edgeZ = point.1 + offset * normal.1
+                edgePoints.append(SCNVector3(edgeX, 0.10, edgeZ)) // Lower than paved roads
+            }
+            
+            // Create faded edge lines for dirt roads
+            createContinuousCurvedLine(points: edgePoints, color: edgeColor, width: 0.3, parent: roadNode)
+        }
+        
+        // No center line for dirt roads
     }
     
     // MARK: - Smooth Curved Road Creation WITH PROPER MARKINGS

@@ -1,3 +1,5 @@
+
+
 import SwiftUI
 import MapKit
 import UniformTypeIdentifiers
@@ -12,8 +14,12 @@ struct ContentView: View {
         span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
     )
     @State private var editMode: EditMode = .select
+    @State private var selectedRoadType: RoadType = .paved
     @State private var showingDeadEnds = false
     @State private var showingDirtRoads = true
+    @State private var showingInterstateRoads = true
+    @State private var showingPavedRoads = true
+    @State private var showingCities = true
     @State private var newRoadPoints: [(Double, Double)] = []
     @State private var newRoadName: String = ""
     @State private var isCreatingRoad = false
@@ -21,7 +27,6 @@ struct ContentView: View {
     @State private var showingDeleteConfirmation = false
     @State private var roadToDelete: String?
     @State private var showingExtractDialog = false
-    @FocusState private var isTextFieldFocused: Bool
     
     enum EditMode: String, CaseIterable {
         case select = "Select"
@@ -29,25 +34,63 @@ struct ContentView: View {
         case deletePoint = "Delete Point"
         case movePoint = "Move Point"
         case addRoad = "Add Road"
-        case addCity = "Add City"
         case deleteRoad = "Delete Road"
+        case moveRoad = "Move Road"
+        case addCity = "Add City"
+        case moveCity = "Move City"
+        case deleteCity = "Delete City"
+    }
+    
+    enum RoadType: String, CaseIterable {
+        case interstate = "Interstate"
+        case paved = "Paved"
+        case dirt = "Dirt"
     }
     
     var body: some View {
         NavigationSplitView {
             // Sidebar
             VStack(alignment: .leading, spacing: 0) {
-                // Edit Mode Selector
-                Picker("Edit Mode", selection: $editMode) {
-                    ForEach(EditMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
+                // Professional Edit Mode Interface
+                VStack(spacing: 12) {
+                    Text("Edit Mode")
+                        .font(.headline)
+                    
+                    // Main Edit Mode Selector
+                    Picker("Edit Mode", selection: $editMode) {
+                        Text("Select").tag(EditMode.select)
+                        Text("Add Point").tag(EditMode.addPoint)
+                        Text("Delete Point").tag(EditMode.deletePoint)
+                        Text("Move Point").tag(EditMode.movePoint)
+                        Text("Add Road").tag(EditMode.addRoad)
+                        Text("Delete Road").tag(EditMode.deleteRoad)
+                        Text("Move Road").tag(EditMode.moveRoad)
+                        Text("Add City").tag(EditMode.addCity)
+                        Text("Move City").tag(EditMode.moveCity)
+                        Text("Delete City").tag(EditMode.deleteCity)
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                    .frame(maxWidth: .infinity)
+                    
+                    // Road Type Selector (shown when relevant)
+                    if [.addRoad, .moveRoad].contains(editMode) {
+                        HStack {
+                            Text("Road Type:")
+                                .font(.subheadline)
+                                                         Picker("Road Type", selection: $selectedRoadType) {
+                                 Text("Interstate").tag(RoadType.interstate)
+                                 Text("Paved").tag(RoadType.paved)
+                                 Text("Dirt").tag(RoadType.dirt)
+                             }
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(maxWidth: .infinity)
+                        }
                     }
                 }
-                .pickerStyle(SegmentedPickerStyle())
                 .padding()
                 
                 // Data Loading Section (when no data)
-                if dataManager.interstateRoutes.isEmpty {
+                if !dataManager.isDataLoaded {
                     VStack(spacing: 12) {
                         Text("No Data Loaded")
                             .font(.headline)
@@ -128,6 +171,51 @@ struct ContentView: View {
                         .background(Color.red.opacity(0.1))
                         .cornerRadius(8)
                         .padding(.horizontal)
+                    } else if editMode == .moveCity {
+                        VStack(alignment: .leading) {
+                            Text("Move City Mode")
+                                .font(.headline)
+                                .foregroundColor(.purple)
+                            Text("Click and drag cities to move them")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color.purple.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    } else if editMode == .deleteCity {
+                        VStack(alignment: .leading) {
+                            Text("Delete City Mode")
+                                .font(.headline)
+                                .foregroundColor(.red)
+                            Text("Click a city on the map to delete it")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("⚠️ This action cannot be undone")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                        .padding()
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    } else if editMode == .moveRoad {
+                        VStack(alignment: .leading) {
+                            Text("Move Road Points")
+                                .font(.headline)
+                                .foregroundColor(.orange)
+                            Text("Click and drag road endpoints to move them")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("Select road type above to specify which roads to move")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
                     }
                     
                     Divider()
@@ -167,7 +255,7 @@ struct ContentView: View {
                         )
                         .padding()
                     } else if let city = selectedCity {
-                        CityInfoPanel(city: city, dataManager: dataManager)
+                        CityInfoPanel(city: city, dataManager: dataManager, selectedCity: $selectedCity)
                             .padding()
                     }
                     
@@ -176,11 +264,17 @@ struct ContentView: View {
                 
                 // Actions (always visible)
                 VStack(spacing: 8) {
-                    if !dataManager.interstateRoutes.isEmpty {
-                        Button(action: { dataManager.saveData() }) {
+                    if dataManager.isDataLoaded {
+                        Button(action: { 
+                            dataManager.saveData() 
+                            // Show brief feedback
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                // Could add a toast notification here if needed
+                            }
+                        }) {
                             HStack {
                                 Image(systemName: "square.and.arrow.down")
-                                Text("Save Changes")
+                                Text(dataManager.hasUnsavedChanges ? "Save Changes" : "Saved ✓")
                             }
                         }
                         .disabled(!dataManager.hasUnsavedChanges)
@@ -192,7 +286,7 @@ struct ContentView: View {
                         .buttonStyle(.borderedProminent)
                     }
                     
-                    if !dataManager.interstateRoutes.isEmpty {
+                    if dataManager.isDataLoaded {
                         HStack {
                             Button(action: { dataManager.findDeadEnds() }) {
                                 Image(systemName: "exclamationmark.triangle")
@@ -209,6 +303,9 @@ struct ContentView: View {
                             }
                             .help("Validate")
                         }
+                        
+                        // Delete All Actions
+                        BulkActionsView(dataManager: dataManager)
                     }
                 }
                 .padding()
@@ -219,10 +316,13 @@ struct ContentView: View {
                 VStack(alignment: .leading) {
                     Text("Statistics")
                         .font(.headline)
-                    Text("Routes: \(dataManager.interstateRoutes.count)")
+                    Text("Interstate Routes: \(dataManager.interstateRoutes.count)")
+                    Text("Paved Routes: \(dataManager.pavedRoutes.count)")
+                    Text("Dirt Routes: \(dataManager.dirtRoutes.count)")
                     Text("Cities: \(dataManager.majorCities.count)")
                     Text("Dead Ends: \(dataManager.deadEndRoutes.count)")
-                    Text("Dirt Roads: \(dataManager.dirtRoadCount)")
+                    Text("Paved Connections: \(dataManager.pavedRoadCount)")
+                    Text("Dirt Connections: \(dataManager.dirtRoadCount)")
                 }
                 .padding()
                 .background(Color.gray.opacity(0.1))
@@ -238,6 +338,10 @@ struct ContentView: View {
                 editMode: $editMode,
                 showingDeadEnds: $showingDeadEnds,
                 showingDirtRoads: $showingDirtRoads,
+                showingInterstateRoads: $showingInterstateRoads,
+                showingPavedRoads: $showingPavedRoads,
+                showingCities: $showingCities,
+                selectedRoadType: $selectedRoadType,
                 newRoadPoints: $newRoadPoints,
                 isCreatingRoad: $isCreatingRoad,
                 onDeleteRoad: { roadName in confirmDeleteRoad(roadName) }
@@ -245,7 +349,10 @@ struct ContentView: View {
             .environmentObject(dataManager)
             .overlay(alignment: .topTrailing) {
                 VStack {
-                    Toggle("Show Dirt Roads", isOn: $showingDirtRoads)
+                    Toggle("Show Interstate Roads", isOn: $showingInterstateRoads)
+                    Toggle("Show Paved Roads (Blue)", isOn: $showingPavedRoads)
+                    Toggle("Show Dirt Roads (Orange)", isOn: $showingDirtRoads)
+                    Toggle("Show Cities (Purple)", isOn: $showingCities)
                     Toggle("Highlight Dead Ends", isOn: $showingDeadEnds)
                 }
                 .padding()
@@ -347,8 +454,7 @@ struct RouteInfoPanel: View {
                 ForEach(connections, id: \.to) { connection in
                     HStack {
                         Circle()
-                            .fill(connection.type == "direct" ? Color.green :
-                                  connection.type == "paved" ? Color.blue : Color.orange)
+                            .fill(connection.type == "paved" ? Color.blue : Color.orange)
                             .frame(width: 8, height: 8)
                         Text(connection.to)
                         Spacer()
@@ -379,6 +485,7 @@ struct RouteInfoPanel: View {
 struct CityInfoPanel: View {
     let city: MajorCity
     @ObservedObject var dataManager: DataManager
+    @Binding var selectedCity: MajorCity?
     @State private var editedName: String = ""
     @State private var editedLat: String = ""
     @State private var editedLon: String = ""
@@ -398,6 +505,12 @@ struct CityInfoPanel: View {
                     } else {
                         startEditing()
                     }
+                }
+                if isEditing {
+                    Button("Cancel") {
+                        cancelEditing()
+                    }
+                    .foregroundColor(.gray)
                 }
             }
             
@@ -422,8 +535,13 @@ struct CityInfoPanel: View {
             
             Button("Delete City") {
                 dataManager.deleteCity(city)
+                selectedCity = nil
             }
             .foregroundColor(.red)
+        }
+        .onAppear {
+            // Reset editing state when city changes
+            isEditing = false
         }
     }
     
@@ -433,6 +551,10 @@ struct CityInfoPanel: View {
         editedLon = String(city.longitude)
         editedPop = String(city.population)
         isEditing = true
+    }
+    
+    private func cancelEditing() {
+        isEditing = false
     }
     
     private func saveChanges() {
@@ -593,7 +715,7 @@ extension ContentView {
     
     func saveNewRoad() {
         guard !newRoadName.isEmpty, newRoadPoints.count >= 2 else { return }
-        dataManager.addNewRoute(name: newRoadName, points: newRoadPoints)
+        dataManager.addNewRoute(name: newRoadName, points: newRoadPoints, type: selectedRoadType.rawValue.lowercased())
         
         // Reset state
         newRoadPoints.removeAll()
@@ -612,4 +734,47 @@ extension ContentView {
         guard selectedRoute != nil else { return }
         showingExtractDialog = true
     }
-} 
+}
+
+struct BulkActionsView: View {
+    @ObservedObject var dataManager: DataManager
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Text("Bulk Actions")
+                .font(.headline)
+                .foregroundColor(.red)
+            
+            VStack(spacing: 4) {
+                HStack {
+                    Button("Delete All Dirt Roads") {
+                        dataManager.removeAllDirtRoads()
+                    }
+                    .foregroundColor(.orange)
+                    .help("Remove all dirt road connections")
+                    
+                    Button("Delete All Paved Roads") {
+                        dataManager.removeAllPavedRoads()
+                    }
+                    .foregroundColor(.blue)
+                    .help("Remove all paved road connections")
+                }
+                
+                Button("Delete All Interstate Roads") {
+                    dataManager.removeAllInterstateRoutes()
+                }
+                .foregroundColor(.red)
+                .help("⚠️ Remove all interstate routes")
+            }
+        }
+        .padding()
+        .background(Color.red.opacity(0.1))
+        .cornerRadius(8)
+    }
+}
+
+#Preview {
+    ContentView()
+        .environmentObject(DataManager())
+}
+

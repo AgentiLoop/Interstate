@@ -122,8 +122,10 @@ class GameViewController: NSViewController {
     
     // MARK: - Data Storage
     
-    var interstateRoutes: [String: [(Double, Double)]] = [:]  // Will be loaded from JSON
-    var majorCities: [(String, Double, Double, Int)] = []  // Will be loaded from JSON
+    var interstateRoutes: [String: [(Double, Double)]] = [:]  // Interstate highways (green, on radar)
+    var pavedRoutes: [String: [(Double, Double)]] = [:]      // Paved roads (light gray, no radar)
+    var dirtRoutes: [String: [(Double, Double)]] = [:]       // Dirt roads (orange, no radar)
+    var majorCities: [(String, Double, Double, Int)] = []     // Will be loaded from JSON
     var highwayConnections: [String: [(String, CGFloat, String)]] = [:]  // Precomputed highway connections
     
     // MARK: - Audio Update Properties
@@ -202,8 +204,8 @@ class GameViewController: NSViewController {
         setupCamera()
         // setupRoads() - Removed: Simple road loading system loads roads dynamically in updateDynamicRoads()
         setupCheckpointGates()  // Initialize checkpoint positions
-        setupDirtRoads()  // Add dirt roads to off-road cities
-        setupHighwayConnections()  // Connect nearby highways
+        // setupDirtRoads()  // DISABLED: All roads must come from map data
+        // setupHighwayConnections()  // DISABLED: All road connections must come from map data
         setupControls()
         setupHUD()
         setupRadarMap()

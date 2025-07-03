@@ -13,10 +13,9 @@ extension GameViewController {
     // MARK: - Dirt Road System
     
     func setupDirtRoads() {
-        // Process all cities and either:
-        // 1. Move checkpoint to interstate if within 10 miles
-        // 2. Create dirt road loop if more than 10 miles away
-        processCitiesForRoadPlacement()
+        // DISABLED: All roads must come from map data
+        // No longer auto-creating dirt roads or moving checkpoints
+        print("🚫 Dirt road auto-creation disabled - all roads must come from map data")
     }
     
     private func processCitiesForRoadPlacement() {

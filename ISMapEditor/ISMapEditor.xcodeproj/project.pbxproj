@@ -1,0 +1,546 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		EA8F21362E16E79C008E3F63 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EA8F211F2E16E79B008E3F63 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA8F21262E16E79B008E3F63;
+			remoteInfo = ISMapEditor;
+		};
+		EA8F21402E16E79C008E3F63 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EA8F211F2E16E79B008E3F63 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA8F21262E16E79B008E3F63;
+			remoteInfo = ISMapEditor;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		EA8F21272E16E79B008E3F63 /* ISMapEditor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ISMapEditor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA8F21352E16E79C008E3F63 /* ISMapEditorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ISMapEditorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA8F213F2E16E79C008E3F63 /* ISMapEditorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ISMapEditorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		EA8F21292E16E79B008E3F63 /* ISMapEditor */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ISMapEditor;
+			sourceTree = "<group>";
+		};
+		EA8F21382E16E79C008E3F63 /* ISMapEditorTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ISMapEditorTests;
+			sourceTree = "<group>";
+		};
+		EA8F21422E16E79C008E3F63 /* ISMapEditorUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ISMapEditorUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		EA8F21242E16E79B008E3F63 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA8F21322E16E79C008E3F63 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA8F213C2E16E79C008E3F63 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		EA8F211E2E16E79B008E3F63 = {
+			isa = PBXGroup;
+			children = (
+				EA8F21292E16E79B008E3F63 /* ISMapEditor */,
+				EA8F21382E16E79C008E3F63 /* ISMapEditorTests */,
+				EA8F21422E16E79C008E3F63 /* ISMapEditorUITests */,
+				EA8F21282E16E79B008E3F63 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EA8F21282E16E79B008E3F63 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EA8F21272E16E79B008E3F63 /* ISMapEditor.app */,
+				EA8F21352E16E79C008E3F63 /* ISMapEditorTests.xctest */,
+				EA8F213F2E16E79C008E3F63 /* ISMapEditorUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EA8F21262E16E79B008E3F63 /* ISMapEditor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA8F21492E16E79C008E3F63 /* Build configuration list for PBXNativeTarget "ISMapEditor" */;
+			buildPhases = (
+				EA8F21232E16E79B008E3F63 /* Sources */,
+				EA8F21242E16E79B008E3F63 /* Frameworks */,
+				EA8F21252E16E79B008E3F63 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EA8F21292E16E79B008E3F63 /* ISMapEditor */,
+			);
+			name = ISMapEditor;
+			packageProductDependencies = (
+			);
+			productName = ISMapEditor;
+			productReference = EA8F21272E16E79B008E3F63 /* ISMapEditor.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA8F21342E16E79C008E3F63 /* ISMapEditorTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA8F214C2E16E79C008E3F63 /* Build configuration list for PBXNativeTarget "ISMapEditorTests" */;
+			buildPhases = (
+				EA8F21312E16E79C008E3F63 /* Sources */,
+				EA8F21322E16E79C008E3F63 /* Frameworks */,
+				EA8F21332E16E79C008E3F63 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA8F21372E16E79C008E3F63 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EA8F21382E16E79C008E3F63 /* ISMapEditorTests */,
+			);
+			name = ISMapEditorTests;
+			packageProductDependencies = (
+			);
+			productName = ISMapEditorTests;
+			productReference = EA8F21352E16E79C008E3F63 /* ISMapEditorTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		EA8F213E2E16E79C008E3F63 /* ISMapEditorUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA8F214F2E16E79C008E3F63 /* Build configuration list for PBXNativeTarget "ISMapEditorUITests" */;
+			buildPhases = (
+				EA8F213B2E16E79C008E3F63 /* Sources */,
+				EA8F213C2E16E79C008E3F63 /* Frameworks */,
+				EA8F213D2E16E79C008E3F63 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA8F21412E16E79C008E3F63 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EA8F21422E16E79C008E3F63 /* ISMapEditorUITests */,
+			);
+			name = ISMapEditorUITests;
+			packageProductDependencies = (
+			);
+			productName = ISMapEditorUITests;
+			productReference = EA8F213F2E16E79C008E3F63 /* ISMapEditorUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EA8F211F2E16E79B008E3F63 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					EA8F21262E16E79B008E3F63 = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					EA8F21342E16E79C008E3F63 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = EA8F21262E16E79B008E3F63;
+					};
+					EA8F213E2E16E79C008E3F63 = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = EA8F21262E16E79B008E3F63;
+					};
+				};
+			};
+			buildConfigurationList = EA8F21222E16E79B008E3F63 /* Build configuration list for PBXProject "ISMapEditor" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EA8F211E2E16E79B008E3F63;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = EA8F21282E16E79B008E3F63 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EA8F21262E16E79B008E3F63 /* ISMapEditor */,
+				EA8F21342E16E79C008E3F63 /* ISMapEditorTests */,
+				EA8F213E2E16E79C008E3F63 /* ISMapEditorUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EA8F21252E16E79B008E3F63 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA8F21332E16E79C008E3F63 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA8F213D2E16E79C008E3F63 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EA8F21232E16E79B008E3F63 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA8F21312E16E79C008E3F63 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA8F213B2E16E79C008E3F63 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		EA8F21372E16E79C008E3F63 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA8F21262E16E79B008E3F63 /* ISMapEditor */;
+			targetProxy = EA8F21362E16E79C008E3F63 /* PBXContainerItemProxy */;
+		};
+		EA8F21412E16E79C008E3F63 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA8F21262E16E79B008E3F63 /* ISMapEditor */;
+			targetProxy = EA8F21402E16E79C008E3F63 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		EA8F21472E16E79C008E3F63 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		EA8F21482E16E79C008E3F63 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		EA8F214A2E16E79C008E3F63 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ISMapEditor/ISMapEditor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.ISMapEditor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		EA8F214B2E16E79C008E3F63 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ISMapEditor/ISMapEditor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.ISMapEditor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		EA8F214D2E16E79C008E3F63 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.ISMapEditorTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ISMapEditor.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ISMapEditor";
+			};
+			name = Debug;
+		};
+		EA8F214E2E16E79C008E3F63 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.ISMapEditorTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ISMapEditor.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ISMapEditor";
+			};
+			name = Release;
+		};
+		EA8F21502E16E79C008E3F63 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.ISMapEditorUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = ISMapEditor;
+			};
+			name = Debug;
+		};
+		EA8F21512E16E79C008E3F63 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.toddbruss.ISMapEditorUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = ISMapEditor;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		EA8F21222E16E79B008E3F63 /* Build configuration list for PBXProject "ISMapEditor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA8F21472E16E79C008E3F63 /* Debug */,
+				EA8F21482E16E79C008E3F63 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA8F21492E16E79C008E3F63 /* Build configuration list for PBXNativeTarget "ISMapEditor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA8F214A2E16E79C008E3F63 /* Debug */,
+				EA8F214B2E16E79C008E3F63 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA8F214C2E16E79C008E3F63 /* Build configuration list for PBXNativeTarget "ISMapEditorTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA8F214D2E16E79C008E3F63 /* Debug */,
+				EA8F214E2E16E79C008E3F63 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA8F214F2E16E79C008E3F63 /* Build configuration list for PBXNativeTarget "ISMapEditorUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA8F21502E16E79C008E3F63 /* Debug */,
+				EA8F21512E16E79C008E3F63 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EA8F211F2E16E79B008E3F63 /* Project object */;
+}

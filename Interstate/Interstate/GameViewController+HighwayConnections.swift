@@ -13,6 +13,10 @@ extension GameViewController {
     // MARK: - Highway Connection System
     
     func setupHighwayConnections() {
+        // DISABLED: All road connections must come from map data
+        print("🚫 Highway connection auto-creation disabled - all roads must come from map data")
+        return
+        
         print("🛣️ Setting up highway connections...")
         
         var connectionsCreated = 0

@@ -59,7 +59,14 @@ extension GameViewController {
         // Load last saved position or default to Los Angeles
         loadLastPosition()
         let startPosition = gpsToSceneKit(latitude: lastSavedPosition.0, longitude: lastSavedPosition.1)
-        carNode.position = SCNVector3(startPosition.x, 1.1, startPosition.z)
+        
+        // Find the nearest road to the saved position and place the car there
+        let (nearestRoadPosition, roadDirection) = findNearestRoadPositionAndDirection(at: startPosition)
+        carNode.position = SCNVector3(nearestRoadPosition.x, 1.1, nearestRoadPosition.z)
+        
+        // Orient the car to face along the road direction
+        carNode.eulerAngles = SCNVector3(0, roadDirection, 0)
+        
         scene.rootNode.addChildNode(carNode)
         
         // Initialize game timing and scoring

@@ -34,6 +34,8 @@ struct MajorCity: Codable, Identifiable, Equatable {
 
 struct InterstateData: Codable {
     var interstateRoutes: [String: [[Double]]]
+    var pavedRoutes: [String: [[Double]]]?
+    var dirtRoutes: [String: [[Double]]]?
     var connections: [String: [Connection]]
 }
 
@@ -43,10 +45,13 @@ struct CityData: Codable {
 
 class DataManager: ObservableObject {
     @Published var interstateRoutes: [String: [(Double, Double)]] = [:]
+    @Published var pavedRoutes: [String: [(Double, Double)]] = [:]
+    @Published var dirtRoutes: [String: [(Double, Double)]] = [:]
     @Published var connections: [String: [Connection]] = [:]
     @Published var majorCities: [MajorCity] = []
     @Published var deadEndRoutes: Set<String> = []
     @Published var hasUnsavedChanges = false
+    @Published var isDataLoaded = false
     
     private var interstateDataURL: URL?
     private var cityDataURL: URL?
@@ -63,6 +68,12 @@ class DataManager: ObservableObject {
     var dirtRoadCount: Int {
         connections.values.flatMap { $0 }.filter { $0.type == "dirt" }.count
     }
+    
+    var pavedRoadCount: Int {
+        connections.values.flatMap { $0 }.filter { $0.type == "paved" }.count
+    }
+    
+
     
     // MARK: - File Operations
     
@@ -104,9 +115,16 @@ class DataManager: ObservableObject {
             self.interstateRoutes = interstateData.interstateRoutes.mapValues { coords in
                 coords.map { ($0[0], $0[1]) }
             }
+            self.pavedRoutes = (interstateData.pavedRoutes ?? [:]).mapValues { coords in
+                coords.map { ($0[0], $0[1]) }
+            }
+            self.dirtRoutes = (interstateData.dirtRoutes ?? [:]).mapValues { coords in
+                coords.map { ($0[0], $0[1]) }
+            }
             self.connections = interstateData.connections
             self.interstateDataURL = url
             self.hasUnsavedChanges = false
+            self.isDataLoaded = true
             
         } catch {
             print("Error loading interstate data: \(error)")
@@ -126,21 +144,36 @@ class DataManager: ObservableObject {
     }
     
     func saveData() {
+        print("Saving data...")
         saveInterstateData()
         saveCityData()
         hasUnsavedChanges = false
+        print("Data saved successfully")
     }
     
     private func saveInterstateData() {
-        guard let url = interstateDataURL else { return }
+        guard let url = interstateDataURL else { 
+            print("Error: No interstate data URL set")
+            return 
+        }
+        
+        print("Saving interstate data to: \(url.lastPathComponent)")
         
         // Convert back to array format
-        let arrayRoutes = interstateRoutes.mapValues { coords in
+        let arrayInterstateRoutes = interstateRoutes.mapValues { coords in
+            coords.map { [$0.0, $0.1] }
+        }
+        let arrayPavedRoutes = pavedRoutes.mapValues { coords in
+            coords.map { [$0.0, $0.1] }
+        }
+        let arrayDirtRoutes = dirtRoutes.mapValues { coords in
             coords.map { [$0.0, $0.1] }
         }
         
         let interstateData = InterstateData(
-            interstateRoutes: arrayRoutes,
+            interstateRoutes: arrayInterstateRoutes,
+            pavedRoutes: arrayPavedRoutes.isEmpty ? nil : arrayPavedRoutes,
+            dirtRoutes: arrayDirtRoutes.isEmpty ? nil : arrayDirtRoutes,
             connections: connections
         )
         
@@ -149,6 +182,7 @@ class DataManager: ObservableObject {
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try encoder.encode(interstateData)
             try data.write(to: url)
+            print("Successfully saved interstate data (\(arrayInterstateRoutes.count) interstate, \(arrayPavedRoutes.count) paved, \(arrayDirtRoutes.count) dirt routes, \(connections.count) connection groups)")
         } catch {
             print("Error saving interstate data: \(error)")
         }
@@ -175,6 +209,22 @@ class DataManager: ObservableObject {
         for (route, routeConnections) in connections {
             connections[route] = routeConnections.filter { $0.type != "dirt" }
         }
+        hasUnsavedChanges = true
+    }
+    
+    func removeAllPavedRoads() {
+        for (route, routeConnections) in connections {
+            connections[route] = routeConnections.filter { $0.type != "paved" }
+        }
+        hasUnsavedChanges = true
+    }
+    
+
+    
+    func removeAllInterstateRoutes() {
+        interstateRoutes.removeAll()
+        connections.removeAll()
+        deadEndRoutes.removeAll()
         hasUnsavedChanges = true
     }
     
@@ -306,6 +356,13 @@ class DataManager: ObservableObject {
     func updatePoint(in route: String, at index: Int, to coordinate: (Double, Double)) {
         guard var routeCoords = interstateRoutes[route],
               index < routeCoords.count else { return }
+        
+        // Only update if the coordinate has actually changed significantly
+        let currentCoord = routeCoords[index]
+        if abs(currentCoord.0 - coordinate.0) < 0.000001 && abs(currentCoord.1 - coordinate.1) < 0.000001 {
+            return
+        }
+        
         routeCoords[index] = coordinate
         interstateRoutes[route] = routeCoords
         hasUnsavedChanges = true
@@ -322,18 +379,38 @@ class DataManager: ObservableObject {
     
     // MARK: - Route Creation
     
-    func addNewRoute(name: String, points: [(Double, Double)]) {
+    func addNewRoute(name: String, points: [(Double, Double)], type: String = "interstate") {
         guard points.count >= 2 else { return }
-        interstateRoutes[name] = points
+        
+        switch type {
+        case "interstate":
+            interstateRoutes[name] = points
+        case "paved":
+            pavedRoutes[name] = points
+        case "dirt":
+            dirtRoutes[name] = points
+        default:
+            interstateRoutes[name] = points
+        }
+        
         hasUnsavedChanges = true
         
         // Find dead ends again since we added a new route
         findDeadEnds()
     }
     
-    func deleteRoute(_ routeName: String) {
+    func deleteRoute(_ routeName: String, type: String = "interstate") {
         // Remove the route itself
-        interstateRoutes.removeValue(forKey: routeName)
+        switch type {
+        case "interstate":
+            interstateRoutes.removeValue(forKey: routeName)
+        case "paved":
+            pavedRoutes.removeValue(forKey: routeName)
+        case "dirt":
+            dirtRoutes.removeValue(forKey: routeName)
+        default:
+            interstateRoutes.removeValue(forKey: routeName)
+        }
         
         // Remove any connections from this route to others
         connections.removeValue(forKey: routeName)
@@ -371,5 +448,74 @@ class DataManager: ObservableObject {
     func deleteCity(_ city: MajorCity) {
         majorCities.removeAll { $0.id == city.id }
         hasUnsavedChanges = true
+    }
+    
+    // MARK: - Road Operations
+    
+    func deleteConnection(fromCoordinate: (Double, Double), toCoordinate: (Double, Double), connectionType: String) {
+        let tolerance = 0.001 // Small tolerance for coordinate comparison
+        
+        for (fromRoute, routeConnections) in connections {
+            guard let fromRouteCoords = interstateRoutes[fromRoute] else { continue }
+            
+            for i in 0..<routeConnections.count {
+                let connection = routeConnections[i]
+                guard connection.type == connectionType else { continue }
+                guard let toRouteCoords = interstateRoutes[connection.to] else { continue }
+                
+                // Check if this connection matches the clicked coordinates
+                var matches = false
+                
+                if let fromPoint = connection.fromPoint, let toPoint = connection.toPoint {
+                    // Use specific connection points
+                    let fromDiff = abs(fromPoint[0] - fromCoordinate.0) + abs(fromPoint[1] - fromCoordinate.1)
+                    let toDiff = abs(toPoint[0] - toCoordinate.0) + abs(toPoint[1] - toCoordinate.1)
+                    matches = fromDiff < tolerance && toDiff < tolerance
+                } else {
+                    // Use route endpoints
+                    let fromEndpoints = [fromRouteCoords.first!, fromRouteCoords.last!]
+                    let toEndpoints = [toRouteCoords.first!, toRouteCoords.last!]
+                    
+                    for fromEndpoint in fromEndpoints {
+                        for toEndpoint in toEndpoints {
+                            let fromDiff = abs(fromEndpoint.0 - fromCoordinate.0) + abs(fromEndpoint.1 - fromCoordinate.1)
+                            let toDiff = abs(toEndpoint.0 - toCoordinate.0) + abs(toEndpoint.1 - toCoordinate.1)
+                            
+                            if fromDiff < tolerance && toDiff < tolerance {
+                                matches = true
+                                break
+                            }
+                        }
+                        if matches { break }
+                    }
+                }
+                
+                if matches {
+                    connections[fromRoute]?.remove(at: i)
+                    hasUnsavedChanges = true
+                    print("Deleted \(connectionType) connection from \(fromRoute) to \(connection.to)")
+                    return
+                }
+            }
+        }
+    }
+    
+    // MARK: - Dirt Road Operations
+    
+    func updateRoadPoint(fromRoute: String, toRoute: String, connectionType: String, isFromPoint: Bool, newCoordinate: (Double, Double)) {
+        guard var routeConnections = connections[fromRoute] else { return }
+        
+        for i in 0..<routeConnections.count {
+            if routeConnections[i].to == toRoute && routeConnections[i].type == connectionType {
+                if isFromPoint {
+                    routeConnections[i].fromPoint = [newCoordinate.0, newCoordinate.1]
+                } else {
+                    routeConnections[i].toPoint = [newCoordinate.0, newCoordinate.1]
+                }
+                connections[fromRoute] = routeConnections
+                hasUnsavedChanges = true
+                break
+            }
+        }
     }
 } 

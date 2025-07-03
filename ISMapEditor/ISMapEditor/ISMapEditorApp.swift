@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct InterstateMapEditorApp: App {
+struct ISMapEditorApp: App {
     @StateObject private var dataManager = DataManager()
     
     var body: some Scene {
@@ -41,4 +41,4 @@ struct InterstateMapEditorApp: App {
             }
         }
     }
-} 
+}
