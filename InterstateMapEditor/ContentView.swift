@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var showingDeleteConfirmation = false
     @State private var roadToDelete: String?
     @State private var showingExtractDialog = false
+    @FocusState private var isTextFieldFocused: Bool
     
     enum EditMode: String, CaseIterable {
         case select = "Select"
