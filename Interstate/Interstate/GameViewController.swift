@@ -125,6 +125,8 @@ class GameViewController: NSViewController {
     var interstateRoutes: [String: [(Double, Double)]] = [:]  // Interstate highways (green, on radar)
     var pavedRoutes: [String: [(Double, Double)]] = [:]      // Paved roads (light gray, no radar)
     var dirtRoutes: [String: [(Double, Double)]] = [:]       // Dirt roads (orange, no radar)
+    var waterBodies: [String: [(Double, Double)]] = [:]      // Lakes, rivers, coastlines (blue)
+    var coastlines: [String: [(Double, Double)]] = [:]       // Coastline boundaries (blue-green)
     var majorCities: [(String, Double, Double, Int)] = []     // Will be loaded from JSON
     var highwayConnections: [String: [(String, CGFloat, String)]] = [:]  // Precomputed highway connections
     

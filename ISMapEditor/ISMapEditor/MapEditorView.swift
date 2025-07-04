@@ -39,7 +39,9 @@ struct MapEditorView: NSViewRepresentable {
            abs(mapView.region.center.longitude - mapRegion.center.longitude) > 1 {
             // Only update if the map isn't currently being manipulated by the user
             if !context.coordinator.isUserInteracting {
-                mapView.setRegion(mapRegion, animated: true)
+                DispatchQueue.main.async {
+                    mapView.setRegion(mapRegion, animated: true)
+                }
             }
         }
         
@@ -261,14 +263,14 @@ struct MapEditorView: NSViewRepresentable {
             }
         }
         
-        // Restore the region to prevent zooming out
+        // Restore the region to prevent zooming out - commented out to prevent layout conflicts
         // Only restore if the difference is significant (to avoid conflicts with legitimate region changes)
-        if abs(mapView.region.center.latitude - currentRegion.center.latitude) > 0.01 ||
-           abs(mapView.region.center.longitude - currentRegion.center.longitude) > 0.01 ||
-           abs(mapView.region.span.latitudeDelta - currentRegion.span.latitudeDelta) > 0.01 ||
-           abs(mapView.region.span.longitudeDelta - currentRegion.span.longitudeDelta) > 0.01 {
-            mapView.setRegion(currentRegion, animated: false)
-        }
+        // if abs(mapView.region.center.latitude - currentRegion.center.latitude) > 0.01 ||
+        //    abs(mapView.region.center.longitude - currentRegion.center.longitude) > 0.01 ||
+        //    abs(mapView.region.span.latitudeDelta - currentRegion.span.latitudeDelta) > 0.01 ||
+        //    abs(mapView.region.span.longitudeDelta - currentRegion.span.longitudeDelta) > 0.01 {
+        //     mapView.setRegion(currentRegion, animated: false)
+        // }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -887,7 +889,9 @@ struct MapEditorView: NSViewRepresentable {
             // Only update the binding if this is a user-initiated change
             // This prevents feedback loops when programmatically setting the region
             if isUserInteracting {
-                parent.mapRegion = mapView.region
+                DispatchQueue.main.async {
+                    self.parent.mapRegion = mapView.region
+                }
             }
             
             // Small delay to ensure the region change is complete before allowing programmatic updates

@@ -77,6 +77,32 @@ extension GameViewController {
                     print("✅ Loaded \(loadedDirtRoutes.count) dirt routes")
                 }
                 
+                // Load WATER BODIES (rivers, lakes - blue)
+                if let waterBodiesData = jsonDict["waterBodies"] as? [String: [[Double]]] {
+                    var loadedWaterBodies: [String: [(Double, Double)]] = [:]
+                    for (waterName, coordinates) in waterBodiesData {
+                        let coordPairs = coordinates.map { coord -> (Double, Double) in
+                            return (coord[0], coord[1])
+                        }
+                        loadedWaterBodies[waterName] = coordPairs
+                    }
+                    waterBodies = loadedWaterBodies
+                    print("✅ Loaded \(loadedWaterBodies.count) water bodies")
+                }
+                
+                // Load COASTLINES (ocean boundaries - blue-green)
+                if let coastlinesData = jsonDict["coastlines"] as? [String: [[Double]]] {
+                    var loadedCoastlines: [String: [(Double, Double)]] = [:]
+                    for (coastName, coordinates) in coastlinesData {
+                        let coordPairs = coordinates.map { coord -> (Double, Double) in
+                            return (coord[0], coord[1])
+                        }
+                        loadedCoastlines[coastName] = coordPairs
+                    }
+                    coastlines = loadedCoastlines
+                    print("✅ Loaded \(loadedCoastlines.count) coastline segments")
+                }
+                
                 // Load connections if they exist (optional)
                 if let connections = jsonDict["connections"] as? [String: [[String: Any]]] {
                     var loadedConnections: [String: [(String, CGFloat, String)]] = [:]

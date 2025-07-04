@@ -117,6 +117,16 @@ extension GameViewController {
             allRoutes["dirt_\(name)"] = coords
         }
         
+        // Add water bodies (blue)
+        for (name, coords) in waterBodies {
+            allRoutes["water_\(name)"] = coords
+        }
+        
+        // Add coastlines (blue-green)
+        for (name, coords) in coastlines {
+            allRoutes["coast_\(name)"] = coords
+        }
+        
         if allRoutes.isEmpty {
             return
         }
@@ -284,6 +294,10 @@ extension GameViewController {
             routeData = data
         } else if let data = dirtRoutes[routeName.replacingOccurrences(of: "dirt_", with: "")] {
             routeData = data
+        } else if let data = waterBodies[routeName.replacingOccurrences(of: "water_", with: "")] {
+            routeData = data
+        } else if let data = coastlines[routeName.replacingOccurrences(of: "coast_", with: "")] {
+            routeData = data
         }
         
         guard let routeCoords = routeData else { return CGFloat.infinity }
@@ -319,6 +333,12 @@ extension GameViewController {
         } else if routeName.hasPrefix("paved_") {
             let cleanName = routeName.replacingOccurrences(of: "paved_", with: "")
             routeData = pavedRoutes[cleanName]
+        } else if routeName.hasPrefix("water_") {
+            let cleanName = routeName.replacingOccurrences(of: "water_", with: "")
+            routeData = waterBodies[cleanName]
+        } else if routeName.hasPrefix("coast_") {
+            let cleanName = routeName.replacingOccurrences(of: "coast_", with: "")
+            routeData = coastlines[cleanName]
         } else {
             routeData = interstateRoutes[routeName]
         }
@@ -345,6 +365,10 @@ extension GameViewController {
             roadNode = createDirtRoadSegmentNode(points: segmentPoints, routeName: routeName)
         } else if routeName.hasPrefix("paved_") {
             roadNode = createPavedRoadSegmentNode(points: segmentPoints, routeName: routeName)
+        } else if routeName.hasPrefix("water_") {
+            roadNode = createWaterBodySegmentNode(points: segmentPoints, routeName: routeName)
+        } else if routeName.hasPrefix("coast_") {
+            roadNode = createCoastlineSegmentNode(points: segmentPoints, routeName: routeName)
         } else {
             roadNode = createSmoothRoadSegmentNode(points: segmentPoints, routeName: routeName)
         }
@@ -621,6 +645,96 @@ extension GameViewController {
         }
         
         // No center line for dirt roads
+    }
+    
+    // MARK: - Water Feature Creation Functions
+    
+    private func createWaterBodySegmentNode(points: [(CGFloat, CGFloat)], routeName: String) -> SCNNode {
+        let waterNode = SCNNode()
+        
+        // Create curved water segments with blue material
+        guard points.count >= 2 else { return waterNode }
+        
+        // Create individual water pieces along the curve
+        for i in 0..<points.count - 1 {
+            let startPoint = points[i]
+            let endPoint = points[i + 1]
+            
+            let startPos = SCNVector3(startPoint.0, 0, startPoint.1)
+            let endPos = SCNVector3(endPoint.0, 0, endPoint.1)
+            
+            let waterPiece = createWaterPiece(from: startPos, to: endPos, routeName: routeName, isRiver: true)
+            waterNode.addChildNode(waterPiece)
+        }
+        
+        return waterNode
+    }
+    
+    private func createCoastlineSegmentNode(points: [(CGFloat, CGFloat)], routeName: String) -> SCNNode {
+        let coastNode = SCNNode()
+        
+        // Create curved coastline segments with blue-green material
+        guard points.count >= 2 else { return coastNode }
+        
+        // Create individual coastline pieces along the curve
+        for i in 0..<points.count - 1 {
+            let startPoint = points[i]
+            let endPoint = points[i + 1]
+            
+            let startPos = SCNVector3(startPoint.0, 0, startPoint.1)
+            let endPos = SCNVector3(endPoint.0, 0, endPoint.1)
+            
+            let coastPiece = createWaterPiece(from: startPos, to: endPos, routeName: routeName, isRiver: false)
+            coastNode.addChildNode(coastPiece)
+        }
+        
+        return coastNode
+    }
+    
+    private func createWaterPiece(from startPos: SCNVector3, to endPos: SCNVector3, routeName: String, isRiver: Bool) -> SCNNode {
+        let waterNode = SCNNode()
+        
+        // Calculate water properties
+        let deltaX = endPos.x - startPos.x
+        let deltaZ = endPos.z - startPos.z
+        let distance = sqrt(deltaX * deltaX + deltaZ * deltaZ)
+        
+        // Create main water surface
+        let width: CGFloat = isRiver ? 15.0 : 25.0 // Rivers narrower than coastlines
+        let waterGeometry = SCNBox(width: width, height: 0.02, length: CGFloat(distance) + 0.5, chamferRadius: 0)
+        
+        // Water material with transparency and reflection
+        let waterMaterial = SCNMaterial()
+        if isRiver {
+            waterMaterial.diffuse.contents = NSColor(red: 0.2, green: 0.5, blue: 0.8, alpha: 0.7) // River blue
+        } else {
+            waterMaterial.diffuse.contents = NSColor(red: 0.1, green: 0.4, blue: 0.6, alpha: 0.8) // Ocean blue-green
+        }
+        waterMaterial.emission.contents = NSColor(red: 0.0, green: 0.1, blue: 0.2, alpha: 0.3)
+        waterMaterial.roughness.contents = 0.1 // Very smooth for water reflection
+        waterMaterial.metalness.contents = 0.9 // Highly reflective
+        waterMaterial.transparency = 0.8 // Semi-transparent
+        waterGeometry.materials = [waterMaterial]
+        
+        // Create water surface node
+        let waterSegmentNode = SCNNode(geometry: waterGeometry)
+        
+        // Position and orient the water
+        let midPoint = SCNVector3(
+            (startPos.x + endPos.x) / 2,
+            -0.1, // Slightly below ground level
+            (startPos.z + endPos.z) / 2
+        )
+        
+        waterSegmentNode.position = midPoint
+        
+        if distance > 0 {
+            let angle = atan2(deltaX, deltaZ)
+            waterSegmentNode.rotation = SCNVector4(0, 1, 0, CGFloat(angle))
+        }
+        
+        waterNode.addChildNode(waterSegmentNode)
+        return waterNode
     }
     
     // MARK: - Smooth Curved Road Creation WITH PROPER MARKINGS
