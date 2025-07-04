@@ -14,7 +14,7 @@ struct ContentView: View {
         span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
     )
     @State private var editMode: EditMode = .select
-    @State private var selectedRoadType: RoadType = .paved
+    @State private var selectedRoadType: RoadType = .interstate
     @State private var showingDeadEnds = false
     @State private var showingDirtRoads = true
     @State private var showingInterstateRoads = true
