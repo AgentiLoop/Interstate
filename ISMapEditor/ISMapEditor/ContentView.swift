@@ -47,6 +47,27 @@ struct ContentView: View {
         case dirt = "Dirt"
     }
     
+    // Computed property to get routes based on selected type
+    var routesForSelectedType: [String: [(Double, Double)]] {
+        switch selectedRoadType {
+        case .interstate:
+            return dataManager.interstateRoutes
+        case .paved:
+            return dataManager.pavedRoutes
+        case .dirt:
+            return dataManager.dirtRoutes
+        }
+    }
+    
+    var sortedRouteNamesForSelectedType: [String] {
+        return routesForSelectedType.keys.sorted { route1, route2 in
+            // Extract the numeric part for proper sorting
+            let num1 = Int(route1.replacingOccurrences(of: "I-", with: "").components(separatedBy: " ").first ?? "") ?? 999
+            let num2 = Int(route2.replacingOccurrences(of: "I-", with: "").components(separatedBy: " ").first ?? "") ?? 999
+            return num1 < num2
+        }
+    }
+    
     var body: some View {
         NavigationSplitView {
             // Sidebar
@@ -57,7 +78,7 @@ struct ContentView: View {
                         .font(.headline)
                     
                     // Main Edit Mode Selector
-                    Picker("Edit Mode", selection: $editMode) {
+                Picker("Edit Mode", selection: $editMode) {
                         Text("Select").tag(EditMode.select)
                         Text("Add Point").tag(EditMode.addPoint)
                         Text("Delete Point").tag(EditMode.deletePoint)
@@ -72,16 +93,16 @@ struct ContentView: View {
                     .pickerStyle(MenuPickerStyle())
                     .frame(maxWidth: .infinity)
                     
-                    // Road Type Selector (shown when relevant)
-                    if [.addRoad, .moveRoad].contains(editMode) {
+                    // Road Type Selector (shown for all road operations)
+                    if [.select, .addPoint, .deletePoint, .movePoint, .addRoad, .deleteRoad, .moveRoad].contains(editMode) {
                         HStack {
                             Text("Road Type:")
                                 .font(.subheadline)
-                                                         Picker("Road Type", selection: $selectedRoadType) {
-                                 Text("Interstate").tag(RoadType.interstate)
-                                 Text("Paved").tag(RoadType.paved)
-                                 Text("Dirt").tag(RoadType.dirt)
-                             }
+                            Picker("Road Type", selection: $selectedRoadType) {
+                                Text("Interstate").tag(RoadType.interstate)
+                                Text("Paved").tag(RoadType.paved)
+                                Text("Dirt").tag(RoadType.dirt)
+                            }
                             .pickerStyle(MenuPickerStyle())
                             .frame(maxWidth: .infinity)
                         }
@@ -222,15 +243,15 @@ struct ContentView: View {
                     
                     // Route List
                     List(selection: $selectedRoute) {
-                        Section("Interstate Routes") {
-                            ForEach(dataManager.sortedRouteNames, id: \.self) { routeName in
+                        Section("\(selectedRoadType.rawValue) Routes") {
+                            ForEach(sortedRouteNamesForSelectedType, id: \.self) { routeName in
                                 HStack {
                                     Text(routeName)
                                     Spacer()
-                                    Text("\(dataManager.interstateRoutes[routeName]?.count ?? 0) pts")
+                                    Text("\(routesForSelectedType[routeName]?.count ?? 0) pts")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                    if dataManager.deadEndRoutes.contains(routeName) {
+                                    if selectedRoadType == .interstate && dataManager.deadEndRoutes.contains(routeName) {
                                         Image(systemName: "exclamationmark.triangle.fill")
                                             .foregroundColor(.orange)
                                             .help("Dead end route")
@@ -245,7 +266,7 @@ struct ContentView: View {
                     
                     // Info Panel
                     if let route = selectedRoute,
-                       let routeData = dataManager.interstateRoutes[route] {
+                       let routeData = routesForSelectedType[route] {
                         RouteInfoPanel(
                             routeName: route,
                             routeData: routeData,
@@ -398,7 +419,8 @@ struct ContentView: View {
         .confirmationDialog("Delete Road", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
             Button("Delete \(roadToDelete ?? "Road")", role: .destructive) {
                 if let roadName = roadToDelete {
-                    dataManager.deleteRoute(roadName)
+                    let roadType = selectedRoadType.rawValue.lowercased()
+                    dataManager.deleteRoute(roadName, type: roadType)
                     if selectedRoute == roadName {
                         selectedRoute = nil
                     }
@@ -412,7 +434,7 @@ struct ContentView: View {
             Text("Are you sure you want to delete \(roadToDelete ?? "this road")? This action cannot be undone.")
         }
         .sheet(isPresented: $showingExtractDialog) {
-            if let route = selectedRoute, let routeData = dataManager.interstateRoutes[route] {
+            if let route = selectedRoute, let routeData = routesForSelectedType[route] {
                 ExtractRoadView(
                     routeName: route,
                     routeData: routeData,

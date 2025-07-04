@@ -57,24 +57,24 @@ struct MapEditorView: NSViewRepresentable {
         
         // Add interstate route overlays
         if showingInterstateRoads {
-            for (routeName, routeCoords) in dataManager.interstateRoutes {
-                let coordinates = routeCoords.map { CLLocationCoordinate2D(latitude: $0.0, longitude: $0.1) }
-                let polyline = RoutePolyline(coordinates: coordinates, count: coordinates.count)
-                polyline.routeName = routeName
+        for (routeName, routeCoords) in dataManager.interstateRoutes {
+            let coordinates = routeCoords.map { CLLocationCoordinate2D(latitude: $0.0, longitude: $0.1) }
+            let polyline = RoutePolyline(coordinates: coordinates, count: coordinates.count)
+            polyline.routeName = routeName
                 polyline.routeType = "interstate"
-                polyline.isSelected = routeName == selectedRoute
-                polyline.isDeadEnd = dataManager.deadEndRoutes.contains(routeName)
-                mapView.addOverlay(polyline)
-                
-                // Add editable points for selected route
-                if routeName == selectedRoute {
-                    for (index, coord) in routeCoords.enumerated() {
-                        let annotation = RoutePointAnnotation()
-                        annotation.coordinate = CLLocationCoordinate2D(latitude: coord.0, longitude: coord.1)
-                        annotation.routeName = routeName
-                        annotation.pointIndex = index
-                        annotation.isSelected = index == selectedPointIndex
-                        mapView.addAnnotation(annotation)
+            polyline.isSelected = routeName == selectedRoute
+            polyline.isDeadEnd = dataManager.deadEndRoutes.contains(routeName)
+            mapView.addOverlay(polyline)
+            
+            // Add editable points for selected route
+            if routeName == selectedRoute {
+                for (index, coord) in routeCoords.enumerated() {
+                    let annotation = RoutePointAnnotation()
+                    annotation.coordinate = CLLocationCoordinate2D(latitude: coord.0, longitude: coord.1)
+                    annotation.routeName = routeName
+                    annotation.pointIndex = index
+                    annotation.isSelected = index == selectedPointIndex
+                    mapView.addAnnotation(annotation)
                     }
                 }
             }
@@ -129,8 +129,8 @@ struct MapEditorView: NSViewRepresentable {
         }
         
         // Add connection overlays
-        for (fromRoute, connections) in dataManager.connections {
-            for connection in connections {
+            for (fromRoute, connections) in dataManager.connections {
+                for connection in connections {
                 // Skip if the connection type is not being shown
                 if (connection.type == "dirt" && !showingDirtRoads) ||
                    (connection.type == "paved" && !showingPavedRoads) {
@@ -197,20 +197,20 @@ struct MapEditorView: NSViewRepresentable {
                                 toAnnotation.isFromPoint = false
                                 mapView.addAnnotation(toAnnotation)
                             }
-                        }
+                    }
                 }
             }
         }
         
         // Add city annotations
         if showingCities {
-            for city in dataManager.majorCities {
-                let annotation = CityAnnotation()
-                annotation.coordinate = CLLocationCoordinate2D(latitude: city.latitude, longitude: city.longitude)
-                annotation.city = city
-                annotation.title = city.name
-                annotation.subtitle = "Pop: \(city.population)"
-                mapView.addAnnotation(annotation)
+        for city in dataManager.majorCities {
+            let annotation = CityAnnotation()
+            annotation.coordinate = CLLocationCoordinate2D(latitude: city.latitude, longitude: city.longitude)
+            annotation.city = city
+            annotation.title = city.name
+            annotation.subtitle = "Pop: \(city.population)"
+            mapView.addAnnotation(annotation)
             }
         }
         
@@ -283,6 +283,20 @@ struct MapEditorView: NSViewRepresentable {
             self.parent = parent
         }
         
+        // Helper method to check if a route belongs to the selected road type
+        private func isRouteOfSelectedType(_ routeName: String?) -> Bool {
+            guard let routeName = routeName else { return false }
+            
+            switch parent.selectedRoadType {
+            case .interstate:
+                return parent.dataManager.interstateRoutes[routeName] != nil
+            case .paved:
+                return parent.dataManager.pavedRoutes[routeName] != nil
+            case .dirt:
+                return parent.dataManager.dirtRoutes[routeName] != nil
+            }
+        }
+        
         // MARK: - Map Interaction
         
         @objc func handleMapClick(_ gesture: NSClickGestureRecognizer) {
@@ -311,8 +325,19 @@ struct MapEditorView: NSViewRepresentable {
         private func handleAddPoint(coordinate: CLLocationCoordinate2D, mapView: MKMapView) {
             guard let route = parent.selectedRoute else { return }
             
+            // Get route coordinates based on selected road type
+            let routeCoords: [(Double, Double)]?
+            switch parent.selectedRoadType {
+            case .interstate:
+                routeCoords = parent.dataManager.interstateRoutes[route]
+            case .paved:
+                routeCoords = parent.dataManager.pavedRoutes[route]
+            case .dirt:
+                routeCoords = parent.dataManager.dirtRoutes[route]
+            }
+            
             // Find best insertion point
-            if let routeCoords = parent.dataManager.interstateRoutes[route] {
+            if let routeCoords = routeCoords {
                 var bestIndex = 0
                 var minDistance = Double.infinity
                 
@@ -332,10 +357,22 @@ struct MapEditorView: NSViewRepresentable {
                     }
                 }
                 
+                // Determine the road type for the addPoint method
+                let roadType: String
+                switch parent.selectedRoadType {
+                case .interstate:
+                    roadType = "interstate"
+                case .paved:
+                    roadType = "paved"
+                case .dirt:
+                    roadType = "dirt"
+                }
+                
                 parent.dataManager.addPoint(
                     to: route,
                     at: bestIndex,
-                    coordinate: (coordinate.latitude, coordinate.longitude)
+                    coordinate: (coordinate.latitude, coordinate.longitude),
+                    roadType: roadType
                 )
             }
         }
@@ -353,17 +390,20 @@ struct MapEditorView: NSViewRepresentable {
                     parent.selectedRoute = nil
                     return
                 } else if let pointAnnotation = annotation as? RoutePointAnnotation {
-                    parent.selectedRoute = pointAnnotation.routeName
-                    parent.selectedPointIndex = pointAnnotation.pointIndex
-                    parent.selectedCity = nil
-                    return
+                    // Only select if the route matches the selected road type
+                    if isRouteOfSelectedType(pointAnnotation.routeName) {
+                        parent.selectedRoute = pointAnnotation.routeName
+                        parent.selectedPointIndex = pointAnnotation.pointIndex
+                        parent.selectedCity = nil
+                        return
+                    }
                 }
             }
             
-            // Check for overlay selection
-            
+            // Check for overlay selection - only consider roads of the selected type
             for overlay in mapView.overlays {
-                if let polyline = overlay as? RoutePolyline {
+                if let polyline = overlay as? RoutePolyline,
+                   isRouteOfSelectedType(polyline.routeName) {
                     let renderer = MKPolylineRenderer(polyline: polyline)
                     let polylinePoint = renderer.point(for: mapPoint)
                     
@@ -449,9 +489,10 @@ struct MapEditorView: NSViewRepresentable {
                 }
             }
             
-            // If no connection was found, try to delete entire route
+            // If no connection was found, try to delete entire route (only of selected type)
             for overlay in mapView.overlays {
-                if let polyline = overlay as? RoutePolyline {
+                if let polyline = overlay as? RoutePolyline,
+                   isRouteOfSelectedType(polyline.routeName) {
                     let renderer = MKPolylineRenderer(polyline: polyline)
                     let polylinePoint = renderer.point(for: mapPoint)
                     
@@ -524,8 +565,8 @@ struct MapEditorView: NSViewRepresentable {
                         renderer.lineWidth = 2
                         renderer.lineDashPattern = [5, 5] // Dashed for dirt roads
                     default:
-                        renderer.strokeColor = NSColor.systemGreen
-                        renderer.lineWidth = 3
+                    renderer.strokeColor = NSColor.systemGreen
+                    renderer.lineWidth = 3
                     }
                 }
                 
@@ -690,9 +731,21 @@ struct MapEditorView: NSViewRepresentable {
                 parent.selectedPointIndex = pointAnnotation.pointIndex
                 
                 if parent.editMode == .deletePoint {
+                    // Determine the road type for this route
+                    let roadType: String
+                    switch parent.selectedRoadType {
+                    case .interstate:
+                        roadType = "interstate"
+                    case .paved:
+                        roadType = "paved"
+                    case .dirt:
+                        roadType = "dirt"
+                    }
+                    
                     parent.dataManager.deletePoint(
                         from: pointAnnotation.routeName!,
-                        at: pointAnnotation.pointIndex!
+                        at: pointAnnotation.pointIndex!,
+                        roadType: roadType
                     )
                 }
             } else if let cityAnnotation = view.annotation as? CityAnnotation,
@@ -714,10 +767,22 @@ struct MapEditorView: NSViewRepresentable {
                let route = pointAnnotation.routeName,
                let index = pointAnnotation.pointIndex {
                 
+                // Determine the road type for this route
+                let roadType: String
+                switch parent.selectedRoadType {
+                case .interstate:
+                    roadType = "interstate"
+                case .paved:
+                    roadType = "paved"
+                case .dirt:
+                    roadType = "dirt"
+                }
+                
                 parent.dataManager.updatePoint(
                     in: route,
                     at: index,
-                    to: (view.annotation!.coordinate.latitude, view.annotation!.coordinate.longitude)
+                    to: (view.annotation!.coordinate.latitude, view.annotation!.coordinate.longitude),
+                    roadType: roadType
                 )
             } else if newState == .ending,
                       let cityAnnotation = view.annotation as? CityAnnotation,

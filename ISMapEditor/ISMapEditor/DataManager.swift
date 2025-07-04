@@ -346,34 +346,109 @@ class DataManager: ObservableObject {
     
     // MARK: - Route Point Operations
     
-    func addPoint(to route: String, at index: Int, coordinate: (Double, Double)) {
-        guard var routeCoords = interstateRoutes[route] else { return }
-        routeCoords.insert(coordinate, at: index)
-        interstateRoutes[route] = routeCoords
-        hasUnsavedChanges = true
-    }
-    
-    func updatePoint(in route: String, at index: Int, to coordinate: (Double, Double)) {
-        guard var routeCoords = interstateRoutes[route],
-              index < routeCoords.count else { return }
-        
-        // Only update if the coordinate has actually changed significantly
-        let currentCoord = routeCoords[index]
-        if abs(currentCoord.0 - coordinate.0) < 0.000001 && abs(currentCoord.1 - coordinate.1) < 0.000001 {
-            return
+    func addPoint(to route: String, at index: Int, coordinate: (Double, Double), roadType: String = "interstate") {
+        switch roadType {
+        case "interstate":
+            guard var routeCoords = interstateRoutes[route] else { return }
+            routeCoords.insert(coordinate, at: index)
+            interstateRoutes[route] = routeCoords
+        case "paved":
+            guard var routeCoords = pavedRoutes[route] else { return }
+            routeCoords.insert(coordinate, at: index)
+            pavedRoutes[route] = routeCoords
+        case "dirt":
+            guard var routeCoords = dirtRoutes[route] else { return }
+            routeCoords.insert(coordinate, at: index)
+            dirtRoutes[route] = routeCoords
+        default:
+            guard var routeCoords = interstateRoutes[route] else { return }
+            routeCoords.insert(coordinate, at: index)
+            interstateRoutes[route] = routeCoords
         }
-        
-        routeCoords[index] = coordinate
-        interstateRoutes[route] = routeCoords
         hasUnsavedChanges = true
     }
     
-    func deletePoint(from route: String, at index: Int) {
-        guard var routeCoords = interstateRoutes[route],
-              index < routeCoords.count,
-              routeCoords.count > 2 else { return } // Keep at least 2 points
-        routeCoords.remove(at: index)
-        interstateRoutes[route] = routeCoords
+    func updatePoint(in route: String, at index: Int, to coordinate: (Double, Double), roadType: String = "interstate") {
+        switch roadType {
+        case "interstate":
+            guard var routeCoords = interstateRoutes[route],
+                  index < routeCoords.count else { return }
+            
+            // Only update if the coordinate has actually changed significantly
+            let currentCoord = routeCoords[index]
+            if abs(currentCoord.0 - coordinate.0) < 0.000001 && abs(currentCoord.1 - coordinate.1) < 0.000001 {
+                return
+            }
+            
+            routeCoords[index] = coordinate
+            interstateRoutes[route] = routeCoords
+        case "paved":
+            guard var routeCoords = pavedRoutes[route],
+                  index < routeCoords.count else { return }
+            
+            // Only update if the coordinate has actually changed significantly
+            let currentCoord = routeCoords[index]
+            if abs(currentCoord.0 - coordinate.0) < 0.000001 && abs(currentCoord.1 - coordinate.1) < 0.000001 {
+                return
+            }
+            
+            routeCoords[index] = coordinate
+            pavedRoutes[route] = routeCoords
+        case "dirt":
+            guard var routeCoords = dirtRoutes[route],
+                  index < routeCoords.count else { return }
+            
+            // Only update if the coordinate has actually changed significantly
+            let currentCoord = routeCoords[index]
+            if abs(currentCoord.0 - coordinate.0) < 0.000001 && abs(currentCoord.1 - coordinate.1) < 0.000001 {
+                return
+            }
+            
+            routeCoords[index] = coordinate
+            dirtRoutes[route] = routeCoords
+        default:
+            guard var routeCoords = interstateRoutes[route],
+                  index < routeCoords.count else { return }
+            
+            // Only update if the coordinate has actually changed significantly
+            let currentCoord = routeCoords[index]
+            if abs(currentCoord.0 - coordinate.0) < 0.000001 && abs(currentCoord.1 - coordinate.1) < 0.000001 {
+                return
+            }
+            
+            routeCoords[index] = coordinate
+            interstateRoutes[route] = routeCoords
+        }
+        hasUnsavedChanges = true
+    }
+    
+    func deletePoint(from route: String, at index: Int, roadType: String = "interstate") {
+        switch roadType {
+        case "interstate":
+            guard var routeCoords = interstateRoutes[route],
+                  index < routeCoords.count,
+                  routeCoords.count > 2 else { return } // Keep at least 2 points
+            routeCoords.remove(at: index)
+            interstateRoutes[route] = routeCoords
+        case "paved":
+            guard var routeCoords = pavedRoutes[route],
+                  index < routeCoords.count,
+                  routeCoords.count > 2 else { return } // Keep at least 2 points
+            routeCoords.remove(at: index)
+            pavedRoutes[route] = routeCoords
+        case "dirt":
+            guard var routeCoords = dirtRoutes[route],
+                  index < routeCoords.count,
+                  routeCoords.count > 2 else { return } // Keep at least 2 points
+            routeCoords.remove(at: index)
+            dirtRoutes[route] = routeCoords
+        default:
+            guard var routeCoords = interstateRoutes[route],
+                  index < routeCoords.count,
+                  routeCoords.count > 2 else { return } // Keep at least 2 points
+            routeCoords.remove(at: index)
+            interstateRoutes[route] = routeCoords
+        }
         hasUnsavedChanges = true
     }
     
@@ -390,7 +465,7 @@ class DataManager: ObservableObject {
         case "dirt":
             dirtRoutes[name] = points
         default:
-            interstateRoutes[name] = points
+        interstateRoutes[name] = points
         }
         
         hasUnsavedChanges = true
@@ -409,7 +484,7 @@ class DataManager: ObservableObject {
         case "dirt":
             dirtRoutes.removeValue(forKey: routeName)
         default:
-            interstateRoutes.removeValue(forKey: routeName)
+        interstateRoutes.removeValue(forKey: routeName)
         }
         
         // Remove any connections from this route to others
