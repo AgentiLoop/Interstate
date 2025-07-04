@@ -14,15 +14,16 @@ extension GameViewController {
     // MARK: - Checkpoint Setup
     
     func setupCheckpointGates() {
-        // Pre-calculate checkpoint positions but don't create visual gates
+        // Store checkpoint positions EXACTLY at city positions - NEVER MOVE THEM
         for (cityName, lat, lon, population) in majorCities {
             let cityPos = gpsToSceneKit(latitude: lat, longitude: lon)
             
-            // For now, just use city positions directly - highway finding might be the issue
+            // Store at exact city position - NO ROAD SNAPPING EVER
             checkpointPositions[cityName] = (cityPos, population)
+            print("🏘️ Checkpoint \(cityName) positioned at city location: (\(Int(cityPos.x)), \(Int(cityPos.z)))")
         }
         
-        // Test checkpoints removed - using only real city checkpoints now
+        print("✅ All \(checkpointPositions.count) checkpoints positioned at original city locations")
         
         // Analyze which checkpoints need dirt roads
         analyzeCheckpointDistances()
@@ -31,18 +32,32 @@ extension GameViewController {
     // MARK: - Checkpoint Creation
     
     func createCheckpointGate(cityName: String, position: SCNVector3, population: Int) {
-        // FIRST - Find the actual road position closest to this checkpoint
-        let (roadPosition, roadDirection) = findNearestRoadPositionAndDirection(at: position)
+        // NEVER MOVE CHECKPOINTS - always use original city position
+        let checkpointPosition = position
         
-        // Calculate perpendicular direction (90 degrees to road)
-        let perpendicularAngle = roadDirection + CGFloat.pi / 2
+        // Check if this checkpoint is near a highway to determine banner orientation
+        let (nearestRoadPosition, roadDirection) = findNearestRoadPositionAndDirection(at: position)
+        let distanceToRoad = sqrt(pow(position.x - nearestRoadPosition.x, 2) + pow(position.z - nearestRoadPosition.z, 2))
+        let ONE_MILE_IN_METERS: CGFloat = 1609.34
         
-        // Place poles on BOTH SIDES of the road - 15.6 units from center (30% wider)
+        let isNearHighway = distanceToRoad < ONE_MILE_IN_METERS
+        let bannerDirection = isNearHighway ? roadDirection : 0.0 // Default east-west if not near road
+        
+        if isNearHighway {
+            print("📍 \(cityName) is near highway - orienting banner to highway direction (distance: \(Int(distanceToRoad))m)")
+        } else {
+            print("🏘️ \(cityName) is away from highway - using default east-west orientation (distance: \(Int(distanceToRoad))m)")
+        }
+        
+        // Calculate perpendicular direction for banner (90 degrees to road direction or east-west)
+        let perpendicularAngle = bannerDirection + CGFloat.pi / 2
+        
+        // Always use standard checkpoint width - no special highway treatment
         let poleOffset: CGFloat = 15.6
-        let leftPoleX = roadPosition.x + cos(perpendicularAngle) * poleOffset
-        let leftPoleZ = roadPosition.z + sin(perpendicularAngle) * poleOffset
-        let rightPoleX = roadPosition.x - cos(perpendicularAngle) * poleOffset
-        let rightPoleZ = roadPosition.z - sin(perpendicularAngle) * poleOffset
+        let leftPoleX = checkpointPosition.x + cos(perpendicularAngle) * poleOffset
+        let leftPoleZ = checkpointPosition.z + sin(perpendicularAngle) * poleOffset
+        let rightPoleX = checkpointPosition.x - cos(perpendicularAngle) * poleOffset
+        let rightPoleZ = checkpointPosition.z - sin(perpendicularAngle) * poleOffset
         
         // Gate poles - TALLER and BRIGHTER for visibility
         let poleMaterial = SCNMaterial()
@@ -92,14 +107,14 @@ extension GameViewController {
         
         scene.rootNode.addChildNode(banner)
         
-        // Store checkpoint data for collision detection AT ROAD POSITION
+        // Store checkpoint data for collision detection AT CORRECT POSITION
         let checkpointNode = SCNNode()
         checkpointNode.name = "checkpoint_\(cityName)"
-        checkpointNode.position = roadPosition
+        checkpointNode.position = checkpointPosition
         scene.rootNode.addChildNode(checkpointNode)
         
         // Also update the stored position for collision detection
-        checkpointPositions[cityName] = (roadPosition, population)
+        checkpointPositions[cityName] = (checkpointPosition, population)
     }
     
     func createBannerTexture(cityName: String, isCompleted: Bool = false) -> NSImage {

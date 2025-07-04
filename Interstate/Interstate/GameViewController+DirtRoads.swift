@@ -403,16 +403,20 @@ extension GameViewController {
             // Create line segment
             let lineGeometry = SCNBox(width: width, height: 0.05, length: distance, chamferRadius: 0)
             let material = SCNMaterial()
+            
+            // Use full opacity - will be updated in real-time by game loop
             material.diffuse.contents = color
             material.emission.contents = color.withAlphaComponent(0.3)
             
-            // Add distance-based blurring to prevent moiré
-            let distanceFromCamera = sqrt(pow(start.x - carNode.position.x, 2) + pow(start.z - carNode.position.z, 2))
-            if distanceFromCamera > 800 {
-                material.diffuse.magnificationFilter = .linear
-                material.diffuse.minificationFilter = .linear
-                material.diffuse.mipFilter = .linear
-            }
+            // Apply blur to prevent distant moiré patterns
+            material.diffuse.magnificationFilter = .linear
+            material.diffuse.minificationFilter = .linear
+            material.diffuse.mipFilter = .linear
+            
+            // Add material blur for distant road markings
+            material.roughness.contents = 0.8  // Increase roughness for blur effect
+            material.metalness.contents = 0.0  // Remove metallic sheen
+            material.emission.intensity = 0.5  // Reduce emission intensity
             
             lineGeometry.materials = [material]
             
@@ -475,16 +479,20 @@ extension GameViewController {
                     if dashDist > 0.1 {
                         let dashGeometry = SCNBox(width: width, height: 0.05, length: dashDist, chamferRadius: 0)
                         let material = SCNMaterial()
+                        
+                        // Use full opacity - will be updated in real-time by game loop
                         material.diffuse.contents = color
                         material.emission.contents = color.withAlphaComponent(0.4)
                         
-                        // Add distance-based blurring to prevent moiré
-                        let distanceFromCamera = sqrt(pow(dashStart.x - carNode.position.x, 2) + pow(dashStart.z - carNode.position.z, 2))
-                        if distanceFromCamera > 800 {
-                            material.diffuse.magnificationFilter = .linear
-                            material.diffuse.minificationFilter = .linear
-                            material.diffuse.mipFilter = .linear
-                        }
+                        // Apply blur to prevent distant moiré patterns
+                        material.diffuse.magnificationFilter = .linear
+                        material.diffuse.minificationFilter = .linear
+                        material.diffuse.mipFilter = .linear
+                        
+                        // Add material blur for distant road markings
+                        material.roughness.contents = 0.8  // Increase roughness for blur effect
+                        material.metalness.contents = 0.0  // Remove metallic sheen
+                        material.emission.intensity = 0.5  // Reduce emission intensity
                         
                         dashGeometry.materials = [material]
                         

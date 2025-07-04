@@ -1,994 +1,1006 @@
 {
   "majorCities" : [
     {
-      "latitude" : 40.7128,
       "population" : 8336817,
       "longitude" : -74.006,
-      "name" : "New York, NY"
+      "name" : "New York, NY",
+      "latitude" : 40.7128
     },
     {
-      "latitude" : 34.0522,
       "population" : 3990456,
       "longitude" : -118.2437,
-      "name" : "Los Angeles, CA"
+      "name" : "Los Angeles, CA",
+      "latitude" : 34.0522
     },
     {
-      "latitude" : 41.8781,
       "population" : 2695598,
       "longitude" : -87.6298,
-      "name" : "Chicago, IL"
+      "name" : "Chicago, IL",
+      "latitude" : 41.8781
     },
     {
-      "latitude" : 29.7604,
       "population" : 2320268,
       "longitude" : -95.3698,
-      "name" : "Houston, TX"
+      "name" : "Houston, TX",
+      "latitude" : 29.7604
     },
     {
-      "latitude" : 33.4484,
       "population" : 1680992,
       "longitude" : -112.074,
-      "name" : "Phoenix, AZ"
+      "name" : "Phoenix, AZ",
+      "latitude" : 33.4484
     },
     {
-      "latitude" : 39.9526,
       "population" : 1603797,
       "longitude" : -75.1652,
-      "name" : "Philadelphia, PA"
+      "name" : "Philadelphia, PA",
+      "latitude" : 39.9526
     },
     {
-      "latitude" : 29.4241,
       "population" : 1547253,
       "longitude" : -98.4936,
-      "name" : "San Antonio, TX"
+      "name" : "San Antonio, TX",
+      "latitude" : 29.4241
     },
     {
-      "latitude" : 32.7157,
       "population" : 1423851,
       "longitude" : -117.1611,
-      "name" : "San Diego, CA"
+      "name" : "San Diego, CA",
+      "latitude" : 32.7157
     },
     {
-      "latitude" : 32.7767,
       "population" : 1343573,
       "longitude" : -96.797,
-      "name" : "Dallas, TX"
+      "name" : "Dallas, TX",
+      "latitude" : 32.7767
     },
     {
-      "latitude" : 30.3322,
       "population" : 949611,
       "longitude" : -81.6557,
-      "name" : "Jacksonville, FL"
+      "name" : "Jacksonville, FL",
+      "latitude" : 30.3322
     },
     {
-      "latitude" : 39.7684,
       "population" : 887642,
       "longitude" : -86.1581,
-      "name" : "Indianapolis, IN"
+      "name" : "Indianapolis, IN",
+      "latitude" : 39.7684
     },
     {
-      "latitude" : 35.2271,
       "population" : 885708,
       "longitude" : -80.8431,
-      "name" : "Charlotte, NC"
+      "name" : "Charlotte, NC",
+      "latitude" : 35.2271
     },
     {
-      "latitude" : 37.7749,
       "population" : 881549,
       "longitude" : -122.4194,
-      "name" : "San Francisco, CA"
+      "name" : "San Francisco, CA",
+      "latitude" : 37.7749
     },
     {
-      "latitude" : 39.9612,
       "population" : 905748,
       "longitude" : -82.9988,
-      "name" : "Columbus, OH"
+      "name" : "Columbus, OH",
+      "latitude" : 39.9612
     },
     {
-      "latitude" : 30.2672,
       "population" : 978908,
       "longitude" : -97.7431,
-      "name" : "Austin, TX"
+      "name" : "Austin, TX",
+      "latitude" : 30.2672
     },
     {
-      "latitude" : 47.6062,
       "population" : 753675,
       "longitude" : -122.3321,
-      "name" : "Seattle, WA"
+      "name" : "Seattle, WA",
+      "latitude" : 47.6062
     },
     {
-      "latitude" : 39.7392,
       "population" : 727211,
       "longitude" : -104.9903,
-      "name" : "Denver, CO"
+      "name" : "Denver, CO",
+      "latitude" : 39.7392
     },
     {
-      "latitude" : 38.9072,
       "population" : 689545,
       "longitude" : -77.0369,
-      "name" : "Washington, DC"
+      "name" : "Washington, DC",
+      "latitude" : 38.9072
     },
     {
-      "latitude" : 36.1627,
       "population" : 689447,
       "longitude" : -86.7816,
-      "name" : "Nashville, TN"
+      "name" : "Nashville, TN",
+      "latitude" : 36.1627
     },
     {
-      "latitude" : 35.4676,
       "population" : 695000,
       "longitude" : -97.5164,
-      "name" : "Oklahoma City, OK"
+      "name" : "Oklahoma City, OK",
+      "latitude" : 35.4676
     },
     {
-      "latitude" : 36.1699,
       "population" : 651319,
       "longitude" : -115.1398,
-      "name" : "Las Vegas, NV"
+      "name" : "Las Vegas, NV",
+      "latitude" : 36.1699
     },
     {
-      "latitude" : 45.5152,
       "population" : 654741,
-      "longitude" : -122.6784,
-      "name" : "Portland, OR"
+      "longitude" : -122.66497627805583,
+      "name" : "Portland, OR",
+      "latitude" : 45.50959661345577
     },
     {
-      "latitude" : 35.1495,
       "population" : 633104,
       "longitude" : -90.049,
-      "name" : "Memphis, TN"
+      "name" : "Memphis, TN",
+      "latitude" : 35.1495
     },
     {
-      "latitude" : 38.2527,
       "population" : 633045,
       "longitude" : -85.7585,
-      "name" : "Louisville, KY"
+      "name" : "Louisville, KY",
+      "latitude" : 38.2527
     },
     {
-      "latitude" : 39.2904,
       "population" : 585708,
       "longitude" : -76.6122,
-      "name" : "Baltimore, MD"
+      "name" : "Baltimore, MD",
+      "latitude" : 39.2904
     },
     {
-      "latitude" : 43.0389,
       "population" : 577222,
       "longitude" : -87.9065,
-      "name" : "Milwaukee, WI"
+      "name" : "Milwaukee, WI",
+      "latitude" : 43.0389
     },
     {
-      "latitude" : 35.0844,
       "population" : 560513,
       "longitude" : -106.6504,
-      "name" : "Albuquerque, NM"
+      "name" : "Albuquerque, NM",
+      "latitude" : 35.0844
     },
     {
-      "latitude" : 32.2217,
       "population" : 548073,
       "longitude" : -110.9265,
-      "name" : "Tucson, AZ"
+      "name" : "Tucson, AZ",
+      "latitude" : 32.2217
     },
     {
-      "latitude" : 36.7783,
       "population" : 542107,
       "longitude" : -119.4179,
-      "name" : "Fresno, CA"
+      "name" : "Fresno, CA",
+      "latitude" : 36.7783
     },
     {
-      "latitude" : 38.5816,
       "population" : 513624,
       "longitude" : -121.4944,
-      "name" : "Sacramento, CA"
+      "name" : "Sacramento, CA",
+      "latitude" : 38.5816
     },
     {
-      "latitude" : 39.0997,
       "population" : 508090,
       "longitude" : -94.5786,
-      "name" : "Kansas City, MO"
+      "name" : "Kansas City, MO",
+      "latitude" : 39.0997
     },
     {
-      "latitude" : 33.749,
       "population" : 506811,
       "longitude" : -84.388,
-      "name" : "Atlanta, GA"
+      "name" : "Atlanta, GA",
+      "latitude" : 33.749
     },
     {
-      "latitude" : 41.2565,
       "population" : 486051,
       "longitude" : -95.9345,
-      "name" : "Omaha, NE"
+      "name" : "Omaha, NE",
+      "latitude" : 41.2565
     },
     {
-      "latitude" : 35.7796,
       "population" : 474069,
       "longitude" : -78.6382,
-      "name" : "Raleigh, NC"
+      "name" : "Raleigh, NC",
+      "latitude" : 35.7796
     },
     {
-      "latitude" : 25.7617,
       "population" : 467963,
       "longitude" : -80.1918,
-      "name" : "Miami, FL"
+      "name" : "Miami, FL",
+      "latitude" : 25.7617
     },
     {
-      "latitude" : 41.4993,
       "population" : 372624,
       "longitude" : -81.6944,
-      "name" : "Cleveland, OH"
+      "name" : "Cleveland, OH",
+      "latitude" : 41.4993
     },
     {
-      "latitude" : 27.9506,
       "population" : 399700,
       "longitude" : -82.4572,
-      "name" : "Tampa, FL"
+      "name" : "Tampa, FL",
+      "latitude" : 27.9506
     },
     {
-      "latitude" : 44.9778,
       "population" : 429954,
       "longitude" : -93.265,
-      "name" : "Minneapolis, MN"
+      "name" : "Minneapolis, MN",
+      "latitude" : 44.9778
     },
     {
-      "latitude" : 36.154,
       "population" : 413066,
       "longitude" : -95.9928,
-      "name" : "Tulsa, OK"
+      "name" : "Tulsa, OK",
+      "latitude" : 36.154
     },
     {
-      "latitude" : 28.5383,
       "population" : 307573,
       "longitude" : -81.3792,
-      "name" : "Orlando, FL"
+      "name" : "Orlando, FL",
+      "latitude" : 28.5383
     },
     {
-      "latitude" : 39.1031,
       "population" : 309317,
       "longitude" : -84.512,
-      "name" : "Cincinnati, OH"
+      "name" : "Cincinnati, OH",
+      "latitude" : 39.1031
     },
     {
-      "latitude" : 40.4406,
       "population" : 302971,
       "longitude" : -79.9959,
-      "name" : "Pittsburgh, PA"
+      "name" : "Pittsburgh, PA",
+      "latitude" : 40.4406
     },
     {
-      "latitude" : 38.627,
       "population" : 301578,
       "longitude" : -90.1994,
-      "name" : "St. Louis, MO"
+      "name" : "St. Louis, MO",
+      "latitude" : 38.627
     },
     {
-      "latitude" : 36.8529,
       "population" : 450000,
       "longitude" : -76.2858,
-      "name" : "Virginia Beach, VA"
+      "name" : "Virginia Beach, VA",
+      "latitude" : 36.8529
     },
     {
+      "population" : 278349,
       "longitude" : -78.8784,
       "name" : "Buffalo, NY",
-      "population" : 278349,
       "latitude" : 42.8864
     },
     {
+      "population" : 200733,
       "longitude" : -86.8104,
       "name" : "Birmingham, AL",
-      "population" : 200733,
       "latitude" : 33.5186
     },
     {
+      "population" : 150227,
       "longitude" : -79.9311,
       "name" : "Charleston, SC",
-      "population" : 150227,
       "latitude" : 32.7765
     },
     {
+      "population" : 136632,
       "longitude" : -81.0348,
       "name" : "Columbia, SC",
-      "population" : 136632,
       "latitude" : 34.0007
     },
     {
+      "population" : 230436,
       "longitude" : -77.436,
       "name" : "Richmond, VA",
-      "population" : 230436,
       "latitude" : 37.5407
     },
     {
+      "population" : 383997,
       "longitude" : -90.0715,
       "name" : "New Orleans, LA",
-      "population" : 383997,
       "latitude" : 29.9511
     },
     {
+      "population" : 200567,
       "longitude" : -111.891,
       "name" : "Salt Lake City, UT",
-      "population" : 200567,
       "latitude" : 40.7608
     },
     {
+      "population" : 227470,
       "longitude" : -91.1871,
       "name" : "Baton Rouge, LA",
-      "population" : 227470,
       "latitude" : 30.4515
     },
     {
+      "population" : 214237,
       "longitude" : -93.625,
       "name" : "Des Moines, IA",
-      "population" : 214237,
       "latitude" : 41.5868
     },
     {
+      "population" : 235684,
       "longitude" : -116.2023,
       "name" : "Boise, ID",
-      "population" : 235684,
       "latitude" : 43.615
     },
     {
+      "population" : 639111,
       "longitude" : -83.0458,
       "name" : "Detroit, MI",
-      "population" : 639111,
       "latitude" : 42.3314
     },
     {
+      "population" : 692600,
       "longitude" : -71.0589,
       "name" : "Boston, MA",
-      "population" : 692600,
       "latitude" : 42.3601
     },
     {
+      "population" : 681728,
       "longitude" : -106.485,
       "name" : "El Paso, TX",
-      "population" : 681728,
       "latitude" : 31.7619
     },
     {
+      "population" : 190740,
       "longitude" : -83.9207,
       "name" : "Knoxville, TN",
-      "population" : 190740,
       "latitude" : 35.9606
     },
     {
+      "population" : 187041,
       "longitude" : -88.0399,
       "name" : "Mobile, AL",
-      "population" : 187041,
       "latitude" : 30.6954
     },
     {
+      "population" : 147780,
       "longitude" : -81.0912,
       "name" : "Savannah, GA",
-      "population" : 147780,
       "latitude" : 32.0809
     },
     {
+      "population" : 206284,
       "longitude" : -77.6088,
       "name" : "Rochester, NY",
-      "population" : 206284,
       "latitude" : 43.1566
     },
     {
+      "population" : 198917,
       "longitude" : -85.6681,
       "name" : "Grand Rapids, MI",
-      "population" : 198917,
       "latitude" : 42.9634
     },
     {
+      "population" : 228989,
       "longitude" : -117.426,
       "name" : "Spokane, WA",
-      "population" : 228989,
       "latitude" : 47.6588
     },
     {
+      "population" : 323152,
       "longitude" : -84.5037,
       "name" : "Lexington, KY",
-      "population" : 323152,
       "latitude" : 38.0406
     },
     {
+      "population" : 264165,
       "longitude" : -119.8138,
       "name" : "Reno, NV",
-      "population" : 264165,
       "latitude" : 39.5296
     },
     {
+      "population" : 258862,
       "longitude" : -101.8552,
       "name" : "Lubbock, TX",
-      "population" : 258862,
       "latitude" : 33.5779
     },
     {
+      "population" : 269840,
       "longitude" : -89.4012,
       "name" : "Madison, WI",
-      "population" : 269840,
       "latitude" : 43.0731
     },
     {
+      "population" : 200393,
       "longitude" : -101.8313,
       "name" : "Amarillo, TX",
-      "population" : 200393,
       "latitude" : 35.2226
     },
     {
+      "population" : 200603,
       "longitude" : -86.2999,
       "name" : "Montgomery, AL",
-      "population" : 200603,
       "latitude" : 32.3668
     },
     {
+      "population" : 197312,
       "longitude" : -92.2896,
       "name" : "Little Rock, AR",
-      "population" : 197312,
       "latitude" : 34.7465
     },
     {
+      "population" : 194500,
       "longitude" : -84.2807,
       "name" : "Tallahassee, FL",
-      "population" : 194500,
       "latitude" : 30.4383
     },
     {
+      "population" : 187112,
       "longitude" : -93.7502,
       "name" : "Shreveport, LA",
-      "population" : 187112,
       "latitude" : 32.5252
     },
     {
+      "population" : 190934,
       "longitude" : -71.4128,
       "name" : "Providence, RI",
-      "population" : 190934,
       "latitude" : 41.824
     },
     {
+      "population" : 181099,
       "longitude" : -85.3097,
       "name" : "Chattanooga, TN",
-      "population" : 181099,
       "latitude" : 35.0456
     },
     {
+      "population" : 153968,
       "longitude" : -90.1848,
       "name" : "Jackson, MS",
-      "population" : 153968,
       "latitude" : 32.2988
     },
     {
+      "population" : 192517,
       "longitude" : -96.7313,
       "name" : "Sioux Falls, SD",
-      "population" : 192517,
       "latitude" : 43.546
     },
     {
+      "population" : 169176,
       "longitude" : -93.2923,
       "name" : "Springfield, MO",
-      "population" : 169176,
       "latitude" : 37.209
     },
     {
-      "longitude" : -123.0868,
-      "name" : "Eugene, OR",
       "population" : 176654,
-      "latitude" : 44.0521
+      "longitude" : -123.06917668036424,
+      "name" : "Eugene, OR",
+      "latitude" : 44.04630839283419
     },
     {
+      "population" : 142749,
       "longitude" : -76.1474,
       "name" : "Syracuse, NY",
-      "population" : 142749,
       "latitude" : 43.0481
     },
     {
+      "population" : 97478,
       "longitude" : -73.7562,
       "name" : "Albany, NY",
-      "population" : 97478,
       "latitude" : 42.6526
     },
     {
+      "population" : 73622,
       "longitude" : -100.7837,
       "name" : "Bismarck, ND",
-      "population" : 73622,
       "latitude" : 46.8083
     },
     {
+      "population" : 58639,
       "longitude" : -119.7674,
       "name" : "Carson City, NV",
-      "population" : 58639,
       "latitude" : 39.1638
     },
     {
+      "population" : 46536,
       "longitude" : -81.6326,
       "name" : "Charleston, WV",
-      "population" : 46536,
       "latitude" : 38.3498
     },
     {
+      "population" : 65132,
       "longitude" : -104.8202,
       "name" : "Cheyenne, WY",
-      "population" : 65132,
       "latitude" : 41.14
     },
     {
+      "population" : 43976,
       "longitude" : -71.5376,
       "name" : "Concord, NH",
-      "population" : 43976,
       "latitude" : 43.2081
     },
     {
+      "population" : 39403,
       "longitude" : -75.5244,
       "name" : "Dover, DE",
-      "population" : 39403,
       "latitude" : 39.1582
     },
     {
+      "population" : 28602,
       "longitude" : -84.8733,
       "name" : "Frankfort, KY",
-      "population" : 28602,
       "latitude" : 38.2009
     },
     {
+      "population" : 50099,
       "longitude" : -76.8867,
       "name" : "Harrisburg, PA",
-      "population" : 50099,
       "latitude" : 40.2732
     },
     {
+      "population" : 121054,
       "longitude" : -72.6734,
       "name" : "Hartford, CT",
-      "population" : 121054,
       "latitude" : 41.7658
     },
     {
+      "population" : 32315,
       "longitude" : -112.0391,
       "name" : "Helena, MT",
-      "population" : 32315,
       "latitude" : 46.5891
     },
     {
+      "population" : 43228,
       "longitude" : -92.1735,
       "name" : "Jefferson City, MO",
-      "population" : 43228,
       "latitude" : 38.5767
     },
     {
+      "population" : 295618,
       "longitude" : -96.7026,
       "name" : "Lincoln, NE",
-      "population" : 295618,
       "latitude" : 40.8136
     },
     {
+      "population" : 8074,
       "longitude" : -72.5754,
       "name" : "Montpelier, VT",
-      "population" : 8074,
       "latitude" : 44.2601
     },
     {
+      "population" : 55605,
       "longitude" : -122.9007,
       "name" : "Olympia, WA",
-      "population" : 55605,
       "latitude" : 47.0379
     },
     {
+      "population" : 14091,
       "longitude" : -100.351,
       "name" : "Pierre, SD",
-      "population" : 14091,
       "latitude" : 44.3683
     },
     {
+      "population" : 84683,
       "longitude" : -105.9378,
       "name" : "Santa Fe, NM",
-      "population" : 84683,
       "latitude" : 35.687
     },
     {
+      "population" : 114230,
       "longitude" : -89.6501,
       "name" : "Springfield, IL",
-      "population" : 114230,
       "latitude" : 39.7817
     },
     {
+      "population" : 125310,
       "longitude" : -95.6752,
       "name" : "Topeka, KS",
-      "population" : 125310,
       "latitude" : 39.0473
     },
     {
+      "population" : 83203,
       "longitude" : -74.7429,
       "name" : "Trenton, NJ",
-      "population" : 83203,
       "latitude" : 40.2171
     },
     {
+      "population" : 325733,
       "longitude" : -97.3964,
       "name" : "Corpus Christi, TX",
-      "population" : 325733,
       "latitude" : 27.8006
     },
     {
+      "population" : 53695,
       "longitude" : -94.7977,
       "name" : "Galveston, TX",
-      "population" : 53695,
       "latitude" : 29.3013
     },
     {
+      "population" : 138486,
       "longitude" : -97.1467,
       "name" : "Waco, TX",
-      "population" : 138486,
       "latitude" : 31.5493
     },
     {
+      "population" : 37333,
       "longitude" : -94.0477,
       "name" : "Texarkana, TX",
-      "population" : 37333,
       "latitude" : 33.4251
     },
     {
+      "population" : 87674,
       "longitude" : -94.3987,
       "name" : "Fort Smith, AR",
-      "population" : 87674,
       "latitude" : 35.3859
     },
     {
+      "population" : 50150,
       "longitude" : -94.5133,
       "name" : "Joplin, MO",
-      "population" : 50150,
       "latitude" : 37.0842
     },
     {
+      "population" : 38300,
       "longitude" : -88.7034,
       "name" : "Tupelo, MS",
-      "population" : 38300,
       "latitude" : 34.2576
     },
     {
+      "population" : 117298,
       "longitude" : -87.5711,
       "name" : "Evansville, IN",
-      "population" : 117298,
       "latitude" : 37.9716
     },
     {
+      "population" : 261639,
       "longitude" : -99.4803,
       "name" : "Laredo, TX",
-      "population" : 261639,
       "latitude" : 27.5306
     },
     {
+      "population" : 104683,
       "longitude" : -98.4934,
       "name" : "Wichita Falls, TX",
-      "population" : 104683,
       "latitude" : 33.9137
     },
     {
+      "population" : 125182,
       "longitude" : -99.7331,
       "name" : "Abilene, TX",
-      "population" : 125182,
       "latitude" : 32.4487
     },
     {
+      "population" : 123334,
       "longitude" : -102.3676,
       "name" : "Odessa, TX",
-      "population" : 123334,
       "latitude" : 31.8457
     },
     {
+      "population" : 115282,
       "longitude" : -94.1266,
       "name" : "Beaumont, TX",
-      "population" : 115282,
       "latitude" : 30.0802
     },
     {
+      "population" : 20629,
       "longitude" : -87.3954,
       "name" : "Marquette, MI",
-      "population" : 20629,
       "latitude" : 46.5475
     },
     {
+      "population" : 10197,
       "longitude" : -83.4327,
       "name" : "Alpena, MI",
-      "population" : 10197,
       "latitude" : 45.0617
     },
     {
+      "population" : 5802,
       "longitude" : -93.4108,
       "name" : "International Falls, MN",
-      "population" : 5802,
       "latitude" : 48.6011
     },
     {
+      "population" : 7798,
       "longitude" : -89.4121,
       "name" : "Rhinelander, WI",
-      "population" : 7798,
       "latitude" : 45.6366
     },
     {
+      "population" : 29034,
       "longitude" : -103.618,
       "name" : "Williston, ND",
-      "population" : 29034,
       "latitude" : 48.1469
     },
     {
+      "population" : 8354,
       "longitude" : -105.8406,
       "name" : "Miles City, MT",
-      "population" : 8354,
       "latitude" : 46.4083
     },
     {
+      "population" : 10028,
       "longitude" : -109.0565,
       "name" : "Cody, WY",
-      "population" : 10028,
       "latitude" : 44.5263
     },
     {
+      "population" : 23036,
       "longitude" : -109.2029,
       "name" : "Rock Springs, WY",
-      "population" : 23036,
       "latitude" : 41.5875
     },
     {
+      "population" : 6560,
       "longitude" : -106.9253,
       "name" : "Gunnison, CO",
-      "population" : 6560,
       "latitude" : 38.5458
     },
     {
+      "population" : 19413,
       "longitude" : -107.8801,
       "name" : "Durango, CO",
-      "population" : 19413,
       "latitude" : 37.2753
     },
     {
+      "population" : 8151,
       "longitude" : -102.8722,
       "name" : "Alliance, NE",
-      "population" : 8151,
       "latitude" : 42.1014
     },
     {
+      "population" : 26895,
       "longitude" : -100.8727,
       "name" : "Garden City, KS",
-      "population" : 26895,
       "latitude" : 37.9717
     },
     {
+      "population" : 12965,
       "longitude" : -101.4815,
       "name" : "Guymon, OK",
-      "population" : 12965,
       "latitude" : 36.6828
     },
     {
+      "population" : 6035,
       "longitude" : -103.661,
       "name" : "Alpine, TX",
-      "population" : 6035,
       "latitude" : 30.3584
     },
     {
+      "population" : 1747,
       "longitude" : -104.0207,
       "name" : "Marfa, TX",
-      "population" : 1747,
       "latitude" : 30.3071
     },
     {
+      "population" : 6025,
       "longitude" : -105.573,
       "name" : "Taos, NM",
-      "population" : 6025,
       "latitude" : 36.4072
     },
     {
+      "population" : 75038,
       "longitude" : -111.6513,
       "name" : "Flagstaff, AZ",
-      "population" : 75038,
       "latitude" : 35.1983
     },
     {
+      "population" : 7522,
       "longitude" : -111.4558,
       "name" : "Page, AZ",
-      "population" : 7522,
       "latitude" : 36.9147
     },
     {
+      "population" : 5366,
       "longitude" : -109.5498,
       "name" : "Moab, UT",
-      "population" : 5366,
       "latitude" : 38.5733
     },
     {
+      "population" : 35235,
       "longitude" : -113.0619,
       "name" : "Cedar City, UT",
-      "population" : 35235,
       "latitude" : 37.6775
     },
     {
+      "population" : 3686,
       "longitude" : -116.0987,
       "name" : "McCall, ID",
-      "population" : 3686,
       "latitude" : 44.911
     },
     {
+      "population" : 99178,
       "longitude" : -121.3153,
       "name" : "Bend, OR",
-      "population" : 99178,
       "latitude" : 44.0582
     },
     {
+      "population" : 2730,
       "longitude" : -119.0541,
       "name" : "Burns, OR",
-      "population" : 2730,
       "latitude" : 43.5863
     },
     {
+      "population" : 20229,
       "longitude" : -123.4307,
       "name" : "Port Angeles, WA",
-      "population" : 20229,
       "latitude" : 48.1181
     },
     {
+      "population" : 26512,
       "longitude" : -124.1637,
       "name" : "Eureka, CA",
-      "population" : 26512,
       "latitude" : 40.8021
     },
     {
+      "population" : 2715,
       "longitude" : -120.5427,
       "name" : "Alturas, CA",
-      "population" : 2715,
       "latitude" : 41.4871
     },
     {
+      "population" : 3924,
       "longitude" : -114.8742,
       "name" : "Ely, NV",
-      "population" : 3924,
       "latitude" : 39.2533
     },
     {
+      "population" : 8431,
       "longitude" : -117.7357,
       "name" : "Winnemucca, NV",
-      "population" : 8431,
       "latitude" : 40.973
     },
     {
+      "population" : 11317,
       "longitude" : -95.1444,
       "name" : "Spencer, IA",
-      "population" : 11317,
       "latitude" : 43.1414
     },
     {
+      "population" : 39540,
       "longitude" : -89.5181,
       "name" : "Cape Girardeau, MO",
-      "latitude" : 37.3058,
-      "population" : 39540
+      "latitude" : 37.3058
     },
     {
+      "population" : 13163,
       "longitude" : -93.1077,
       "name" : "Harrison, AR",
-      "latitude" : 36.2298,
-      "population" : 13163
+      "latitude" : 36.2298
     },
     {
+      "population" : 47702,
       "longitude" : -92.1193,
       "name" : "Monroe, LA",
-      "latitude" : 32.5093,
-      "population" : 47702
+      "latitude" : 32.5093
     },
     {
+      "population" : 29670,
       "longitude" : -91.0617,
       "name" : "Greenville, MS",
-      "latitude" : 33.4101,
-      "population" : 29670
+      "latitude" : 33.4101
     },
     {
+      "population" : 40184,
       "longitude" : -87.6773,
       "name" : "Florence, AL",
-      "latitude" : 34.7998,
-      "population" : 40184
+      "latitude" : 34.7998
     },
     {
+      "population" : 34842,
       "longitude" : -85.5016,
       "name" : "Cookeville, TN",
-      "latitude" : 36.1628,
-      "population" : 34842
+      "latitude" : 36.1628
     },
     {
+      "population" : 11924,
       "longitude" : -84.6041,
       "name" : "Somerset, KY",
-      "latitude" : 37.092,
-      "population" : 11924
+      "latitude" : 37.092
     },
     {
+      "population" : 16831,
       "longitude" : -81.1882,
       "name" : "Beckley, WV",
-      "latitude" : 37.7782,
-      "population" : 16831
+      "latitude" : 37.7782
     },
     {
+      "population" : 16762,
       "longitude" : -82.1887,
       "name" : "Bristol, VA",
-      "latitude" : 36.5957,
-      "population" : 16762
+      "latitude" : 36.5957
     },
     {
+      "population" : 19092,
       "longitude" : -81.6746,
       "name" : "Boone, NC",
-      "latitude" : 36.2168,
-      "population" : 19092
+      "latitude" : 36.2168
     },
     {
+      "population" : 127315,
       "longitude" : -83.3576,
       "name" : "Athens, GA",
-      "latitude" : 33.9519,
-      "population" : 127315
+      "latitude" : 33.9519
     },
     {
+      "population" : 63591,
       "longitude" : -82.1401,
       "name" : "Ocala, FL",
-      "latitude" : 29.1872,
-      "population" : 63591
+      "latitude" : 29.1872
     },
     {
+      "population" : 24094,
       "longitude" : -82.1013,
       "name" : "Athens, OH",
-      "latitude" : 39.3292,
-      "population" : 24094
+      "latitude" : 39.3292
     },
     {
+      "population" : 85755,
       "longitude" : -86.5264,
       "name" : "Bloomington, IN",
-      "latitude" : 39.1653,
-      "population" : 85755
+      "latitude" : 39.1653
     },
     {
+      "population" : 25083,
       "longitude" : -89.2168,
       "name" : "Carbondale, IL",
-      "latitude" : 37.7273,
-      "population" : 25083
+      "latitude" : 37.7273
     },
     {
+      "population" : 42074,
       "longitude" : -77.86,
       "name" : "State College, PA",
-      "latitude" : 40.7934,
-      "population" : 42074
+      "latitude" : 40.7934
     },
     {
+      "population" : 19841,
       "longitude" : -73.4529,
       "name" : "Plattsburgh, NY",
-      "latitude" : 44.6995,
-      "population" : 19841
+      "latitude" : 44.6995
     },
     {
+      "population" : 2349,
       "longitude" : -71.1281,
       "name" : "North Conway, NH",
-      "latitude" : 44.0537,
-      "population" : 2349
+      "latitude" : 44.0537
     },
     {
+      "population" : 9078,
       "longitude" : -68.0159,
       "name" : "Presque Isle, ME",
-      "latitude" : 46.6812,
-      "population" : 9078
+      "latitude" : 46.6812
     },
     {
+      "population" : 43927,
       "longitude" : -73.2524,
       "name" : "Pittsfield, MA",
-      "latitude" : 42.4501,
-      "population" : 43927
+      "latitude" : 42.4501
     },
     {
+      "population" : 135158,
       "longitude" : -74.2176,
       "name" : "Lakewood, NJ",
-      "latitude" : 40.0978,
-      "population" : 135158
+      "latitude" : 40.0978
     },
     {
+      "population" : 19495,
       "longitude" : -78.7625,
       "name" : "Cumberland, MD",
-      "latitude" : 39.6528,
-      "population" : 19495
+      "latitude" : 39.6528
     },
     {
+      "population" : 38697,
       "longitude" : -93.0552,
       "name" : "Hot Springs, AR",
-      "latitude" : 34.5037,
-      "population" : 38697
+      "latitude" : 34.5037
     },
     {
+      "population" : 24685,
       "longitude" : -75.9107,
       "name" : "Watertown, NY",
-      "latitude" : 43.9748,
-      "population" : 24685
+      "latitude" : 43.9748
+    },
+    {
+      "population" : 10000,
+      "longitude" : -123.02987152665722,
+      "name" : "Salem",
+      "latitude" : 44.895171469938525
+    },
+    {
+      "population" : 10000,
+      "longitude" : -120.6922430630527,
+      "name" : "Test",
+      "latitude" : 51.73105026707297
     }
   ]
 }
