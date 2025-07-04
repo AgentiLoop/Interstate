@@ -33,6 +33,7 @@ struct ContentView: View {
         case addPoint = "Add Point"
         case deletePoint = "Delete Point"
         case movePoint = "Move Point"
+        case extendRoad = "Extend Road"
         case addRoad = "Add Road"
         case deleteRoad = "Delete Road"
         case moveRoad = "Move Road"
@@ -78,11 +79,12 @@ struct ContentView: View {
                         .font(.headline)
                     
                     // Main Edit Mode Selector
-                Picker("Edit Mode", selection: $editMode) {
+                                    Picker("Edit Mode", selection: $editMode) {
                         Text("Select").tag(EditMode.select)
                         Text("Add Point").tag(EditMode.addPoint)
                         Text("Delete Point").tag(EditMode.deletePoint)
                         Text("Move Point").tag(EditMode.movePoint)
+                        Text("Extend Road").tag(EditMode.extendRoad)
                         Text("Add Road").tag(EditMode.addRoad)
                         Text("Delete Road").tag(EditMode.deleteRoad)
                         Text("Move Road").tag(EditMode.moveRoad)
@@ -94,7 +96,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     
                     // Road Type Selector (shown for all road operations)
-                    if [.select, .addPoint, .deletePoint, .movePoint, .addRoad, .deleteRoad, .moveRoad].contains(editMode) {
+                    if [.select, .addPoint, .deletePoint, .movePoint, .extendRoad, .addRoad, .deleteRoad, .moveRoad].contains(editMode) {
                         HStack {
                             Text("Road Type:")
                                 .font(.subheadline)
@@ -219,6 +221,25 @@ struct ContentView: View {
                         }
                         .padding()
                         .background(Color.red.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    } else if editMode == .extendRoad {
+                        VStack(alignment: .leading) {
+                            Text("Extend Road Mode")
+                                .font(.headline)
+                                .foregroundColor(.green)
+                            Text("Click near a road endpoint to extend it")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("Select a road and road type above, then click near either end")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("✅ No more spikes - guaranteed road extension!")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                        .padding()
+                        .background(Color.green.opacity(0.1))
                         .cornerRadius(8)
                         .padding(.horizontal)
                     } else if editMode == .moveRoad {

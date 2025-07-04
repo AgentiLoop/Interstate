@@ -206,17 +206,37 @@ class DataManager: ObservableObject {
     // MARK: - Data Manipulation
     
     func removeAllDirtRoads() {
+        print("🗑️ DELETING ALL DIRT ROADS...")
+        print("   Before: \(dirtRoutes.count) dirt routes")
+        
+        // 1. Remove all actual dirt roads
+        dirtRoutes.removeAll()
+        
+        // 2. Remove dirt connections from the connections dictionary
         for (route, routeConnections) in connections {
             connections[route] = routeConnections.filter { $0.type != "dirt" }
         }
+        
         hasUnsavedChanges = true
+        print("   After: \(dirtRoutes.count) dirt routes")
+        print("✅ All dirt roads deleted successfully!")
     }
     
     func removeAllPavedRoads() {
+        print("🗑️ DELETING ALL PAVED ROADS...")
+        print("   Before: \(pavedRoutes.count) paved routes")
+        
+        // 1. Remove all actual paved roads
+        pavedRoutes.removeAll()
+        
+        // 2. Remove paved connections from the connections dictionary
         for (route, routeConnections) in connections {
             connections[route] = routeConnections.filter { $0.type != "paved" }
         }
+        
         hasUnsavedChanges = true
+        print("   After: \(pavedRoutes.count) paved routes")
+        print("✅ All paved roads deleted successfully!")
     }
     
 
@@ -231,6 +251,8 @@ class DataManager: ObservableObject {
     func findDeadEnds() {
         deadEndRoutes.removeAll()
         
+        print("🔍 FINDING DEAD ENDS...")
+        
         // Build a set of all routes that have connections (either from or to)
         var connectedRoutes = Set<String>()
         
@@ -243,12 +265,57 @@ class DataManager: ObservableObject {
             }
         }
         
-        // Find routes with no connections
+        print("   Routes connected via connections dictionary: \(connectedRoutes.count)")
+        
+        // ALSO check for routes that share physical endpoints (auto-connected roads)
+        let tolerance = 0.000001 // Very small tolerance for coordinate matching
+        let allRoutes = Array(interstateRoutes.keys)
+        
+        for i in 0..<allRoutes.count {
+            let route1 = allRoutes[i]
+            guard let coords1 = interstateRoutes[route1], !coords1.isEmpty else { continue }
+            
+            let route1Endpoints = [coords1.first!, coords1.last!]
+            
+            for j in (i+1)..<allRoutes.count {
+                let route2 = allRoutes[j]
+                guard let coords2 = interstateRoutes[route2], !coords2.isEmpty else { continue }
+                
+                let route2Endpoints = [coords2.first!, coords2.last!]
+                
+                // Check if any endpoints match (within tolerance)
+                var foundSharedEndpoint = false
+                for endpoint1 in route1Endpoints {
+                    for endpoint2 in route2Endpoints {
+                        let latDiff = abs(endpoint1.0 - endpoint2.0)
+                        let lonDiff = abs(endpoint1.1 - endpoint2.1)
+                        
+                        if latDiff < tolerance && lonDiff < tolerance {
+                            // These routes share a physical endpoint!
+                            connectedRoutes.insert(route1)
+                            connectedRoutes.insert(route2)
+                            foundSharedEndpoint = true
+                            print("   Found shared endpoint: \(route1) ↔ \(route2) at (\(String(format: "%.8f", endpoint1.0)), \(String(format: "%.8f", endpoint1.1)))")
+                            break
+                        }
+                    }
+                    if foundSharedEndpoint { break }
+                }
+            }
+        }
+        
+        print("   Total connected routes (including shared endpoints): \(connectedRoutes.count)")
+        
+        // Find routes with no connections (neither in connections dict nor shared endpoints)
         for route in interstateRoutes.keys {
             if !connectedRoutes.contains(route) {
                 deadEndRoutes.insert(route)
+                print("   ❌ Dead end: \(route)")
             }
         }
+        
+        print("   Final dead ends: \(deadEndRoutes.count)")
+        print("✅ Dead end analysis complete!")
     }
     
     func removeDeadEnds() {
@@ -261,50 +328,112 @@ class DataManager: ObservableObject {
     }
     
     func autoConnectRoutes() {
-        let maxDistance = 50.0 // Maximum distance in km to auto-connect
+        let maxDistance = 500.0 // Much larger distance - up to 500km!
+        var connectionsCreated = 0
         
-        for route1 in sortedRouteNames {
-            guard let coords1 = interstateRoutes[route1], !coords1.isEmpty else { continue }
+        print("🔗 AUTO-CONNECT: Finding nearby road endpoints...")
+        print("📏 MAX DISTANCE: \(maxDistance) km")
+        
+        // Log current road data for debugging
+        print("🗺️ CURRENT ROADS:")
+        for (name, coords) in interstateRoutes {
+            if !coords.isEmpty {
+                print("   \(name): \(coords.count) points")
+                print("      Start: (\(coords.first!.0), \(coords.first!.1))")
+                print("      End: (\(coords.last!.0), \(coords.last!.1))")
+            }
+        }
+        
+        // Get all interstate routes (focus on the main ones first)
+        let routes = Array(interstateRoutes.keys).sorted()
+        
+        print("📍 ANALYZING \(routes.count) interstate routes for connections...")
+        
+        // Check every pair of routes
+        for i in 0..<routes.count {
+            let route1Name = routes[i]
+            guard let coords1 = interstateRoutes[route1Name], !coords1.isEmpty else { continue }
             
-            let endpoints1 = [coords1.first!, coords1.last!]
-            
-            for route2 in sortedRouteNames {
-                guard route1 != route2,
-                      let coords2 = interstateRoutes[route2],
-                      !coords2.isEmpty else { continue }
+            for j in (i+1)..<routes.count {
+                let route2Name = routes[j]
+                guard let coords2 = interstateRoutes[route2Name], !coords2.isEmpty else { continue }
                 
-                let endpoints2 = [coords2.first!, coords2.last!]
+                print("🔍 Checking distance between \(route1Name) and \(route2Name)...")
                 
-                // Check all endpoint combinations
-                for (_, endpoint1) in endpoints1.enumerated() {
-                    for (_, endpoint2) in endpoints2.enumerated() {
+                // Get all endpoint combinations
+                let route1Endpoints = [(coords1.first!, true), (coords1.last!, false)] // (coordinate, isFirst)
+                let route2Endpoints = [(coords2.first!, true), (coords2.last!, false)]
+                
+                var closestDistance = Double.infinity
+                var bestMatch: (route1Point: (Double, Double), route1IsFirst: Bool, route2Point: (Double, Double), route2IsFirst: Bool)?
+                
+                // Find the closest pair of endpoints
+                for (endpoint1, isFirst1) in route1Endpoints {
+                    for (endpoint2, isFirst2) in route2Endpoints {
                         let distance = calculateDistance(from: endpoint1, to: endpoint2)
+                        print("   Distance from \(route1Name) \(isFirst1 ? "start" : "end") to \(route2Name) \(isFirst2 ? "start" : "end"): \(String(format: "%.1f", distance)) km")
                         
-                        if distance < maxDistance && distance > 0.1 {
-                            // Check if connection already exists
-                            let existingConnections = connections[route1] ?? []
-                            let alreadyConnected = existingConnections.contains { $0.to == route2 }
-                            
-                            if !alreadyConnected {
-                                // Create paved connection
-                                let newConnection = Connection(
-                                    to: route2,
-                                    distance: distance,
-                                    type: "paved",
-                                    fromPoint: [endpoint1.0, endpoint1.1],
-                                    toPoint: [endpoint2.0, endpoint2.1]
-                                )
-                                
-                                if connections[route1] == nil {
-                                    connections[route1] = []
-                                }
-                                connections[route1]?.append(newConnection)
-                                hasUnsavedChanges = true
-                            }
+                        if distance < closestDistance {
+                            closestDistance = distance
+                            bestMatch = (route1Point: endpoint1, route1IsFirst: isFirst1, route2Point: endpoint2, route2IsFirst: isFirst2)
                         }
                     }
                 }
+                
+                // If endpoints are close enough, SNAP them to the same coordinate
+                if closestDistance <= maxDistance && closestDistance > 0.01 {
+                    guard let match = bestMatch else { continue }
+                    
+                    // Choose one coordinate as the "master" - use route1's endpoint
+                    let sharedCoordinate = match.route1Point
+                    
+                    print("🎯 CONNECTING \(route1Name) and \(route2Name)!")
+                    print("   Distance: \(String(format: "%.1f", closestDistance)) km")
+                    print("   Snapping both endpoints to: (\(String(format: "%.8f", sharedCoordinate.0)), \(String(format: "%.8f", sharedCoordinate.1)))")
+                    
+                    // Update route1 to use the shared coordinate
+                    var updatedRoute1 = coords1
+                    if match.route1IsFirst {
+                        updatedRoute1[0] = sharedCoordinate
+                        print("   Updated \(route1Name) START to shared coordinate")
+                    } else {
+                        updatedRoute1[updatedRoute1.count - 1] = sharedCoordinate
+                        print("   Updated \(route1Name) END to shared coordinate")
+                    }
+                    interstateRoutes[route1Name] = updatedRoute1
+                    
+                    // Update route2 to use the EXACT SAME coordinate
+                    var updatedRoute2 = coords2
+                    if match.route2IsFirst {
+                        updatedRoute2[0] = sharedCoordinate
+                        print("   Updated \(route2Name) START to shared coordinate")
+                    } else {
+                        updatedRoute2[updatedRoute2.count - 1] = sharedCoordinate
+                        print("   Updated \(route2Name) END to shared coordinate")
+                    }
+                    interstateRoutes[route2Name] = updatedRoute2
+                    
+                    connectionsCreated += 1
+                    hasUnsavedChanges = true
+                    
+                    print("✅ SUCCESS! \(route1Name) and \(route2Name) now share EXACT SAME endpoint!")
+                    print("   Both roads now have endpoint at: (\(String(format: "%.8f", sharedCoordinate.0)), \(String(format: "%.8f", sharedCoordinate.1)))")
+                    
+                } else if closestDistance > maxDistance {
+                    print("   ❌ Too far apart (\(String(format: "%.1f", closestDistance)) km > \(maxDistance) km)")
+                } else {
+                    print("   ⚠️ Already connected (distance: \(String(format: "%.3f", closestDistance)) km)")
+                }
             }
+        }
+        
+        print("🎉 AUTO-CONNECT FINISHED!")
+        print("   Connected \(connectionsCreated) road pairs")
+        if connectionsCreated > 0 {
+            print("   Roads now share EXACT SAME coordinates at connection points!")
+            print("   💾 Don't forget to SAVE your changes!")
+        } else {
+            print("   No roads were close enough to connect (within \(maxDistance) km)")
         }
         
         findDeadEnds()

@@ -307,6 +307,8 @@ struct MapEditorView: NSViewRepresentable {
             switch parent.editMode {
             case .addPoint:
                 handleAddPoint(coordinate: coordinate, mapView: mapView)
+            case .extendRoad:
+                handleExtendRoad(coordinate: coordinate, mapView: mapView)
             case .addRoad:
                 handleAddRoadPoint(coordinate: coordinate)
             case .addCity:
@@ -336,20 +338,22 @@ struct MapEditorView: NSViewRepresentable {
                 routeCoords = parent.dataManager.dirtRoutes[route]
             }
             
-            // Find best insertion point
+            // SIMPLE ADD POINT: Only inserts between existing points (no extension)
             if let routeCoords = routeCoords {
-                var bestIndex = 0
+                let clickPoint = (coordinate.latitude, coordinate.longitude)
+                
+                print("📍 ADD POINT: Inserting between existing points")
+                
+                var bestIndex = 1 // Default to after first point
                 var minDistance = Double.infinity
                 
+                // Find closest line segment for insertion
                 for i in 0..<max(0, routeCoords.count - 1) {
                     let p1 = routeCoords[i]
                     let p2 = routeCoords[i + 1]
                     
                     // Calculate distance from click to line segment
-                    let dist = distanceFromPoint(
-                        (coordinate.latitude, coordinate.longitude),
-                        toLineSegment: (p1, p2)
-                    )
+                    let dist = distanceFromPoint(clickPoint, toLineSegment: (p1, p2))
                     
                     if dist < minDistance {
                         minDistance = dist
@@ -371,7 +375,75 @@ struct MapEditorView: NSViewRepresentable {
                 parent.dataManager.addPoint(
                     to: route,
                     at: bestIndex,
-                    coordinate: (coordinate.latitude, coordinate.longitude),
+                    coordinate: clickPoint,
+                    roadType: roadType
+                )
+            }
+        }
+        
+        private func handleExtendRoad(coordinate: CLLocationCoordinate2D, mapView: MKMapView) {
+            guard let route = parent.selectedRoute else {
+                print("❌ EXTEND ROAD: No route selected!")
+                return
+            }
+            
+            // Get route coordinates based on selected road type
+            let routeCoords: [(Double, Double)]?
+            switch parent.selectedRoadType {
+            case .interstate:
+                routeCoords = parent.dataManager.interstateRoutes[route]
+            case .paved:
+                routeCoords = parent.dataManager.pavedRoutes[route]
+            case .dirt:
+                routeCoords = parent.dataManager.dirtRoutes[route]
+            }
+            
+            guard let routeCoords = routeCoords, !routeCoords.isEmpty else {
+                print("❌ EXTEND ROAD: Route has no coordinates!")
+                return
+            }
+            
+            let clickPoint = (coordinate.latitude, coordinate.longitude)
+            
+            // Check distances to endpoints
+            let startPoint = routeCoords.first!
+            let endPoint = routeCoords.last!
+            
+            let distanceToStart = parent.dataManager.calculateDistance(from: clickPoint, to: startPoint)
+            let distanceToEnd = parent.dataManager.calculateDistance(from: clickPoint, to: endPoint)
+            
+            print("🚀 EXTEND ROAD: Click at (\(String(format: "%.6f", clickPoint.0)), \(String(format: "%.6f", clickPoint.1)))")
+            print("   Distance to START: \(String(format: "%.1f", distanceToStart)) km")
+            print("   Distance to END: \(String(format: "%.1f", distanceToEnd)) km")
+            
+            // Determine the road type for the addPoint method
+            let roadType: String
+            switch parent.selectedRoadType {
+            case .interstate:
+                roadType = "interstate"
+            case .paved:
+                roadType = "paved"
+            case .dirt:
+                roadType = "dirt"
+            }
+            
+            // SIMPLE EXTENSION LOGIC: Always extend from the closest endpoint
+            if distanceToStart <= distanceToEnd {
+                // EXTEND FROM START
+                print("🎯 EXTENDING FROM START (closest endpoint)")
+                parent.dataManager.addPoint(
+                    to: route,
+                    at: 0,
+                    coordinate: clickPoint,
+                    roadType: roadType
+                )
+            } else {
+                // EXTEND FROM END
+                print("🎯 EXTENDING FROM END (closest endpoint)")
+                parent.dataManager.addPoint(
+                    to: route,
+                    at: routeCoords.count,
+                    coordinate: clickPoint,
                     roadType: roadType
                 )
             }
