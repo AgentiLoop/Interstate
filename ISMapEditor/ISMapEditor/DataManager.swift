@@ -251,7 +251,7 @@ class DataManager: ObservableObject {
     func findDeadEnds() {
         deadEndRoutes.removeAll()
         
-        print("🔍 FINDING DEAD ENDS...")
+        print("🔍 FINDING DEAD ENDS (including interchange connections)...")
         
         // Build a set of all routes that have connections (either from or to)
         var connectedRoutes = Set<String>()
@@ -267,7 +267,7 @@ class DataManager: ObservableObject {
         
         print("   Routes connected via connections dictionary: \(connectedRoutes.count)")
         
-        // ALSO check for routes that share physical endpoints (auto-connected roads)
+        // Check for routes that share physical endpoints (old style connections)
         let tolerance = 0.000001 // Very small tolerance for coordinate matching
         let allRoutes = Array(interstateRoutes.keys)
         
@@ -304,9 +304,44 @@ class DataManager: ObservableObject {
             }
         }
         
-        print("   Total connected routes (including shared endpoints): \(connectedRoutes.count)")
+        // NEW: Check for interchange connections (endpoint of one route touching any point on another route)
+        let interchangeTolerance = 0.001 // 1km tolerance for interchange detection
         
-        // Find routes with no connections (neither in connections dict nor shared endpoints)
+        for i in 0..<allRoutes.count {
+            let routeA = allRoutes[i]
+            guard let coordsA = interstateRoutes[routeA], !coordsA.isEmpty else { continue }
+            
+            let endpointsA = [coordsA.first!, coordsA.last!]
+            
+            for j in 0..<allRoutes.count {
+                if i == j { continue } // Skip self
+                
+                let routeB = allRoutes[j]
+                guard let coordsB = interstateRoutes[routeB], coordsB.count >= 2 else { continue }
+                
+                // Check if any endpoint of routeA is close to any point on routeB
+                for endpointA in endpointsA {
+                    // Check against all waypoints in routeB
+                    for waypointB in coordsB {
+                        let distance = calculateDistance(from: endpointA, to: waypointB)
+                        
+                        if distance <= interchangeTolerance {
+                            // Found an interchange connection!
+                            connectedRoutes.insert(routeA)
+                            connectedRoutes.insert(routeB)
+                            print("   Found interchange connection: \(routeA) endpoint ↔ \(routeB) waypoint")
+                            print("      Distance: \(String(format: "%.3f", distance)) km")
+                            print("      Connection point: (\(String(format: "%.8f", waypointB.0)), \(String(format: "%.8f", waypointB.1)))")
+                            break
+                        }
+                    }
+                }
+            }
+        }
+        
+        print("   Total connected routes (including interchanges): \(connectedRoutes.count)")
+        
+        // Find routes with no connections (neither in connections dict, shared endpoints, nor interchanges)
         for route in interstateRoutes.keys {
             if !connectedRoutes.contains(route) {
                 deadEndRoutes.insert(route)
@@ -328,115 +363,355 @@ class DataManager: ObservableObject {
     }
     
     func autoConnectRoutes() {
-        let maxDistance = 500.0 // Much larger distance - up to 500km!
+        let maxDistance = 100.0 // Reduced distance for more realistic connections
         var connectionsCreated = 0
         
-        print("🔗 AUTO-CONNECT: Finding nearby road endpoints...")
+        print("🔗 SMART INTERCHANGE AUTO-CONNECT: Connecting road endpoints to closest points on other roads...")
         print("📏 MAX DISTANCE: \(maxDistance) km")
+        print("🏙️ Using \(majorCities.count) major cities as connection hubs")
         
         // Log current road data for debugging
         print("🗺️ CURRENT ROADS:")
         for (name, coords) in interstateRoutes {
             if !coords.isEmpty {
                 print("   \(name): \(coords.count) points")
-                print("      Start: (\(coords.first!.0), \(coords.first!.1))")
-                print("      End: (\(coords.last!.0), \(coords.last!.1))")
+                print("      Start: (\(String(format: "%.6f", coords.first!.0)), \(String(format: "%.6f", coords.first!.1)))")
+                print("      End: (\(String(format: "%.6f", coords.last!.0)), \(String(format: "%.6f", coords.last!.1)))")
             }
         }
         
-        // Get all interstate routes (focus on the main ones first)
+        // Get all interstate routes 
         let routes = Array(interstateRoutes.keys).sorted()
         
-        print("📍 ANALYZING \(routes.count) interstate routes for connections...")
+        print("📍 ANALYZING \(routes.count) interstate routes for interchange connections...")
         
-        // Check every pair of routes
+        // For each route, find the best interchange connections
         for i in 0..<routes.count {
-            let route1Name = routes[i]
-            guard let coords1 = interstateRoutes[route1Name], !coords1.isEmpty else { continue }
+            let routeA = routes[i]
+            guard let coordsA = interstateRoutes[routeA], !coordsA.isEmpty else { continue }
             
-            for j in (i+1)..<routes.count {
-                let route2Name = routes[j]
-                guard let coords2 = interstateRoutes[route2Name], !coords2.isEmpty else { continue }
-                
-                print("🔍 Checking distance between \(route1Name) and \(route2Name)...")
-                
-                // Get all endpoint combinations
-                let route1Endpoints = [(coords1.first!, true), (coords1.last!, false)] // (coordinate, isFirst)
-                let route2Endpoints = [(coords2.first!, true), (coords2.last!, false)]
-                
-                var closestDistance = Double.infinity
-                var bestMatch: (route1Point: (Double, Double), route1IsFirst: Bool, route2Point: (Double, Double), route2IsFirst: Bool)?
-                
-                // Find the closest pair of endpoints
-                for (endpoint1, isFirst1) in route1Endpoints {
-                    for (endpoint2, isFirst2) in route2Endpoints {
-                        let distance = calculateDistance(from: endpoint1, to: endpoint2)
-                        print("   Distance from \(route1Name) \(isFirst1 ? "start" : "end") to \(route2Name) \(isFirst2 ? "start" : "end"): \(String(format: "%.1f", distance)) km")
+            print("🛣️ Analyzing interchange connections for \(routeA)...")
+            
+            // Get routeA's endpoints
+            let endpointsA = [
+                (coord: coordsA.first!, isStart: true, routeName: routeA),
+                (coord: coordsA.last!, isStart: false, routeName: routeA)
+            ]
+            
+            var bestConnections: [(
+                routeA: String, endpointA: (Double, Double), isStartA: Bool,
+                routeB: String, closestPointB: (Double, Double), segmentIndexB: Int,
+                distance: Double, cityBonus: Double, geoScore: Double, totalScore: Double
+            )] = []
+            
+            // For each endpoint of routeA, find the closest point on all other routes
+            for endpointA in endpointsA {
+                for j in 0..<routes.count {
+                    if i == j { continue } // Skip self
+                    
+                    let routeB = routes[j]
+                    guard let coordsB = interstateRoutes[routeB], coordsB.count >= 2 else { continue }
+                    
+                    // Find the closest point along the entire length of routeB
+                    let closestResult = findClosestPointOnRoute(
+                        targetPoint: endpointA.coord,
+                        route: coordsB
+                    )
+                    
+                    let distance = closestResult.distance
+                    
+                    if distance <= maxDistance && distance > 0.01 {
+                        print("   🔍 \(routeA) \(endpointA.isStart ? "start" : "end") → \(routeB)")
+                        print("      Distance to closest point: \(String(format: "%.1f", distance)) km")
+                        print("      Closest point: (\(String(format: "%.6f", closestResult.closestPoint.0)), \(String(format: "%.6f", closestResult.closestPoint.1)))")
+                        print("      Segment index: \(closestResult.segmentIndex)")
                         
-                        if distance < closestDistance {
-                            closestDistance = distance
-                            bestMatch = (route1Point: endpoint1, route1IsFirst: isFirst1, route2Point: endpoint2, route2IsFirst: isFirst2)
-                        }
+                        // Calculate bonuses
+                        let cityBonus = calculateCityProximityBonus(
+                            point1: endpointA.coord,
+                            point2: closestResult.closestPoint
+                        )
+                        
+                        let geoScore = calculateGeographicLogicScore(
+                            route1: routeA, route1Point: endpointA.coord, route1IsStart: endpointA.isStart,
+                            route2: routeB, route2Point: closestResult.closestPoint, route2IsStart: false
+                        )
+                        
+                        // Total score: lower is better
+                        let totalScore = distance - (cityBonus * 50.0) - (geoScore * 100.0)
+                        
+                        print("      City bonus: \(String(format: "%.1f", cityBonus))")
+                        print("      Geo score: \(String(format: "%.1f", geoScore))")
+                        print("      Total score: \(String(format: "%.1f", totalScore))")
+                        
+                        bestConnections.append((
+                            routeA: routeA, endpointA: endpointA.coord, isStartA: endpointA.isStart,
+                            routeB: routeB, closestPointB: closestResult.closestPoint, segmentIndexB: closestResult.segmentIndex,
+                            distance: distance, cityBonus: cityBonus, geoScore: geoScore, totalScore: totalScore
+                        ))
                     }
                 }
+            }
+            
+            // Sort by score and take the best connection for this route
+            bestConnections.sort { $0.totalScore < $1.totalScore }
+            
+            if let bestConnection = bestConnections.first {
+                print("🎯 BEST INTERCHANGE CONNECTION for \(routeA):")
+                print("   → \(bestConnection.routeB)")
+                print("   Distance: \(String(format: "%.1f", bestConnection.distance)) km")
+                print("   City bonus: \(String(format: "%.1f", bestConnection.cityBonus))")
+                print("   Geo score: \(String(format: "%.1f", bestConnection.geoScore))")
+                print("   Total score: \(String(format: "%.1f", bestConnection.totalScore))")
                 
-                // If endpoints are close enough, SNAP them to the same coordinate
-                if closestDistance <= maxDistance && closestDistance > 0.01 {
-                    guard let match = bestMatch else { continue }
-                    
-                    // Choose one coordinate as the "master" - use route1's endpoint
-                    let sharedCoordinate = match.route1Point
-                    
-                    print("🎯 CONNECTING \(route1Name) and \(route2Name)!")
-                    print("   Distance: \(String(format: "%.1f", closestDistance)) km")
-                    print("   Snapping both endpoints to: (\(String(format: "%.8f", sharedCoordinate.0)), \(String(format: "%.8f", sharedCoordinate.1)))")
-                    
-                    // Update route1 to use the shared coordinate
-                    var updatedRoute1 = coords1
-                    if match.route1IsFirst {
-                        updatedRoute1[0] = sharedCoordinate
-                        print("   Updated \(route1Name) START to shared coordinate")
-                    } else {
-                        updatedRoute1[updatedRoute1.count - 1] = sharedCoordinate
-                        print("   Updated \(route1Name) END to shared coordinate")
-                    }
-                    interstateRoutes[route1Name] = updatedRoute1
-                    
-                    // Update route2 to use the EXACT SAME coordinate
-                    var updatedRoute2 = coords2
-                    if match.route2IsFirst {
-                        updatedRoute2[0] = sharedCoordinate
-                        print("   Updated \(route2Name) START to shared coordinate")
-                    } else {
-                        updatedRoute2[updatedRoute2.count - 1] = sharedCoordinate
-                        print("   Updated \(route2Name) END to shared coordinate")
-                    }
-                    interstateRoutes[route2Name] = updatedRoute2
+                // Check if this connection already exists
+                let alreadyConnected = checkIfAlreadyConnected(
+                    point1: bestConnection.endpointA,
+                    point2: bestConnection.closestPointB
+                )
+                
+                if !alreadyConnected {
+                    // Create the interchange connection
+                    createInterchangeConnection(
+                        routeA: bestConnection.routeA,
+                        endpointA: bestConnection.endpointA,
+                        isStartA: bestConnection.isStartA,
+                        routeB: bestConnection.routeB,
+                        closestPointB: bestConnection.closestPointB,
+                        segmentIndexB: bestConnection.segmentIndexB
+                    )
                     
                     connectionsCreated += 1
                     hasUnsavedChanges = true
                     
-                    print("✅ SUCCESS! \(route1Name) and \(route2Name) now share EXACT SAME endpoint!")
-                    print("   Both roads now have endpoint at: (\(String(format: "%.8f", sharedCoordinate.0)), \(String(format: "%.8f", sharedCoordinate.1)))")
-                    
-                } else if closestDistance > maxDistance {
-                    print("   ❌ Too far apart (\(String(format: "%.1f", closestDistance)) km > \(maxDistance) km)")
+                    print("✅ INTERCHANGE CREATED! \(routeA) ↔ \(bestConnection.routeB)")
+                    print("   Connection point: (\(String(format: "%.8f", bestConnection.closestPointB.0)), \(String(format: "%.8f", bestConnection.closestPointB.1)))")
                 } else {
-                    print("   ⚠️ Already connected (distance: \(String(format: "%.3f", closestDistance)) km)")
+                    print("⚠️ Already connected, skipping")
+                }
+            } else {
+                print("❌ No suitable interchange connections found for \(routeA)")
+            }
+        }
+        
+        print("🎉 SMART INTERCHANGE AUTO-CONNECT FINISHED!")
+        print("   Created \(connectionsCreated) interchange connections")
+        if connectionsCreated > 0 {
+            print("   Roads now connect at realistic interchange points!")
+            print("   💾 Don't forget to SAVE your changes!")
+        } else {
+            print("   No new connections were made")
+        }
+        
+        findDeadEnds()
+    }
+    
+    // Helper function to find the closest point on a route to a target point
+    private func findClosestPointOnRoute(targetPoint: (Double, Double), route: [(Double, Double)]) -> (closestPoint: (Double, Double), distance: Double, segmentIndex: Int) {
+        var minDistance = Double.infinity
+        var closestPoint = route[0]
+        var bestSegmentIndex = 0
+        
+        // Check each segment of the route
+        for i in 0..<(route.count - 1) {
+            let segmentStart = route[i]
+            let segmentEnd = route[i + 1]
+            
+            // Find the closest point on this line segment
+            let result = closestPointOnLineSegment(
+                point: targetPoint,
+                lineStart: segmentStart,
+                lineEnd: segmentEnd
+            )
+            
+            if result.distance < minDistance {
+                minDistance = result.distance
+                closestPoint = result.closestPoint
+                bestSegmentIndex = i
+            }
+        }
+        
+        return (closestPoint: closestPoint, distance: minDistance, segmentIndex: bestSegmentIndex)
+    }
+    
+    // Helper function to find the closest point on a line segment
+    private func closestPointOnLineSegment(point: (Double, Double), lineStart: (Double, Double), lineEnd: (Double, Double)) -> (closestPoint: (Double, Double), distance: Double) {
+        let A = point
+        let B = lineStart
+        let C = lineEnd
+        
+        // Vector from B to C
+        let BC = (C.0 - B.0, C.1 - B.1)
+        // Vector from B to A
+        let BA = (A.0 - B.0, A.1 - B.1)
+        
+        // Calculate the parameter t for the closest point
+        let dotProduct = BA.0 * BC.0 + BA.1 * BC.1
+        let lengthSquared = BC.0 * BC.0 + BC.1 * BC.1
+        
+        if lengthSquared == 0 {
+            // Line segment is actually a point
+            let distance = calculateDistance(from: point, to: lineStart)
+            return (closestPoint: lineStart, distance: distance)
+        }
+        
+        let t = max(0, min(1, dotProduct / lengthSquared))
+        
+        // Calculate the closest point
+        let closestPoint = (
+            B.0 + t * BC.0,
+            B.1 + t * BC.1
+        )
+        
+        let distance = calculateDistance(from: point, to: closestPoint)
+        return (closestPoint: closestPoint, distance: distance)
+    }
+    
+    // Helper function to create an interchange connection
+    private func createInterchangeConnection(
+        routeA: String, endpointA: (Double, Double), isStartA: Bool,
+        routeB: String, closestPointB: (Double, Double), segmentIndexB: Int
+    ) {
+        // Update routeA endpoint to match the interchange point
+        if var coordsA = interstateRoutes[routeA] {
+            if isStartA {
+                coordsA[0] = closestPointB
+            } else {
+                coordsA[coordsA.count - 1] = closestPointB
+            }
+            interstateRoutes[routeA] = coordsA
+            print("   Updated \(routeA) \(isStartA ? "start" : "end") to interchange point")
+        }
+        
+        // Insert the interchange point into routeB if it's not already exactly at a waypoint
+        if var coordsB = interstateRoutes[routeB] {
+            let segmentStart = coordsB[segmentIndexB]
+            let segmentEnd = coordsB[segmentIndexB + 1]
+            
+            // Check if the closest point is very close to an existing waypoint
+            let distanceToStart = calculateDistance(from: closestPointB, to: segmentStart)
+            let distanceToEnd = calculateDistance(from: closestPointB, to: segmentEnd)
+            
+            if distanceToStart < 0.1 { // Within 100m of start point
+                // Use the existing start point
+                let sharedPoint = segmentStart
+                // Update routeA to use this exact point
+                if var coordsA = interstateRoutes[routeA] {
+                    if isStartA {
+                        coordsA[0] = sharedPoint
+                    } else {
+                        coordsA[coordsA.count - 1] = sharedPoint
+                    }
+                    interstateRoutes[routeA] = coordsA
+                }
+                print("   Using existing waypoint at segment start")
+            } else if distanceToEnd < 0.1 { // Within 100m of end point
+                // Use the existing end point
+                let sharedPoint = segmentEnd
+                // Update routeA to use this exact point
+                if var coordsA = interstateRoutes[routeA] {
+                    if isStartA {
+                        coordsA[0] = sharedPoint
+                    } else {
+                        coordsA[coordsA.count - 1] = sharedPoint
+                    }
+                    interstateRoutes[routeA] = coordsA
+                }
+                print("   Using existing waypoint at segment end")
+            } else {
+                // Insert a new interchange point into routeB
+                coordsB.insert(closestPointB, at: segmentIndexB + 1)
+                interstateRoutes[routeB] = coordsB
+                print("   Inserted new interchange waypoint into \(routeB) at index \(segmentIndexB + 1)")
+            }
+        }
+    }
+    
+    // Helper function to calculate city proximity bonus
+    private func calculateCityProximityBonus(point1: (Double, Double), point2: (Double, Double)) -> Double {
+        let midpoint = ((point1.0 + point2.0) / 2, (point1.1 + point2.1) / 2)
+        var bestBonus = 0.0
+        
+        // Find the closest major city to the connection midpoint
+        for city in majorCities {
+            let cityPoint = (city.latitude, city.longitude)
+            let distanceToCity = calculateDistance(from: midpoint, to: cityPoint)
+            
+            // Cities within 100km of connection give bonus, closer = higher bonus
+            if distanceToCity <= 100 {
+                let bonus = max(0, 10 - distanceToCity / 10) // 10 points at 0km, 0 points at 100km
+                bestBonus = max(bestBonus, bonus)
+                
+                if bonus > 5 {
+                    print("      🏙️ Near \(city.name): +\(String(format: "%.1f", bonus)) bonus")
                 }
             }
         }
         
-        print("🎉 AUTO-CONNECT FINISHED!")
-        print("   Connected \(connectionsCreated) road pairs")
-        if connectionsCreated > 0 {
-            print("   Roads now share EXACT SAME coordinates at connection points!")
-            print("   💾 Don't forget to SAVE your changes!")
-        } else {
-            print("   No roads were close enough to connect (within \(maxDistance) km)")
+        return bestBonus
+    }
+    
+    // Helper function to calculate geographic logic score
+    private func calculateGeographicLogicScore(route1: String, route1Point: (Double, Double), route1IsStart: Bool,
+                                             route2: String, route2Point: (Double, Double), route2IsStart: Bool) -> Double {
+        var score = 0.0
+        
+        // Bonus for connecting similar numbered interstates (I-80 to I-81, etc)
+        if let num1 = extractRouteNumber(from: route1),
+           let num2 = extractRouteNumber(from: route2) {
+            let numberDiff = abs(num1 - num2)
+            if numberDiff <= 5 {
+                score += 2.0 // Small bonus for similar numbered routes
+                print("      🔢 Similar numbers (\(num1), \(num2)): +2.0 geo bonus")
+            }
         }
         
-        findDeadEnds()
+        // Bonus for connecting major cross-country routes
+        let majorEastWest = ["I-10", "I-20", "I-40", "I-70", "I-80", "I-90"]
+        let majorNorthSouth = ["I-5", "I-15", "I-25", "I-35", "I-55", "I-65", "I-75", "I-85", "I-95"]
+        
+        let r1IsEW = majorEastWest.contains(route1)
+        let r1IsNS = majorNorthSouth.contains(route1)
+        let r2IsEW = majorEastWest.contains(route2)
+        let r2IsNS = majorNorthSouth.contains(route2)
+        
+        // Major bonus for connecting east-west with north-south (proper interstate junctions)
+        if (r1IsEW && r2IsNS) || (r1IsNS && r2IsEW) {
+            score += 5.0
+            print("      🛣️ Major route intersection: +5.0 geo bonus")
+        }
+        
+        return score
+    }
+    
+    // Helper function to extract route number from route name
+    private func extractRouteNumber(from routeName: String) -> Int? {
+        let numberString = routeName.replacingOccurrences(of: "I-", with: "").components(separatedBy: " ").first ?? ""
+        return Int(numberString)
+    }
+    
+    // Helper function to check if two points are already connected
+    private func checkIfAlreadyConnected(point1: (Double, Double), point2: (Double, Double)) -> Bool {
+        let tolerance = 0.001 // 1km tolerance
+        
+        // Check all existing route endpoints for nearby connections
+        for (_, coords) in interstateRoutes {
+            if coords.count < 2 { continue }
+            
+            let endpoints = [coords.first!, coords.last!]
+            for endpoint in endpoints {
+                let dist1 = calculateDistance(from: point1, to: endpoint)
+                let dist2 = calculateDistance(from: point2, to: endpoint)
+                
+                // If both connection points are very close to the same existing endpoint,
+                // they're probably already connected
+                if dist1 < tolerance && dist2 < tolerance {
+                    return true
+                }
+            }
+        }
+        
+        return false
     }
     
     func calculateDistance(from: (Double, Double), to: (Double, Double)) -> Double {
