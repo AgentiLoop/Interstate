@@ -405,6 +405,15 @@ extension GameViewController {
             let material = SCNMaterial()
             material.diffuse.contents = color
             material.emission.contents = color.withAlphaComponent(0.3)
+            
+            // Add distance-based blurring to prevent moiré
+            let distanceFromCamera = sqrt(pow(start.x - carNode.position.x, 2) + pow(start.z - carNode.position.z, 2))
+            if distanceFromCamera > 800 {
+                material.diffuse.magnificationFilter = .linear
+                material.diffuse.minificationFilter = .linear
+                material.diffuse.mipFilter = .linear
+            }
+            
             lineGeometry.materials = [material]
             
             let lineNode = SCNNode(geometry: lineGeometry)
@@ -468,6 +477,15 @@ extension GameViewController {
                         let material = SCNMaterial()
                         material.diffuse.contents = color
                         material.emission.contents = color.withAlphaComponent(0.4)
+                        
+                        // Add distance-based blurring to prevent moiré
+                        let distanceFromCamera = sqrt(pow(dashStart.x - carNode.position.x, 2) + pow(dashStart.z - carNode.position.z, 2))
+                        if distanceFromCamera > 800 {
+                            material.diffuse.magnificationFilter = .linear
+                            material.diffuse.minificationFilter = .linear
+                            material.diffuse.mipFilter = .linear
+                        }
+                        
                         dashGeometry.materials = [material]
                         
                         let dashNode = SCNNode(geometry: dashGeometry)

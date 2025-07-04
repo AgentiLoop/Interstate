@@ -46,6 +46,12 @@ extension GameViewController {
         groundNode.name = "ground"
         scene.rootNode.addChildNode(groundNode)
         
+        // Add very subtle atmospheric perspective to reduce horizon moiré - CONSERVATIVE
+        scene.fogStartDistance = 1200.0     // Fog starts closer
+        scene.fogEndDistance = 3000.0       // Full fog at horizon
+        scene.fogDensityExponent = 1.0       // Linear fog falloff
+        scene.fogColor = NSColor(white: 0.88, alpha: 0.25)  // Slightly more visible
+        
         // Add road system node for simple road loading
         scene.rootNode.addChildNode(roadSystemNode)
     }

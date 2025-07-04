@@ -361,9 +361,10 @@ extension GameViewController {
             }
         }
         
-        // If no road found within 1km, use original position
-        if minDistance > 1000.0 {
-            print("⚠️ No road found within 1km for checkpoint \(position)")
+        // If no road found within 1 mile, use original position
+        let ONE_MILE_IN_METERS: CGFloat = 1609.34
+        if minDistance > ONE_MILE_IN_METERS {
+            print("⚠️ No road found within 1 mile for checkpoint \(position)")
         }
         
         return (closestRoadPoint, closestDirection)
@@ -413,7 +414,8 @@ extension GameViewController {
         
         // If we found a road within reasonable distance, use its direction
         // Otherwise default to east-west (0 radians)
-        if minDistance > 1000.0 { // If no road within 1km, default to east-west
+        let ONE_MILE_IN_METERS: CGFloat = 1609.34
+        if minDistance > ONE_MILE_IN_METERS { // If no road within 1 mile, default to east-west
             closestDirection = 0.0
         }
         
@@ -446,8 +448,9 @@ extension GameViewController {
             }
             
             // JUST LOG - DON'T MOVE ANYTHING!
+            let ONE_MILE_IN_METERS: CGFloat = 1609.34
             if minDistanceToRoad <= tenMilesInMeters {
-                if minDistanceToRoad < 1000 { // Within 1km
+                if minDistanceToRoad < ONE_MILE_IN_METERS { // Within 1 mile
                     print("📍 \(cityName) is directly on \(closestRouteName) (distance: \(Int(minDistanceToRoad))m)")
                     checkpointsOnHighways += 1
                 } else {
@@ -501,7 +504,8 @@ extension GameViewController {
                             let deltaZ = checkpointPos.z - closestPoint.z
                             let distance = sqrt(deltaX * deltaX + deltaZ * deltaZ)
                             
-                            if distance < minDistance && distance < 200 { // Within 200 units of highway
+                            let ONE_MILE_IN_METERS: CGFloat = 1609.34
+                            if distance < minDistance && distance < ONE_MILE_IN_METERS { // Within 1 mile of highway
                                 minDistance = distance
                                 // Calculate direction of road at this point
                                 closestDirection = atan2(CGFloat(deltaZ), CGFloat(deltaX))
@@ -511,7 +515,8 @@ extension GameViewController {
                 }
                 
                 // If we found a nearby road segment
-                if minDistance < 200 {
+                let ONE_MILE_IN_METERS: CGFloat = 1609.34
+                if minDistance < ONE_MILE_IN_METERS {
                     changeCheckpointBannerToRed(cityName: cityName)
                 }
             }

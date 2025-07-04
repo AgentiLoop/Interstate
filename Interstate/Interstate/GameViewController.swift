@@ -215,6 +215,7 @@ class GameViewController: NSViewController {
         sceneView.allowsCameraControl = false
         sceneView.showsStatistics = false
         sceneView.backgroundColor = NSColor(red: 0.5, green: 0.8, blue: 1.0, alpha: 1.0) // Sky blue
+        sceneView.antialiasingMode = .multisampling4X
         
         // Force clear color to ensure ground shows
         scene.background.contents = NSColor(red: 0.5, green: 0.8, blue: 1.0, alpha: 1.0)
