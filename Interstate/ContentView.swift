@@ -34,7 +34,6 @@ struct ContentView: View {
     @State private var showingNewRoadDialog = false
     @State private var showingDeleteConfirmation = false
     @State private var roadToDelete: String?
-    @State private var showingExtractDialog = false
     
     enum EditMode: String, CaseIterable {
         case select = "Select"
@@ -296,7 +295,7 @@ struct ContentView: View {
                             routeData: routeData,
                             connections: dataManager.connections[route] ?? [],
                             onDelete: { confirmDeleteRoad(route) },
-                            onExtract: { extractRoad() }
+                            onDeselect: { selectedRoute = nil }
                         )
                         .padding()
                     } else if let city = selectedCity {
@@ -425,53 +424,94 @@ struct ContentView: View {
                         }
                         
                         // Route Simplification Tools
-                        VStack(spacing: 6) {
-                            Text("Simplify Routes")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            VStack(spacing: 4) {
-                                Text("Tolerance")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                
-                                Picker("Tolerance", selection: $simplificationTolerance) {
-                                    Text("High (100m)").tag(0.001)
-                                    Text("Medium (500m)").tag(0.005)
-                                    Text("Low (1km)").tag(0.01)
-                                    Text("Very Low (5km)").tag(0.05)
+                        VStack(spacing: 0) {
+                            Button(action: { showSimplifyRoutes.toggle() }) {
+                                HStack {
+                                    Image(systemName: showSimplifyRoutes ? "chevron.down" : "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text("Simplify Routes")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Spacer()
                                 }
-                                .pickerStyle(MenuPickerStyle())
-                                .font(.caption)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color.purple.opacity(0.1))
+                                .cornerRadius(6)
                             }
+                            .buttonStyle(PlainButtonStyle())
                             
-                            VStack(spacing: 2) {
-                                Button("Simplify Selected Route") {
-                                    guard let selectedRoute = selectedRoute else { return }
-                                    let roadType = selectedRoadType.rawValue.lowercased()
-                                    dataManager.simplifyRoute(selectedRoute, roadType: roadType, tolerance: simplificationTolerance)
+                            if showSimplifyRoutes {
+                                VStack(spacing: 6) {
+                                    VStack(spacing: 4) {
+                                        Text("Tolerance")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        
+                                        Picker("Tolerance", selection: $simplificationTolerance) {
+                                            Text("High (100m)").tag(0.001)
+                                            Text("Medium (500m)").tag(0.005)
+                                            Text("Low (1km)").tag(0.01)
+                                            Text("Very Low (5km)").tag(0.05)
+                                        }
+                                        .pickerStyle(MenuPickerStyle())
+                                        .font(.caption)
+                                    }
+                                    
+                                    VStack(spacing: 2) {
+                                        Button("Simplify Selected Route") {
+                                            guard let selectedRoute = selectedRoute else { return }
+                                            let roadType = selectedRoadType.rawValue.lowercased()
+                                            dataManager.simplifyRoute(selectedRoute, roadType: roadType, tolerance: simplificationTolerance)
+                                        }
+                                        .font(.caption)
+                                        .disabled(selectedRoute == nil)
+                                        .help("Remove unnecessary points from the selected route")
+                                        .foregroundColor(.purple)
+                                        
+                                        Button("Simplify All \(selectedRoadType.rawValue)") {
+                                            let roadType = selectedRoadType.rawValue.lowercased()
+                                            dataManager.simplifyAllRoutes(roadType: roadType, tolerance: simplificationTolerance)
+                                        }
+                                        .font(.caption)
+                                        .disabled(!dataManager.isDataLoaded)
+                                        .help("Remove unnecessary points from all \(selectedRoadType.rawValue.lowercased()) routes")
+                                        .foregroundColor(.purple)
+                                    }
                                 }
-                                .font(.caption)
-                                .disabled(selectedRoute == nil)
-                                .help("Remove unnecessary points from the selected route")
-                                .foregroundColor(.purple)
-                                
-                                Button("Simplify All \(selectedRoadType.rawValue)") {
-                                    let roadType = selectedRoadType.rawValue.lowercased()
-                                    dataManager.simplifyAllRoutes(roadType: roadType, tolerance: simplificationTolerance)
-                                }
-                                .font(.caption)
-                                .disabled(!dataManager.isDataLoaded)
-                                .help("Remove unnecessary points from all \(selectedRoadType.rawValue.lowercased()) routes")
-                                .foregroundColor(.purple)
+                                .padding(8)
+                                .background(Color.purple.opacity(0.05))
+                                .cornerRadius(6)
                             }
                         }
-                        .padding(4)
-                        .background(Color.purple.opacity(0.1))
-                        .cornerRadius(6)
                         
-                        // Delete All Actions
-                        BulkActionsView(dataManager: dataManager)
+                        // Bulk Actions
+                        VStack(spacing: 0) {
+                            Button(action: { showBulkActions.toggle() }) {
+                                HStack {
+                                    Image(systemName: showBulkActions ? "chevron.down" : "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text("Bulk Actions")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(6)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            if showBulkActions {
+                                BulkActionsView(dataManager: dataManager)
+                                    .padding(8)
+                                    .background(Color.red.opacity(0.05))
+                                    .cornerRadius(6)
+                            }
+                        }
                     }
                 }
                 .padding()
@@ -479,18 +519,18 @@ struct ContentView: View {
                 Divider()
                 
                 // Statistics
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Statistics")
                         .font(.headline)
                     Text("Interstate Routes: \(dataManager.interstateRoutes.count)")
                     Text("Paved Routes: \(dataManager.pavedRoutes.count)")
                     Text("Dirt Routes: \(dataManager.dirtRoutes.count)")
                     Text("Cities: \(dataManager.majorCities.count)")
-                    Text("Paved Connections: \(dataManager.pavedRoadCount)")
-                    Text("Dirt Connections: \(dataManager.dirtRoadCount)")
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
             }
             .navigationSplitViewColumnWidth(min: 320, ideal: 350, max: 450)
         } detail: {
@@ -575,16 +615,7 @@ struct ContentView: View {
         } message: {
             Text("Are you sure you want to delete \(roadToDelete ?? "this road")? This action cannot be undone.")
         }
-        .sheet(isPresented: $showingExtractDialog) {
-            if let route = selectedRoute, let routeData = routesForSelectedType[route] {
-                ExtractRoadView(
-                    routeName: route,
-                    routeData: routeData,
-                    connections: dataManager.connections[route] ?? [],
-                    onDismiss: { showingExtractDialog = false }
-                )
-            }
-        }
+
         .onChange(of: editMode) { newMode in
             // Cancel road creation when switching modes
             if newMode != .addRoad && isCreatingRoad {
@@ -606,7 +637,7 @@ struct RouteInfoPanel: View {
     let routeData: [(Double, Double)]
     let connections: [Connection]
     let onDelete: () -> Void
-    let onExtract: () -> Void
+    let onDeselect: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -644,10 +675,10 @@ struct RouteInfoPanel: View {
                 }
                 .foregroundColor(.red)
                 
-                Button("Extract") {
-                    onExtract()
+                Button("Deselect") {
+                    onDeselect()
                 }
-                .foregroundColor(.blue)
+                .foregroundColor(.gray)
             }
         }
     }
@@ -744,132 +775,9 @@ struct CityInfoPanel: View {
     }
 }
 
-struct ExtractRoadView: View {
-    let routeName: String
-    let routeData: [(Double, Double)]
-    let connections: [Connection]
-    let onDismiss: () -> Void
-    
-    @State private var extractedData: String = ""
-    @State private var showingExporter = false
-    
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("Extract Road Data")
-                .font(.title2)
-                .bold()
-            
-            Text(routeName)
-                .font(.title3)
-                .foregroundColor(.blue)
-            
-            Text("\(routeData.count) waypoints")
-                .foregroundColor(.secondary)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Export Options:")
-                    .font(.headline)
-                
-                HStack {
-                    Button("Copy JSON") {
-                        copyToClipboard()
-                    }
-                    .buttonStyle(.bordered)
-                    
-                    Button("Save to File") {
-                        showingExporter = true
-                    }
-                    .buttonStyle(.bordered)
-                }
-                
-                Button("Copy Coordinates Only") {
-                    copyCoordinatesOnly()
-                }
-                .buttonStyle(.bordered)
-            }
-            
-            ScrollView {
-                Text(generateJSONData())
-                    .font(.system(.caption, design: .monospaced))
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-            }
-            .frame(height: 200)
-            
-            HStack {
-                Button("Close") {
-                    onDismiss()
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding()
-        .frame(width: 500, height: 400)
-        .fileExporter(
-            isPresented: $showingExporter,
-            document: TextDocument(content: generateJSONData()),
-            contentType: .json,
-            defaultFilename: "\(routeName).json"
-        ) { result in
-            // Handle save result if needed
-        }
-    }
-    
-    private func generateJSONData() -> String {
-        let roadData: [String: Any] = [
-            "routeName": routeName,
-            "coordinates": routeData.map { [$0.0, $0.1] },
-            "connections": connections.map { connection in
-                [
-                    "to": connection.to,
-                    "distance": connection.distance,
-                    "type": connection.type,
-                    "fromPoint": connection.fromPoint ?? [],
-                    "toPoint": connection.toPoint ?? []
-                ]
-            }
-        ]
-        
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: roadData, options: .prettyPrinted)
-            return String(data: jsonData, encoding: .utf8) ?? "Error generating JSON"
-        } catch {
-            return "Error: \(error.localizedDescription)"
-        }
-    }
-    
-    private func copyToClipboard() {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(generateJSONData(), forType: .string)
-    }
-    
-    private func copyCoordinatesOnly() {
-        let coordinates = routeData.map { "[\($0.0), \($0.1)]" }.joined(separator: ",\n")
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString("[\n\(coordinates)\n]", forType: .string)
-    }
-}
 
-struct TextDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.json, .plainText] }
-    
-    var content: String
-    
-    init(content: String) {
-        self.content = content
-    }
-    
-    init(configuration: ReadConfiguration) throws {
-        content = ""
-    }
-    
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        return FileWrapper(regularFileWithContents: content.data(using: .utf8) ?? Data())
-    }
-}
+
+
 
 // MARK: - New Road Creation Functions
 extension ContentView {
@@ -900,33 +808,26 @@ extension ContentView {
         roadToDelete = roadName
         showingDeleteConfirmation = true
     }
-    
-    func extractRoad() {
-        guard selectedRoute != nil else { return }
-        showingExtractDialog = true
-    }
 }
 
 struct BulkActionsView: View {
     @ObservedObject var dataManager: DataManager
     
     var body: some View {
-        VStack(spacing: 8) {
-            Text("Bulk Actions")
-                .font(.headline)
-                .foregroundColor(.red)
-            
+        VStack(spacing: 6) {
             VStack(spacing: 4) {
                 HStack {
                     Button("Delete All Dirt Roads") {
                         dataManager.removeAllDirtRoads()
                     }
+                    .font(.caption)
                     .foregroundColor(.orange)
                     .help("Remove all dirt road connections")
                     
                     Button("Delete All Paved Roads") {
                         dataManager.removeAllPavedRoads()
                     }
+                    .font(.caption)
                     .foregroundColor(.blue)
                     .help("Remove all paved road connections")
                 }
@@ -934,13 +835,11 @@ struct BulkActionsView: View {
                 Button("Delete All Interstate Roads") {
                     dataManager.removeAllInterstateRoutes()
                 }
+                .font(.caption)
                 .foregroundColor(.red)
                 .help("⚠️ Remove all interstate routes")
             }
         }
-        .padding()
-        .background(Color.red.opacity(0.1))
-        .cornerRadius(8)
     }
 }
 
