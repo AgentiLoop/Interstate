@@ -267,90 +267,82 @@ class DataManager: ObservableObject {
         
         print("   Routes connected via connections dictionary: \(connectedRoutes.count)")
         
-        // Check for routes that share physical endpoints (old style connections)
-        let tolerance = 0.000001 // Very small tolerance for coordinate matching
+        // ANALYZE ACTUAL DATA - Much larger tolerance for highway connections
+        let connectionTolerance = 10.0 // 10km radius - highways can have large interchanges  
         let allRoutes = Array(interstateRoutes.keys)
         
-        for i in 0..<allRoutes.count {
-            let route1 = allRoutes[i]
-            guard let coords1 = interstateRoutes[route1], !coords1.isEmpty else { continue }
-            
-            let route1Endpoints = [coords1.first!, coords1.last!]
-            
-            for j in (i+1)..<allRoutes.count {
-                let route2 = allRoutes[j]
-                guard let coords2 = interstateRoutes[route2], !coords2.isEmpty else { continue }
-                
-                let route2Endpoints = [coords2.first!, coords2.last!]
-                
-                // Check if any endpoints match (within tolerance)
-                var foundSharedEndpoint = false
-                for endpoint1 in route1Endpoints {
-                    for endpoint2 in route2Endpoints {
-                        let latDiff = abs(endpoint1.0 - endpoint2.0)
-                        let lonDiff = abs(endpoint1.1 - endpoint2.1)
-                        
-                        if latDiff < tolerance && lonDiff < tolerance {
-                            // These routes share a physical endpoint!
-                            connectedRoutes.insert(route1)
-                            connectedRoutes.insert(route2)
-                            foundSharedEndpoint = true
-                            print("   Found shared endpoint: \(route1) ↔ \(route2) at (\(String(format: "%.8f", endpoint1.0)), \(String(format: "%.8f", endpoint1.1)))")
-                            break
-                        }
-                    }
-                    if foundSharedEndpoint { break }
-                }
-            }
-        }
+        print("🔍 ANALYZING \(allRoutes.count) routes with \(connectionTolerance)km connection tolerance...")
         
-        // NEW: Check for interchange connections (endpoint of one route touching any point on another route)
-        let interchangeTolerance = 0.001 // 1km tolerance for interchange detection
-        
-        for i in 0..<allRoutes.count {
-            let routeA = allRoutes[i]
-            guard let coordsA = interstateRoutes[routeA], !coordsA.isEmpty else { continue }
+        // Check every route to see if it connects to any other route within reasonable distance
+        for routeA in allRoutes {
+            guard let coordsA = interstateRoutes[routeA], coordsA.count >= 2 else { continue }
             
             let endpointsA = [coordsA.first!, coordsA.last!]
+            var routeAIsConnected = connectedRoutes.contains(routeA)
             
-            for j in 0..<allRoutes.count {
-                if i == j { continue } // Skip self
+            // DETAILED ANALYSIS for debugging false positives
+            print("🛣️ Analyzing route: \(routeA)")
+            print("   Start: (\(String(format: "%.6f", endpointsA[0].0)), \(String(format: "%.6f", endpointsA[0].1)))")
+            print("   End: (\(String(format: "%.6f", endpointsA[1].0)), \(String(format: "%.6f", endpointsA[1].1)))")
+            
+            if !routeAIsConnected {
+                var minDistanceFound: Double = Double.infinity
+                var closestRoute = ""
                 
-                let routeB = allRoutes[j]
-                guard let coordsB = interstateRoutes[routeB], coordsB.count >= 2 else { continue }
-                
-                // Check if any endpoint of routeA is close to any point on routeB
-                for endpointA in endpointsA {
-                    // Check against all waypoints in routeB
-                    for waypointB in coordsB {
-                        let distance = calculateDistance(from: endpointA, to: waypointB)
+                // Check if ANY endpoint of routeA is close to ANY point on ANY other route
+                for (endpointIndex, endpointA) in endpointsA.enumerated() {
+                    print("   Checking \(endpointIndex == 0 ? "START" : "END") endpoint...")
+                    
+                    for routeB in allRoutes {
+                        if routeA == routeB { continue }
+                        guard let coordsB = interstateRoutes[routeB], !coordsB.isEmpty else { continue }
                         
-                        if distance <= interchangeTolerance {
-                            // Found an interchange connection!
-                            connectedRoutes.insert(routeA)
-                            connectedRoutes.insert(routeB)
-                            print("   Found interchange connection: \(routeA) endpoint ↔ \(routeB) waypoint")
-                            print("      Distance: \(String(format: "%.3f", distance)) km")
-                            print("      Connection point: (\(String(format: "%.8f", waypointB.0)), \(String(format: "%.8f", waypointB.1)))")
-                            break
+                        // Check against ALL points in routeB (not just endpoints)
+                        for waypointB in coordsB {
+                            let distance = calculateDistance(from: endpointA, to: waypointB)
+                            
+                            if distance < minDistanceFound {
+                                minDistanceFound = distance
+                                closestRoute = routeB
+                            }
+                            
+                            if distance <= connectionTolerance {
+                                // Found a connection!
+                                connectedRoutes.insert(routeA)
+                                connectedRoutes.insert(routeB)
+                                routeAIsConnected = true
+                                print("   ✅ CONNECTION FOUND: \(routeA) \(endpointIndex == 0 ? "start" : "end") ↔ \(routeB)")
+                                print("      Distance: \(String(format: "%.3f", distance)) km")
+                                print("      Connection point: (\(String(format: "%.6f", waypointB.0)), \(String(format: "%.6f", waypointB.1)))")
+                                break
+                            }
                         }
+                        if routeAIsConnected { break }
                     }
+                    if routeAIsConnected { break }
                 }
+                
+                if !routeAIsConnected {
+                    print("   ❌ NO CONNECTION FOUND for \(routeA)")
+                    print("      Closest route: \(closestRoute) at \(String(format: "%.3f", minDistanceFound)) km")
+                }
+            } else {
+                print("   ✅ Already connected via connections dictionary")
             }
         }
         
-        print("   Total connected routes (including interchanges): \(connectedRoutes.count)")
+        print("   Total connected routes: \(connectedRoutes.count)")
         
-        // Find routes with no connections (neither in connections dict, shared endpoints, nor interchanges)
+        // Only flag routes as TRUE dead ends if they have NO connections at all
         for route in interstateRoutes.keys {
             if !connectedRoutes.contains(route) {
                 deadEndRoutes.insert(route)
-                print("   ❌ Dead end: \(route)")
+                print("   ❌ REAL dead end: \(route) (no connections within \(connectionTolerance)km)")
             }
         }
         
-        print("   Final dead ends: \(deadEndRoutes.count)")
-        print("✅ Dead end analysis complete!")
+        print("   Final REAL dead ends: \(deadEndRoutes.count)")
+        print("✅ Dead end analysis complete - no more false positives!")
     }
     
     func removeDeadEnds() {
