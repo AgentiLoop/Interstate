@@ -61,30 +61,59 @@ extension GameViewController {
         var closestHighway = ""
         var minDistance: CGFloat = CGFloat.infinity
         
-        // First check loaded road nodes (most accurate)
-        for (routeName, nodes) in loadedRoadNodes {
-            for node in nodes {
-                let distance = sqrt(pow(carX - node.position.x, 2) + 
-                                  pow(carZ - node.position.z, 2))
+        // Check loaded road segments first (most accurate) - ALL ROAD TYPES
+        for (segmentKey, _) in loadedRoadSegments {
+            // Calculate distance to this segment
+            let distance = calculateSegmentDistance(segmentKey: segmentKey, playerPosition: position)
+            
+            if distance < minDistance {
+                minDistance = distance
                 
-                if distance < minDistance {
-                    minDistance = distance
+                // Extract route name from segment key
+                let components = segmentKey.split(separator: "_")
+                if components.count >= 2 {
+                    let routeName = components.dropLast().joined(separator: "_")
                     closestHighway = routeName
                 }
             }
         }
         
-        // If we found a road within reasonable distance, use it
+        // If we found a loaded segment within reasonable distance, return it
         if minDistance < 100.0 && !closestHighway.isEmpty {
+            // Clean up the route name for display
+            if closestHighway.hasPrefix("paved_") {
+                return String(closestHighway.dropFirst(6)) // Remove "paved_" prefix
+            } else if closestHighway.hasPrefix("dirt_") {
+                return String(closestHighway.dropFirst(5)) // Remove "dirt_" prefix  
+            }
             return closestHighway
         }
         
-        // Otherwise check all GPS data to find nearest highway
+        // Fallback: Check all route types in GPS data with proper prioritization
+        var allRoutesToCheck: [(name: String, coords: [(Double, Double)], priority: Double)] = []
+        
+        // Add paved routes (HIGHEST PRIORITY)
+        for (routeName, coords) in pavedRoutes {
+            allRoutesToCheck.append((name: routeName, coords: coords, priority: 3.0))
+        }
+        
+        // Add dirt routes (MEDIUM PRIORITY)
+        for (routeName, coords) in dirtRoutes {
+            allRoutesToCheck.append((name: routeName, coords: coords, priority: 2.0))
+        }
+        
+        // Add interstate routes (LOWEST PRIORITY)
+        for (routeName, coords) in interstateRoutes {
+            allRoutesToCheck.append((name: routeName, coords: coords, priority: 1.0))
+        }
+        
         minDistance = CGFloat.infinity
-        for (routeName, gpsCoordinates) in interstateRoutes {
+        var bestRoute = ""
+        
+        for route in allRoutesToCheck {
             // Convert GPS to scene coordinates
             var sceneCoordinates: [(CGFloat, CGFloat)] = []
-            for (lat, lon) in gpsCoordinates {
+            for (lat, lon) in route.coords {
                 let pos = gpsToSceneKit(latitude: lat, longitude: lon)
                 sceneCoordinates.append((pos.x, pos.z))
             }
@@ -100,15 +129,18 @@ extension GameViewController {
                     lineEnd: end
                 )
                 
-                if distanceToSegment < minDistance {
-                    minDistance = distanceToSegment
-                    closestHighway = routeName
+                // Apply priority bonus (higher priority = lower effective distance)
+                let adjustedDistance = distanceToSegment / CGFloat(route.priority)
+                
+                if adjustedDistance < minDistance {
+                    minDistance = adjustedDistance
+                    bestRoute = route.name
                 }
             }
         }
         
         // Always return a highway name - even if far away
-        return closestHighway.isEmpty ? "I-95" : closestHighway  // Default to I-95 if somehow nothing found
+        return bestRoute.isEmpty ? "I-95" : bestRoute
     }
     
     // MARK: - Distance Calculations

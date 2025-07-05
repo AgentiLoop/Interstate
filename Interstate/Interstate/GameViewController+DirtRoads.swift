@@ -59,23 +59,9 @@ extension GameViewController {
     }
     
     private func createDirtRoadLoop(cityName: String, latitude: Double, longitude: Double, cityPos: SCNVector3) {
-        // Find TWO connection points on the interstate to create a loop
-        let connectionPoints = findTwoInterstateConnectionPoints(cityPos: cityPos)
-        
-        guard connectionPoints.count == 2 else {
-            print("⚠️ Could not find two connection points for \(cityName)")
-            return
-        }
-        
-        // Create dirt road from first interstate point to city
-        let path1 = generateTwistyDirtPath(from: connectionPoints[0], to: cityPos)
-        createDirtRoadSegments(path: path1, cityName: "\(cityName)_road1")
-        
-        // Create dirt road from city to second interstate point
-        let path2 = generateTwistyDirtPath(from: cityPos, to: connectionPoints[1])
-        createDirtRoadSegments(path: path2, cityName: "\(cityName)_road2")
-        
-        print("✅ Created dirt road loop for \(cityName) connecting to interstate at 2 points")
+        // DISABLED: No dirt road connector creation - data is clean, no extra pieces needed
+        print("🚫 Dirt road loop creation DISABLED for \(cityName) - using clean data only")
+        return
     }
     
     private func findTwoInterstateConnectionPoints(cityPos: SCNVector3) -> [SCNVector3] {
@@ -152,98 +138,15 @@ extension GameViewController {
 
     
     func generateTwistyDirtPath(from start: SCNVector3, to end: SCNVector3) -> [SCNVector3] {
-        // USE THE SAME SMOOTH GENERATION AS REGULAR ROADS!
-        var controlPoints: [SCNVector3] = []
-        
-        // Add start point
-        controlPoints.append(start)
-        
-        // Calculate base direction
-        let dx = end.x - start.x
-        let dz = end.z - start.z
-        let distance = sqrt(dx * dx + dz * dz)
-        
-        // Generate intermediate control points with natural curves
-        let numControlPoints = max(3, Int(distance / 2000) + 2) // Fewer control points for smoother curves
-        
-        for i in 1..<numControlPoints {
-            let t = CGFloat(i) / CGFloat(numControlPoints)
-            
-            // Base position along straight line
-            let baseX = start.x + dx * t
-            let baseZ = start.z + dz * t
-            
-            // Add perpendicular offset for gentle curves
-            let perpX = -dz / distance
-            let perpZ = dx / distance
-            
-            // Create gentle curves with some variation
-            let curveAmplitude = CGFloat.random(in: 200...400) // Gentle curves
-            let curveOffset = sin(t * CGFloat.pi * 2 + CGFloat.random(in: 0...CGFloat.pi)) * curveAmplitude
-            
-            let curveX = baseX + perpX * curveOffset
-            let curveZ = baseZ + perpZ * curveOffset
-            
-            controlPoints.append(SCNVector3(curveX, 0, curveZ))
-        }
-        
-        // Add end point
-        controlPoints.append(end)
-        
-        // Now use the SAME smooth road generation as highways
-        var smoothPath: [(CGFloat, CGFloat)] = []
-        let segmentsPerSection = 50 // Same high-quality smoothing as highways
-        
-        for i in 0..<controlPoints.count - 1 {
-            // Get control points (handle edge cases)
-            let p0 = i > 0 ? controlPoints[i-1] : controlPoints[i]
-            let p1 = controlPoints[i]
-            let p2 = controlPoints[i+1]
-            let p3 = i < controlPoints.count - 2 ? controlPoints[i+2] : controlPoints[i+1]
-            
-            // Generate smooth points using Catmull-Rom spline - SAME AS HIGHWAYS
-            for j in 0..<segmentsPerSection {
-                let t = CGFloat(j) / CGFloat(segmentsPerSection)
-                let smoothPoint = catmullRomSpline(p0, p1, p2, p3, t)
-                smoothPath.append((CGFloat(smoothPoint.x), CGFloat(smoothPoint.z)))
-            }
-        }
-        
-        // Add final point
-        if let lastPoint = controlPoints.last {
-            smoothPath.append((CGFloat(lastPoint.x), CGFloat(lastPoint.z)))
-        }
-        
-        // Convert back to SCNVector3 array
-        return smoothPath.map { SCNVector3(CGFloat($0.0), 0, CGFloat($0.1)) }
+        // DISABLED: No twisty dirt path generation - prevents extra connector pieces
+        print("🚫 Twisty dirt path generation DISABLED - no extra connector pieces")
+        return []
     }
     
     func createDirtRoadSegments(path: [SCNVector3], cityName: String) {
-        // Convert path to 2D points format
-        var points: [(CGFloat, CGFloat)] = []
-        for point in path {
-            // Lower dirt roads by 0.05 units so paved roads go over them
-            points.append((point.x, point.z))
-        }
-        
-        // Create the dirt road with custom marking colors
-        let roadNode = createDirtRoadSegmentNode(points: points, routeName: "dirt_\(cityName)")
-        
-        // Lower the entire road node so paved roads appear on top
-        roadNode.position.y = -0.05
-        
-        roadNode.name = "dirtRoad_\(cityName)"
-        
-        // Mark this as a dirt road for identification and z-ordering
-        roadNode.enumerateChildNodes { (node, _) in
-            if let name = node.name {
-                node.name = "dirt_\(name)"
-            } else {
-                node.name = "dirt_segment"
-            }
-        }
-        
-        scene.rootNode.addChildNode(roadNode)
+        // DISABLED: No dirt road segment creation - prevents extra connector geometry
+        print("🚫 Dirt road segment creation DISABLED for \(cityName) - no extra geometry")
+        return
     }
     
     // Custom dirt road creation with orange center lines and brown edge lines

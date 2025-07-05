@@ -207,7 +207,7 @@ class GameViewController: NSViewController {
         // setupRoads() - Removed: Simple road loading system loads roads dynamically in updateDynamicRoads()
         setupCheckpointGates()  // Initialize checkpoint positions
         // setupDirtRoads()  // DISABLED: All roads must come from map data
-        // setupHighwayConnections()  // DISABLED: All road connections must come from map data
+        setupHighwayConnections()  // RE-ENABLED: Auto-connect paved/dirt to interstate
         setupControls()
         setupHUD()
         setupRadarMap()

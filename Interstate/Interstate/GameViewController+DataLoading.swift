@@ -75,6 +75,9 @@ extension GameViewController {
                     }
                     dirtRoutes = loadedDirtRoutes
                     print("✅ Loaded \(loadedDirtRoutes.count) dirt routes")
+                } else {
+                    dirtRoutes = [:] // Initialize empty if missing
+                    print("⚠️ No dirtRoutes section found in JSON - initialized empty")
                 }
                 
                 // Load WATER BODIES (rivers, lakes - blue)

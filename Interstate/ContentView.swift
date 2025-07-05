@@ -19,6 +19,10 @@ struct ContentView: View {
     @State private var showingInterstateRoads = true
     @State private var showingPavedRoads = true
     @State private var showingCities = true
+    
+    // Interstate-to-Interstate connection state
+    @State private var fromInterstateRoute: String = ""
+    @State private var toInterstateRoute: String = ""
     @State private var newRoadPoints: [(Double, Double)] = []
     @State private var newRoadName: String = ""
     @State private var isCreatingRoad = false
@@ -328,22 +332,91 @@ struct ContentView: View {
                     }
                     
                     if dataManager.isDataLoaded {
+                        // Analysis Tools
                         HStack {
                             Button(action: { dataManager.findDeadEnds() }) {
                                 Image(systemName: "exclamationmark.triangle")
                             }
                             .help("Find Dead Ends")
                             
-                            Button(action: { dataManager.autoConnectRoutes() }) {
-                                Image(systemName: "link")
-                            }
-                            .help("Auto Connect")
-                            
                             Button(action: { dataManager.validateData() }) {
                                 Image(systemName: "checkmark.shield")
                             }
-                            .help("Validate")
+                            .help("Validate Data")
                         }
+                        
+                        // Auto-Connect Tools
+                        VStack(spacing: 6) {
+                            Text("Auto-Connect")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            VStack(spacing: 2) {
+                                Button("Paved → Interstate") {
+                                    dataManager.autoConnectPavedToInterstate()
+                                }
+                                .font(.caption)
+                                .help("Move paved road endpoints to nearest interstate points")
+                                .foregroundColor(.blue)
+                                
+                                Button("Dirt → Interstate") {
+                                    dataManager.autoConnectDirtToInterstate()
+                                }
+                                .font(.caption)
+                                .help("Move dirt road endpoints to nearest interstate points")
+                                .foregroundColor(.orange)
+                            }
+                            
+                            Divider()
+                            
+                            // Interstate-to-Interstate Connection
+                            VStack(spacing: 4) {
+                                Text("Interstate ↔ Interstate")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                                    .bold()
+                                
+                                VStack(spacing: 2) {
+                                    Picker("From", selection: $fromInterstateRoute) {
+                                        Text("Select From Route").tag("")
+                                        ForEach(dataManager.sortedRouteNames, id: \.self) { route in
+                                            Text(route).tag(route)
+                                        }
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
+                                    .font(.caption)
+                                    .disabled(!dataManager.isDataLoaded || dataManager.interstateRoutes.count < 2)
+                                    
+                                    Picker("To", selection: $toInterstateRoute) {
+                                        Text("Select To Route").tag("")
+                                        ForEach(dataManager.sortedRouteNames.filter { $0 != fromInterstateRoute }, id: \.self) { route in
+                                            Text(route).tag(route)
+                                        }
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
+                                    .font(.caption)
+                                    .disabled(!dataManager.isDataLoaded || dataManager.interstateRoutes.count < 2)
+                                    
+                                    Button("Connect Routes") {
+                                        dataManager.autoConnectInterstateToInterstate(fromRoute: fromInterstateRoute, toRoute: toInterstateRoute)
+                                        // Reset selections after connection
+                                        fromInterstateRoute = ""
+                                        toInterstateRoute = ""
+                                    }
+                                    .font(.caption)
+                                    .disabled(!dataManager.isDataLoaded || 
+                                             fromInterstateRoute.isEmpty || 
+                                             toInterstateRoute.isEmpty || 
+                                             fromInterstateRoute == toInterstateRoute ||
+                                             dataManager.interstateRoutes.count < 2)
+                                    .help("Move \(fromInterstateRoute.isEmpty ? "selected" : fromInterstateRoute) endpoint to nearest point on \(toInterstateRoute.isEmpty ? "selected" : toInterstateRoute)")
+                                    .foregroundColor(.green)
+                                }
+                            }
+                        }
+                        .padding(4)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(6)
                         
                         // Delete All Actions
                         BulkActionsView(dataManager: dataManager)
@@ -467,6 +540,13 @@ struct ContentView: View {
             // Cancel road creation when switching modes
             if newMode != .addRoad && isCreatingRoad {
                 cancelRoadCreation()
+            }
+        }
+        .onChange(of: dataManager.isDataLoaded) { isLoaded in
+            // Reset interstate selections when data changes
+            if isLoaded {
+                fromInterstateRoute = ""
+                toInterstateRoute = ""
             }
         }
     }

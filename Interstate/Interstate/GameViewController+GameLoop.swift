@@ -25,6 +25,11 @@ extension GameViewController {
             updateHUD()
             updateRadarMap()
             
+            // Clean up intersection overlaps every 1 second (60 frames at 60fps)
+            if frameCount % 60 == 0 {
+                cleanupIntersectionOverlaps(playerPosition: carNode.position)
+            }
+            
             frameCount += 1
             
             // Periodic memory status logging (every 15 seconds and only if routes are loaded)

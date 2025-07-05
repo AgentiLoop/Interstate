@@ -362,6 +362,252 @@ class DataManager: ObservableObject {
         hasUnsavedChanges = true
     }
     
+    // MARK: - Auto-Connect Interstate to Interstate (Manual Selection)
+    
+    func autoConnectInterstateToInterstate(fromRoute: String, toRoute: String) {
+        guard let fromCoords = interstateRoutes[fromRoute],
+              let toCoords = interstateRoutes[toRoute],
+              fromCoords.count >= 2,
+              toCoords.count >= 2,
+              fromRoute != toRoute else {
+            print("❌ Invalid routes for interstate connection: \(fromRoute) → \(toRoute)")
+            return
+        }
+        
+        print("🔗 AUTO-CONNECTING INTERSTATE ROADS: \(fromRoute) → \(toRoute)")
+        
+        var modifiedFromCoords = fromCoords
+        let fromStart = fromCoords.first!
+        let fromEnd = fromCoords.last!
+        
+        // Find closest point on destination route for both endpoints of source route
+        let startResult = findClosestPointOnRoute(targetPoint: fromStart, route: toCoords)
+        let endResult = findClosestPointOnRoute(targetPoint: fromEnd, route: toCoords)
+        
+        // Choose the closer endpoint to connect
+        let connectStart = startResult.distance < endResult.distance
+        let connectionPoint = connectStart ? startResult.closestPoint : endResult.closestPoint
+        let distance = connectStart ? startResult.distance : endResult.distance
+        
+        print("   📍 \(fromRoute) \(connectStart ? "START" : "END") point:")
+        print("      From: (\(String(format: "%.6f", connectStart ? fromStart.0 : fromEnd.0)), \(String(format: "%.6f", connectStart ? fromStart.1 : fromEnd.1)))")
+        print("      To: (\(String(format: "%.6f", connectionPoint.0)), \(String(format: "%.6f", connectionPoint.1)))")
+        print("      Distance: \(String(format: "%.1f", distance)) km")
+        
+        // Move the appropriate endpoint
+        if connectStart {
+            modifiedFromCoords[0] = connectionPoint
+        } else {
+            modifiedFromCoords[modifiedFromCoords.count - 1] = connectionPoint
+        }
+        
+        // Update the route data
+        interstateRoutes[fromRoute] = modifiedFromCoords
+        hasUnsavedChanges = true
+        
+        print("✅ INTERSTATE CONNECTION COMPLETED!")
+        print("   \(fromRoute) \(connectStart ? "start" : "end") → \(toRoute)")
+        print("   Connection distance: \(String(format: "%.1f", distance)) km")
+        
+        // Update dead ends after connection
+        findDeadEnds()
+        print("🔍 Dead ends updated - check for warning triangles removed!")
+    }
+    
+
+    
+    // MARK: - Auto-Connect Paved/Dirt Roads to Interstate (Move Endpoints)
+    
+    func autoConnectPavedToInterstate() {
+        var connectionsCreated = 0
+        print("🔗 AUTO-CONNECTING PAVED ROADS: Truncating at nearest interstate points...")
+        
+        for (pavedName, var pavedCoords) in pavedRoutes {
+            guard pavedCoords.count >= 2 else { continue }
+            
+            print("🛣️ Processing paved road: \(pavedName)")
+            
+            let originalStart = pavedCoords.first!
+            let originalEnd = pavedCoords.last!
+            
+            // Find nearest interstate point for start
+            let nearestToStart = findNearestInterstatePoint(to: originalStart)
+            
+            // Find nearest interstate point for end  
+            let nearestToEnd = findNearestInterstatePoint(to: originalEnd)
+            
+            var modified = false
+            
+            // Truncate at start if close enough (within 25km)
+            if let nearest = nearestToStart, calculateDistance(from: originalStart, to: nearest.point) <= 25.0 {
+                // Truncate the paved road at the connection point
+                pavedCoords = truncateRoadAtPoint(pavedCoords, targetPoint: nearest.point, fromStart: true)
+                modified = true
+                connectionsCreated += 1
+                print("   ✅ TRUNCATED START at (\(String(format: "%.6f", nearest.point.0)), \(String(format: "%.6f", nearest.point.1))) on \(nearest.routeName)")
+                print("      Distance: \(String(format: "%.1f", calculateDistance(from: originalStart, to: nearest.point))) km")
+                print("      Road now has \(pavedCoords.count) points (was \(pavedRoutes[pavedName]?.count ?? 0))")
+            }
+            
+            // Truncate at end if close enough and different from start connection
+            if let nearest = nearestToEnd, calculateDistance(from: originalEnd, to: nearest.point) <= 25.0 {
+                // Make sure we're not connecting both ends to the same point
+                if nearestToStart == nil || calculateDistance(from: nearest.point, to: nearestToStart!.point) > 1.0 {
+                    // Truncate the paved road at the connection point
+                    pavedCoords = truncateRoadAtPoint(pavedCoords, targetPoint: nearest.point, fromStart: false)
+                    modified = true
+                    connectionsCreated += 1
+                    print("   ✅ TRUNCATED END at (\(String(format: "%.6f", nearest.point.0)), \(String(format: "%.6f", nearest.point.1))) on \(nearest.routeName)")
+                    print("      Distance: \(String(format: "%.1f", calculateDistance(from: originalEnd, to: nearest.point))) km")
+                    print("      Road now has \(pavedCoords.count) points")
+                }
+            }
+            
+            if modified {
+                pavedRoutes[pavedName] = pavedCoords
+                hasUnsavedChanges = true
+            }
+        }
+        
+        print("🎉 AUTO-CONNECT PAVED ROADS FINISHED!")
+        print("   Modified \(connectionsCreated) paved road endpoints")
+        
+        // Update dead ends after connections
+        if connectionsCreated > 0 {
+            findDeadEnds()
+            print("🔍 Dead ends updated after paved road connections!")
+        }
+    }
+    
+    func autoConnectDirtToInterstate() {
+        var connectionsCreated = 0
+        print("🔗 AUTO-CONNECTING DIRT ROADS: Truncating at nearest interstate points...")
+        
+        for (dirtName, var dirtCoords) in dirtRoutes {
+            guard dirtCoords.count >= 2 else { continue }
+            
+            print("🛤️ Processing dirt road: \(dirtName)")
+            
+            let originalStart = dirtCoords.first!
+            let originalEnd = dirtCoords.last!
+            
+            // Find nearest interstate point for start
+            let nearestToStart = findNearestInterstatePoint(to: originalStart)
+            
+            // Find nearest interstate point for end  
+            let nearestToEnd = findNearestInterstatePoint(to: originalEnd)
+            
+            var modified = false
+            
+            // Truncate at start if close enough (within 50km for dirt roads)
+            if let nearest = nearestToStart, calculateDistance(from: originalStart, to: nearest.point) <= 50.0 {
+                // Truncate the dirt road at the connection point
+                dirtCoords = truncateRoadAtPoint(dirtCoords, targetPoint: nearest.point, fromStart: true)
+                modified = true
+                connectionsCreated += 1
+                print("   ✅ TRUNCATED START at (\(String(format: "%.6f", nearest.point.0)), \(String(format: "%.6f", nearest.point.1))) on \(nearest.routeName)")
+                print("      Distance: \(String(format: "%.1f", calculateDistance(from: originalStart, to: nearest.point))) km")
+                print("      Road now has \(dirtCoords.count) points (was \(dirtRoutes[dirtName]?.count ?? 0))")
+            }
+            
+            // Truncate at end if close enough and different from start connection
+            if let nearest = nearestToEnd, calculateDistance(from: originalEnd, to: nearest.point) <= 50.0 {
+                // Make sure we're not connecting both ends to the same point
+                if nearestToStart == nil || calculateDistance(from: nearest.point, to: nearestToStart!.point) > 1.0 {
+                    // Truncate the dirt road at the connection point
+                    dirtCoords = truncateRoadAtPoint(dirtCoords, targetPoint: nearest.point, fromStart: false)
+                    modified = true
+                    connectionsCreated += 1
+                    print("   ✅ TRUNCATED END at (\(String(format: "%.6f", nearest.point.0)), \(String(format: "%.6f", nearest.point.1))) on \(nearest.routeName)")
+                    print("      Distance: \(String(format: "%.1f", calculateDistance(from: originalEnd, to: nearest.point))) km")
+                    print("      Road now has \(dirtCoords.count) points")
+                }
+            }
+            
+            if modified {
+                dirtRoutes[dirtName] = dirtCoords
+                hasUnsavedChanges = true
+            }
+        }
+        
+        print("🎉 AUTO-CONNECT DIRT ROADS FINISHED!")
+        print("   Modified \(connectionsCreated) dirt road endpoints")
+        
+        // Update dead ends after connections
+        if connectionsCreated > 0 {
+            findDeadEnds()
+            print("🔍 Dead ends updated after dirt road connections!")
+        }
+    }
+    
+    private func findNearestInterstatePoint(to targetPoint: (Double, Double)) -> (point: (Double, Double), routeName: String)? {
+        var nearestPoint: (Double, Double)?
+        var nearestRouteName: String?
+        var minDistance: Double = Double.infinity
+        
+        for (routeName, coords) in interstateRoutes {
+            for coord in coords {
+                let distance = calculateDistance(from: targetPoint, to: coord)
+                if distance < minDistance {
+                    minDistance = distance
+                    nearestPoint = coord
+                    nearestRouteName = routeName
+                }
+            }
+        }
+        
+        if let point = nearestPoint, let routeName = nearestRouteName {
+            return (point: point, routeName: routeName)
+        }
+        return nil
+    }
+    
+    // MARK: - Road Truncation Helper
+    
+    private func truncateRoadAtPoint(_ roadCoords: [(Double, Double)], targetPoint: (Double, Double), fromStart: Bool) -> [(Double, Double)] {
+        guard roadCoords.count >= 2 else { return roadCoords }
+        
+        var truncatedCoords = roadCoords
+        var bestIndex = 0
+        var minDistance = Double.infinity
+        
+        // Find the closest point on the road to the target point
+        for i in 0..<roadCoords.count {
+            let distance = calculateDistance(from: roadCoords[i], to: targetPoint)
+            if distance < minDistance {
+                minDistance = distance
+                bestIndex = i
+            }
+        }
+        
+        if fromStart {
+            // Truncate from the start: keep points from closest point to end
+            if bestIndex < roadCoords.count - 1 {
+                truncatedCoords = Array(roadCoords[bestIndex...])
+                // Replace the first point with the exact target point
+                truncatedCoords[0] = targetPoint
+            }
+        } else {
+            // Truncate from the end: keep points from start to closest point
+            if bestIndex > 0 {
+                truncatedCoords = Array(roadCoords[0...bestIndex])
+                // Replace the last point with the exact target point
+                truncatedCoords[truncatedCoords.count - 1] = targetPoint
+            }
+        }
+        
+        // Ensure we always have at least 2 points
+        if truncatedCoords.count < 2 {
+            if fromStart {
+                return [targetPoint, roadCoords.last!]
+            } else {
+                return [roadCoords.first!, targetPoint]
+            }
+        }
+        
+        return truncatedCoords
+    }
+
     func autoConnectRoutes() {
         let maxDistance = 100.0 // Reduced distance for more realistic connections
         var connectionsCreated = 0

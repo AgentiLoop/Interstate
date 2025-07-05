@@ -22,10 +22,10 @@ extension GameViewController {
     func updateDynamicRoads() {
         guard let playerNode = carNode else { return }
         
-        // USER REQUIREMENTS - STRICT LIMITS to prevent memory explosion and stalls
-        let SEGMENT_LOAD_DISTANCE: CGFloat = 2000.0    // Increased to ensure roads are found
-        let SEGMENT_UNLOAD_DISTANCE: CGFloat = 3000.0  // Increased accordingly
-        let MAX_SEGMENTS: Int = 8                    // REDUCED - Segments are longer now!
+        // INTERSECTION FIX - Load nearby roads for proper intersections
+        let SEGMENT_LOAD_DISTANCE: CGFloat = 3000.0    // Increased to load intersection roads
+        let SEGMENT_UNLOAD_DISTANCE: CGFloat = 4000.0  // Increased accordingly
+        let MAX_SEGMENTS: Int = 20                   // INCREASED to load intersection roads
         let MIN_SEGMENTS: Int = 3                   // Reasonable minimum
         
         // STALL PREVENTION - Only update every 8 frames to prevent constant loading
@@ -102,19 +102,58 @@ extension GameViewController {
         // Load from ALL route types: interstate, paved, and dirt
         var allRoutes: [String: [(Double, Double)]] = [:]
         
-        // Add interstate routes (green)
+        // Add interstate routes (green) - HIGHEST PRIORITY
         for (name, coords) in interstateRoutes {
-            allRoutes[name] = coords
+            // Filter out short road artifacts at loading time
+            let routeLength = calculateRouteLength(coords: coords)
+            let FIVE_MILES_IN_METERS: Double = 8046.72 // 5 miles
+            
+            if routeLength >= FIVE_MILES_IN_METERS {
+                allRoutes[name] = coords
+            } else {
+                print("🗑️ Skipped short interstate artifact: \(name) (\(Int(routeLength/1000))km)")
+            }
         }
         
-        // Add paved routes (light gray)
+        // Add paved routes (light gray) - MEDIUM PRIORITY  
         for (name, coords) in pavedRoutes {
-            allRoutes["paved_\(name)"] = coords
+            // Filter out short road artifacts at loading time
+            let routeLength = calculateRouteLength(coords: coords)
+            let FIVE_MILES_IN_METERS: Double = 8046.72 // 5 miles
+            
+            if routeLength >= FIVE_MILES_IN_METERS {
+                allRoutes["paved_\(name)"] = coords
+            } else {
+                print("🗑️ Skipped short paved artifact: \(name) (\(Int(routeLength/1000))km)")
+            }
         }
         
-        // Add dirt routes (orange)
+        // Add dirt roads (allow shorter lengths - 2 miles minimum for rural roads)
         for (name, coords) in dirtRoutes {
-            allRoutes["dirt_\(name)"] = coords
+            let routeLength = calculateRouteLength(coords: coords)
+            let TWO_MILES_IN_METERS: Double = 3218.69 // 2 miles for dirt roads
+            
+            if routeLength >= TWO_MILES_IN_METERS {
+                allRoutes["dirt_\(name)"] = coords
+            } else {
+                print("🗑️ Skipped short dirt artifact: \(name) (\(Int(routeLength/1000))km)")
+            }
+        }
+        
+        // DEBUG: Log road counts for troubleshooting
+        if roadUpdateCounter % 480 == 0 { // Log every 8 seconds
+            print("🛣️ Road Loading Status:")
+            print("   - Interstate routes: \(interstateRoutes.count)")
+            print("   - Paved routes: \(pavedRoutes.count)")
+            print("   - Dirt routes: \(dirtRoutes.count)")
+            print("   - Total routes available: \(allRoutes.count)")
+            
+            if pavedRoutes.count > 0 {
+                print("   - Paved route names: \(Array(pavedRoutes.keys).prefix(3))")
+            }
+            if dirtRoutes.count > 0 {
+                print("   - Dirt route names: \(Array(dirtRoutes.keys).prefix(3))")
+            }
         }
         
         // Add water bodies (blue)
@@ -131,44 +170,38 @@ extension GameViewController {
             return
         }
         
-        // Find the closest route to the player using all route data
-        guard let closestRoute = findClosestRouteIn(routes: allRoutes, to: playerPosition) else { 
-            return 
-        }
-        
-        // Get the route data and generate smooth points
-        guard let routeData = allRoutes[closestRoute] else { 
-            return 
-        }
-        
-        let smoothPoints = generateSmoothRoadPoints(from: routeData)
-        let segmentLength = 500 // Points per smooth curve segment
-        let totalSegments = (smoothPoints.count + segmentLength - 1) / segmentLength
-        
-        // Load curve segments that are close enough
+        // INTERSECTION FIX: Load segments from ALL nearby routes, not just closest
         var segmentsToLoad: [(String, CGFloat)] = []
         
-        for segmentIndex in 0..<totalSegments {
-            let segmentKey = "\(closestRoute)_\(segmentIndex)"
+        // Check ALL routes for nearby segments
+        for (routeName, routeData) in allRoutes {
+            let smoothPoints = generateSmoothRoadPoints(from: routeData)
+            let segmentLength = 500 // Points per smooth curve segment
+            let totalSegments = (smoothPoints.count + segmentLength - 1) / segmentLength
             
-            // Skip if already loaded
-            if loadedRoadSegments[segmentKey] != nil { continue }
-            
-            // Check if this segment is close to the player
-            let startIndex = segmentIndex * segmentLength
-            let endIndex = min(startIndex + segmentLength, smoothPoints.count - 1)
-            
-            // Sample a few points from this segment to check distance
-            var minDistanceToSegment: CGFloat = CGFloat.infinity
-            for i in stride(from: startIndex, to: endIndex, by: 50) { // Sample every 50 points
-                let point = smoothPoints[i]
-                let segmentPosition = SCNVector3(point.0, 0, point.1)
-                let distance = calculateDistance(from: playerPosition, to: segmentPosition)
-                minDistanceToSegment = min(minDistanceToSegment, distance)
-            }
-            
-            if minDistanceToSegment <= loadDistance {
-                segmentsToLoad.append((segmentKey, minDistanceToSegment))
+            // Check each segment of this route
+            for segmentIndex in 0..<totalSegments {
+                let segmentKey = "\(routeName)_\(segmentIndex)"
+                
+                // Skip if already loaded
+                if loadedRoadSegments[segmentKey] != nil { continue }
+                
+                // Check if this segment is close to the player
+                let startIndex = segmentIndex * segmentLength
+                let endIndex = min(startIndex + segmentLength, smoothPoints.count - 1)
+                
+                // Sample a few points from this segment to check distance
+                var minDistanceToSegment: CGFloat = CGFloat.infinity
+                for i in stride(from: startIndex, to: endIndex, by: 50) { // Sample every 50 points
+                    let point = smoothPoints[i]
+                    let segmentPosition = SCNVector3(point.0, 0, point.1)
+                    let distance = calculateDistance(from: playerPosition, to: segmentPosition)
+                    minDistanceToSegment = min(minDistanceToSegment, distance)
+                }
+                
+                if minDistanceToSegment <= loadDistance {
+                    segmentsToLoad.append((segmentKey, minDistanceToSegment))
+                }
             }
         }
         
@@ -178,8 +211,19 @@ extension GameViewController {
         // Load segments until we hit the limit
         for (segmentKey, _) in segmentsToLoad {
             if loadedRoadSegments.count >= maxSegments { break }
-            loadRoadSegment(segmentKey: segmentKey, routeName: closestRoute)
+            
+            // Extract route name from segment key
+            let components = segmentKey.split(separator: "_")
+            let routeName = components.dropLast().joined(separator: "_")
+            
+            loadRoadSegment(segmentKey: segmentKey, routeName: routeName)
         }
+        
+        // Clean up intersection overlaps after loading segments
+        cleanupIntersectionOverlaps(playerPosition: playerPosition)
+        
+        // Remove any short road artifacts that might have been loaded
+        removeShortRoadArtifacts()
     }
     
     // MARK: - World Origin Rebasing (Floating Point Precision Fix)
@@ -247,7 +291,7 @@ extension GameViewController {
     // MARK: - Helper Functions
     
     /// Calculate distance between two 3D points
-    private func calculateDistance(from point1: SCNVector3, to point2: SCNVector3) -> CGFloat {
+    internal func calculateDistance(from point1: SCNVector3, to point2: SCNVector3) -> CGFloat {
         let deltaX = point1.x - point2.x
         let deltaY = point1.y - point2.y
         let deltaZ = point1.z - point2.z
@@ -277,7 +321,7 @@ extension GameViewController {
         return closestRoute
     }
     
-    private func calculateSegmentDistance(segmentKey: String, playerPosition: SCNVector3) -> CGFloat {
+    internal func calculateSegmentDistance(segmentKey: String, playerPosition: SCNVector3) -> CGFloat {
         // Extract route name and segment index from segment key
         let components = segmentKey.split(separator: "_")
         guard components.count >= 2,
@@ -290,14 +334,21 @@ extension GameViewController {
         
         if let data = interstateRoutes[routeName] {
             routeData = data
-        } else if let data = pavedRoutes[routeName.replacingOccurrences(of: "paved_", with: "")] {
+            print("🛣️ Found interstate data for: \(routeName)")
+        } else if routeName.hasPrefix("paved_"), let data = pavedRoutes[String(routeName.dropFirst(6))] {
             routeData = data
-        } else if let data = dirtRoutes[routeName.replacingOccurrences(of: "dirt_", with: "")] {
+            print("🛣️ Found paved data for: \(routeName) → \(String(routeName.dropFirst(6)))")
+        } else if routeName.hasPrefix("dirt_"), let data = dirtRoutes[String(routeName.dropFirst(5))] {
             routeData = data
-        } else if let data = waterBodies[routeName.replacingOccurrences(of: "water_", with: "")] {
+            print("🛤️ Found dirt data for: \(routeName) → \(String(routeName.dropFirst(5)))")
+        } else if routeName.hasPrefix("water_"), let data = waterBodies[String(routeName.dropFirst(6))] {
             routeData = data
-        } else if let data = coastlines[routeName.replacingOccurrences(of: "coast_", with: "")] {
+            print("🌊 Found water data for: \(routeName)")
+        } else if routeName.hasPrefix("coast_"), let data = coastlines[String(routeName.dropFirst(6))] {
             routeData = data
+            print("🏖️ Found coast data for: \(routeName)")
+        } else {
+            print("❌ No route data found for: \(routeName)")
         }
         
         guard let routeCoords = routeData else { return CGFloat.infinity }
@@ -323,27 +374,291 @@ extension GameViewController {
         return minDistance
     }
     
+    // MARK: - Route Length Calculation for Artifact Filtering
+    
+    private func calculateRouteLength(coords: [(Double, Double)]) -> Double {
+        guard coords.count >= 2 else { return 0.0 }
+        
+        var totalLength: Double = 0.0
+        
+        for i in 0..<coords.count-1 {
+            let point1 = coords[i]
+            let point2 = coords[i+1]
+            
+            // Convert GPS to scene coordinates to get accurate distances
+            let pos1 = gpsToSceneKit(latitude: point1.0, longitude: point1.1)
+            let pos2 = gpsToSceneKit(latitude: point2.0, longitude: point2.1)
+            
+            // Calculate distance between consecutive points
+            let segmentLength = sqrt(pow(pos2.x - pos1.x, 2) + pow(pos2.z - pos1.z, 2))
+            totalLength += Double(segmentLength)
+        }
+        
+        return totalLength
+    }
+    
+    private func removeShortRoadArtifacts() {
+        var segmentsToRemove: [String] = []
+        
+        for (segmentKey, segmentNode) in loadedRoadSegments {
+            // Extract route name from segment key
+            let components = segmentKey.split(separator: "_")
+            guard components.count >= 2 else { continue }
+            
+            let routeName = components.dropLast().joined(separator: "_")
+            
+            // Get the route data to check length
+            var routeData: [(Double, Double)]?
+            
+            if routeName.hasPrefix("dirt_") {
+                let cleanName = String(routeName.dropFirst(5))
+                routeData = dirtRoutes[cleanName]
+            } else if routeName.hasPrefix("paved_") {
+                let cleanName = String(routeName.dropFirst(6))
+                routeData = pavedRoutes[cleanName]
+            } else {
+                routeData = interstateRoutes[routeName]
+            }
+            
+            if let coords = routeData {
+                let routeLength = calculateRouteLength(coords: coords)
+                let minLength: Double = routeName.hasPrefix("dirt_") ? 3218.69 : 8046.72 // 2 miles for dirt, 5 miles for others
+                
+                if routeLength < minLength {
+                    segmentsToRemove.append(segmentKey)
+                    print("🗑️ Removing loaded short artifact: \(routeName) (\(Int(routeLength/1000))km)")
+                }
+            }
+        }
+        
+        // Remove the short segments
+        for segmentKey in segmentsToRemove {
+            unloadRoadSegment(segmentKey: segmentKey)
+        }
+    }
+    
+    private func removeAllRoadMarkingsFromNode(_ roadNode: SCNNode) {
+        // AGGRESSIVELY remove ALL road markings (white lines, yellow lines, etc.)
+        var markingNodesToRemove: [SCNNode] = []
+        
+        roadNode.enumerateChildNodes { (node, _) in
+            // Remove ANY child node that looks like a road marking
+            if let geometry = node.geometry as? SCNBox {
+                // If it's a small box (likely a road marking), remove it
+                if geometry.height < 0.2 && geometry.width < 15.0 {
+                    markingNodesToRemove.append(node)
+                }
+            }
+        }
+        
+        // Remove all identified marking nodes
+        for markingNode in markingNodesToRemove {
+            markingNode.removeFromParentNode()
+        }
+        
+        print("🗑️ Removed \(markingNodesToRemove.count) road marking elements")
+    }
+    
+    private func isAtIntersectionWithHigherPriorityRoad(routeName: String, points: [(CGFloat, CGFloat)]) -> Bool {
+        // Determine priority of this route
+        let currentPriority: Int
+        if routeName.hasPrefix("dirt_") {
+            currentPriority = 1
+        } else if routeName.hasPrefix("paved_") {
+            currentPriority = 2
+        } else {
+            currentPriority = 3 // Interstate
+        }
+        
+        // Check if any point of this route is near a higher priority loaded road
+        let intersectionRadius: CGFloat = 30.0
+        
+        for point in points.prefix(10) { // Check first 10 points for performance
+            let checkPosition = SCNVector3(point.0, 0, point.1)
+            
+            // Check against all loaded road segments
+            for (segmentKey, segmentNode) in loadedRoadSegments {
+                let segmentPosition = segmentNode.position
+                let distance = calculateDistance(from: checkPosition, to: segmentPosition)
+                
+                if distance <= intersectionRadius {
+                    // Determine priority of the loaded segment
+                    let segmentPriority: Int
+                    if segmentKey.contains("dirt_") {
+                        segmentPriority = 1
+                    } else if segmentKey.contains("paved_") {
+                        segmentPriority = 2
+                    } else {
+                        segmentPriority = 3 // Interstate
+                    }
+                    
+                    // If we found a higher priority road nearby, skip markings
+                    if segmentPriority > currentPriority {
+                        return true
+                    }
+                }
+            }
+        }
+        
+        return false
+    }
+    
+    // MARK: - Intersection Detection for Road Markings
+    
+    private func isPointNearIntersection(_ point: SCNVector3, radius: CGFloat) -> Bool {
+        // Count how many different road segments are near this point
+        var nearbySegmentCount = 0
+        
+        for (segmentKey, segmentNode) in loadedRoadSegments {
+            let segmentPosition = segmentNode.position
+            let distance = calculateDistance(from: point, to: segmentPosition)
+            
+            if distance <= radius {
+                nearbySegmentCount += 1
+                
+                // If more than one road segment is nearby, this is an intersection
+                if nearbySegmentCount > 1 {
+                    return true
+                }
+            }
+        }
+        
+        return false
+    }
+    
+    // MARK: - Simple Intersection Crossings - One Road Over Another
+    
+    internal func cleanupIntersectionOverlaps(playerPosition: SCNVector3) {
+        let intersectionRadius: CGFloat = 30.0 // 30m radius for intersection detection (increased for better detection)
+        
+        // Get all loaded road segment positions
+        var segmentPositions: [(String, SCNVector3, String)] = [] // segmentKey, position, routeType
+        
+        for (segmentKey, segmentNode) in loadedRoadSegments {
+            let position = segmentNode.position
+            
+            // Determine route type from segment key
+            let routeType: String
+            if segmentKey.contains("paved_") {
+                routeType = "paved"
+            } else if segmentKey.contains("dirt_") {
+                routeType = "dirt"  
+            } else {
+                routeType = "interstate"
+            }
+            
+            segmentPositions.append((segmentKey, position, routeType))
+        }
+        
+        // Find overlapping segments (intersections)
+        var intersectionGroups: [[String]] = []
+        var processedSegments: Set<String> = []
+        
+        for i in 0..<segmentPositions.count {
+            if processedSegments.contains(segmentPositions[i].0) { continue }
+            
+            var intersectionGroup: [String] = [segmentPositions[i].0]
+            processedSegments.insert(segmentPositions[i].0)
+            
+            // Find all segments that overlap with this one
+            for j in (i+1)..<segmentPositions.count {
+                if processedSegments.contains(segmentPositions[j].0) { continue }
+                
+                let distance = calculateDistance(from: segmentPositions[i].1, to: segmentPositions[j].1)
+                if distance <= intersectionRadius {
+                    intersectionGroup.append(segmentPositions[j].0)
+                    processedSegments.insert(segmentPositions[j].0)
+                }
+            }
+            
+            // Only process groups with multiple segments (actual intersections)
+            if intersectionGroup.count > 1 {
+                intersectionGroups.append(intersectionGroup)
+            }
+        }
+        
+        // Clean up each intersection group
+        for intersectionGroup in intersectionGroups {
+            cleanupIntersectionGroup(segmentKeys: intersectionGroup, segmentPositions: segmentPositions)
+        }
+    }
+    
+    private func cleanupIntersectionGroup(segmentKeys: [String], segmentPositions: [(String, SCNVector3, String)]) {
+        // SIMPLE SOLUTION: One road goes OVER the other by a tiny elevation
+        
+        // Determine road type priority: Interstate > Paved > Dirt
+        let routeTypePriority: [String: Int] = [
+            "interstate": 3,
+            "paved": 2, 
+            "dirt": 1
+        ]
+        
+        // Find the highest priority road type in this intersection
+        var highestPriority = 0
+        var dominantRouteType = "dirt"
+        
+        for segmentKey in segmentKeys {
+            if let segmentInfo = segmentPositions.first(where: { $0.0 == segmentKey }) {
+                let priority = routeTypePriority[segmentInfo.2] ?? 0
+                if priority > highestPriority {
+                    highestPriority = priority
+                    dominantRouteType = segmentInfo.2
+                }
+            }
+        }
+        
+        // AGGRESSIVE INTERSECTION CLEANUP: Remove ALL markings from lower priority roads
+        for segmentKey in segmentKeys {
+            guard let segmentNode = loadedRoadSegments[segmentKey] else { continue }
+            
+            if let segmentInfo = segmentPositions.first(where: { $0.0 == segmentKey }) {
+                let routeType = segmentInfo.2
+                
+                if routeType == dominantRouteType {
+                    // Raise the dominant road by 2 inches (0.05 meters)
+                    segmentNode.position.y = 0.05
+                    print("🛣️ Elevated \(routeType) road over intersection")
+                } else {
+                    // Keep lower priority roads at ground level
+                    segmentNode.position.y = 0.0
+                    print("📍 Set \(routeType) road to ground level at intersection")
+                }
+            }
+        }
+    }
+    
+
+    
     private func loadRoadSegment(segmentKey: String, routeName: String) {
         // Look for route data in all route types
         var routeData: [(Double, Double)]?
         
         if routeName.hasPrefix("dirt_") {
-            let cleanName = routeName.replacingOccurrences(of: "dirt_", with: "")
+            let cleanName = String(routeName.dropFirst(5)) // Remove "dirt_"
             routeData = dirtRoutes[cleanName]
         } else if routeName.hasPrefix("paved_") {
-            let cleanName = routeName.replacingOccurrences(of: "paved_", with: "")
+            let cleanName = String(routeName.dropFirst(6)) // Remove "paved_"
             routeData = pavedRoutes[cleanName]
         } else if routeName.hasPrefix("water_") {
-            let cleanName = routeName.replacingOccurrences(of: "water_", with: "")
+            let cleanName = String(routeName.dropFirst(6)) // Remove "water_"
             routeData = waterBodies[cleanName]
         } else if routeName.hasPrefix("coast_") {
-            let cleanName = routeName.replacingOccurrences(of: "coast_", with: "")
+            let cleanName = String(routeName.dropFirst(6)) // Remove "coast_"
             routeData = coastlines[cleanName]
         } else {
             routeData = interstateRoutes[routeName]
         }
         
         guard let coords = routeData else { return }
+        
+        // FILTER OUT SHORT ROAD ARTIFACTS - Remove routes shorter than 5 miles
+        let routeLength = calculateRouteLength(coords: coords)
+        let FIVE_MILES_IN_METERS: Double = 8046.72 // 5 miles = 8,046.72 meters
+        
+        if routeLength < FIVE_MILES_IN_METERS {
+            print("🗑️ Filtered out short road artifact: \(routeName) (\(Int(routeLength/1000))km)")
+            return // Don't load this short artifact
+        }
         
         // Generate smooth road points using existing Catmull-Rom spline system
         let smoothPoints = generateSmoothRoadPoints(from: coords)
@@ -363,14 +678,19 @@ extension GameViewController {
         let roadNode: SCNNode
         if routeName.hasPrefix("dirt_") {
             roadNode = createDirtRoadSegmentNode(points: segmentPoints, routeName: routeName)
+            print("🛤️ Loading dirt road segment: \(segmentKey)")
         } else if routeName.hasPrefix("paved_") {
             roadNode = createPavedRoadSegmentNode(points: segmentPoints, routeName: routeName)
+            print("🛣️ Loading paved road segment: \(segmentKey)")
         } else if routeName.hasPrefix("water_") {
             roadNode = createWaterBodySegmentNode(points: segmentPoints, routeName: routeName)
+            print("🌊 Loading water segment: \(segmentKey)")
         } else if routeName.hasPrefix("coast_") {
             roadNode = createCoastlineSegmentNode(points: segmentPoints, routeName: routeName)
+            print("🏖️ Loading coastline segment: \(segmentKey)")
         } else {
             roadNode = createSmoothRoadSegmentNode(points: segmentPoints, routeName: routeName)
+            print("🛣️ Loading interstate road segment: \(segmentKey)")
         }
         
         // Add to scene and tracking
@@ -756,8 +1076,12 @@ extension GameViewController {
             roadNode.addChildNode(roadPiece)
         }
         
-        // Add consistent markings along the entire curve
-        createSmoothRoadMarkings(roadNode: roadNode, points: points, routeName: routeName)
+        // Add consistent markings along the entire curve (unless at intersection)
+        if !isAtIntersectionWithHigherPriorityRoad(routeName: routeName, points: points) {
+            createSmoothRoadMarkings(roadNode: roadNode, points: points, routeName: routeName)
+        } else {
+            print("🚫 Skipped markings for \(routeName) - at intersection with higher priority road")
+        }
         
         return roadNode
     }
@@ -887,10 +1211,20 @@ extension GameViewController {
     // MARK: - Curve Creation Helpers
     
     private func createContinuousCurvedLine(points: [SCNVector3], color: NSColor, width: CGFloat, parent: SCNNode) {
-        // Create segments between consecutive points
+        // INTERSECTION FIX: Stop markings at intersection points
+        let intersectionRadius: CGFloat = 25.0
+        
+        // Create segments between consecutive points, but skip intersection areas
         for i in 0..<points.count - 1 {
             let start = points[i]
             let end = points[i + 1]
+            
+            // Check if this segment is near an intersection
+            if isPointNearIntersection(start, radius: intersectionRadius) || 
+               isPointNearIntersection(end, radius: intersectionRadius) {
+                // Skip creating markings in intersection areas
+                continue
+            }
             
             let distance = sqrt(pow(end.x - start.x, 2) + pow(end.z - start.z, 2))
             guard distance > 0.1 else { continue }
@@ -971,9 +1305,14 @@ extension GameViewController {
                         start.z + (end.z - start.z) * t2
                     )
                     
-                    // Create dash
-                    let dashDist = sqrt(pow(dashEnd.x - dashStart.x, 2) + pow(dashEnd.z - dashStart.z, 2))
-                    if dashDist > 0.1 {
+                    // Check if this dash is near an intersection - skip if so
+                    if isPointNearIntersection(dashStart, radius: 25.0) || 
+                       isPointNearIntersection(dashEnd, radius: 25.0) {
+                        // Skip creating this dash in intersection area
+                    } else {
+                        // Create dash
+                        let dashDist = sqrt(pow(dashEnd.x - dashStart.x, 2) + pow(dashEnd.z - dashStart.z, 2))
+                        if dashDist > 0.1 {
                         let dashGeometry = SCNBox(width: width, height: 0.05, length: dashDist, chamferRadius: 0)
                         let material = SCNMaterial()
                         
@@ -1004,7 +1343,8 @@ extension GameViewController {
                         let angle = atan2(dashEnd.x - dashStart.x, dashEnd.z - dashStart.z)
                         dashNode.rotation = SCNVector4(0, 1, 0, angle)
                         
-                        parent.addChildNode(dashNode)
+                            parent.addChildNode(dashNode)
+                        }
                     }
                 }
                 
