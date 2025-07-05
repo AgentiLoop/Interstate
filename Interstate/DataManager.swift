@@ -862,25 +862,206 @@ class DataManager: ObservableObject {
         return R * c
     }
     
-    func validateData() {
-        // Check for duplicate points
-        for (route, coords) in interstateRoutes {
-            let uniqueCoords = Set(coords.map { "\($0.0),\($0.1)" })
-            if uniqueCoords.count < coords.count {
-                print("Warning: Route \(route) has duplicate points")
+
+    
+    // MARK: - Route Simplification
+    
+    func simplifyRoute(_ routeName: String, roadType: String = "interstate", tolerance: Double = 0.001) {
+        let coords: [(Double, Double)]?
+        
+        switch roadType {
+        case "interstate":
+            coords = interstateRoutes[routeName]
+        case "paved":
+            coords = pavedRoutes[routeName]
+        case "dirt":
+            coords = dirtRoutes[routeName]
+        default:
+            coords = interstateRoutes[routeName]
+        }
+        
+        guard let originalCoords = coords, originalCoords.count > 2 else { 
+            print("❌ Cannot simplify route \(routeName): insufficient points or route not found")
+            return 
+        }
+        
+        print("🔄 SIMPLIFYING ROUTE: \(routeName)")
+        print("   Original points: \(originalCoords.count)")
+        print("   Tolerance: \(String(format: "%.6f", tolerance)) degrees (~\(Int(tolerance * 111320)) meters)")
+        
+        // Step 1: Remove duplicate and near-duplicate points
+        var simplified = removeDuplicatePoints(originalCoords, tolerance: tolerance)
+        let afterDuplicateRemoval = simplified.count
+        
+        // Step 2: Remove collinear points (points that don't significantly affect the route shape)
+        simplified = removeCollinearPoints(simplified, tolerance: tolerance)
+        let afterCollinearRemoval = simplified.count
+        
+        // Ensure we still have at least 2 points
+        if simplified.count < 2 {
+            print("❌ Simplification would result in too few points. Keeping original route.")
+            return
+        }
+        
+        // Update the route
+        switch roadType {
+        case "interstate":
+            interstateRoutes[routeName] = simplified
+        case "paved":
+            pavedRoutes[routeName] = simplified
+        case "dirt":
+            dirtRoutes[routeName] = simplified
+        default:
+            interstateRoutes[routeName] = simplified
+        }
+        
+        hasUnsavedChanges = true
+        
+        print("✅ ROUTE SIMPLIFIED:")
+        print("   After duplicate removal: \(afterDuplicateRemoval) points")
+        print("   After collinear removal: \(afterCollinearRemoval) points")
+        print("   Points removed: \(originalCoords.count - simplified.count)")
+        print("   Reduction: \(String(format: "%.1f", Double(originalCoords.count - simplified.count) / Double(originalCoords.count) * 100))%")
+    }
+    
+    func simplifyAllRoutes(roadType: String = "interstate", tolerance: Double = 0.001) {
+        let routes: [String: [(Double, Double)]]
+        
+        switch roadType {
+        case "interstate":
+            routes = interstateRoutes
+        case "paved":
+            routes = pavedRoutes
+        case "dirt":
+            routes = dirtRoutes
+        default:
+            routes = interstateRoutes
+        }
+        
+        print("🔄 SIMPLIFYING ALL \(roadType.uppercased()) ROUTES")
+        print("   Routes to process: \(routes.count)")
+        print("   Tolerance: \(String(format: "%.6f", tolerance)) degrees")
+        
+        var totalOriginalPoints = 0
+        var totalSimplifiedPoints = 0
+        
+        for (routeName, _) in routes {
+            let originalCount = routes[routeName]?.count ?? 0
+            totalOriginalPoints += originalCount
+            
+            simplifyRoute(routeName, roadType: roadType, tolerance: tolerance)
+            
+            let newCount: Int
+            switch roadType {
+            case "interstate":
+                newCount = interstateRoutes[routeName]?.count ?? 0
+            case "paved":
+                newCount = pavedRoutes[routeName]?.count ?? 0
+            case "dirt":
+                newCount = dirtRoutes[routeName]?.count ?? 0
+            default:
+                newCount = interstateRoutes[routeName]?.count ?? 0
+            }
+            totalSimplifiedPoints += newCount
+        }
+        
+        print("✅ ALL ROUTES SIMPLIFIED:")
+        print("   Total original points: \(totalOriginalPoints)")
+        print("   Total simplified points: \(totalSimplifiedPoints)")
+        print("   Total points removed: \(totalOriginalPoints - totalSimplifiedPoints)")
+        print("   Overall reduction: \(String(format: "%.1f", Double(totalOriginalPoints - totalSimplifiedPoints) / Double(totalOriginalPoints) * 100))%")
+    }
+    
+    private func removeDuplicatePoints(_ points: [(Double, Double)], tolerance: Double) -> [(Double, Double)] {
+        guard points.count > 1 else { return points }
+        
+        var simplified: [(Double, Double)] = [points[0]] // Always keep first point
+        
+        for i in 1..<points.count {
+            let currentPoint = points[i]
+            let lastPoint = simplified.last!
+            
+            let distance = calculateDistance(from: lastPoint, to: currentPoint)
+            let toleranceInKm = tolerance * 111.32 // Convert degrees to approximate km
+            
+            // Only add point if it's far enough from the last point
+            if distance > toleranceInKm {
+                simplified.append(currentPoint)
             }
         }
         
-        // Check for invalid connections
-        for (fromRoute, routeConnections) in connections {
-            for connection in routeConnections {
-                if interstateRoutes[connection.to] == nil {
-                    print("Warning: Connection from \(fromRoute) to \(connection.to) references non-existent route")
-                }
+        // Always ensure we have the last point if it's different from the last added point
+        if simplified.count > 1 && simplified.last! != points.last! {
+            let distance = calculateDistance(from: simplified.last!, to: points.last!)
+            let toleranceInKm = tolerance * 111.32
+            if distance > toleranceInKm {
+                simplified.append(points.last!)
             }
         }
+        
+        return simplified
     }
     
+    private func removeCollinearPoints(_ points: [(Double, Double)], tolerance: Double) -> [(Double, Double)] {
+        guard points.count > 2 else { return points }
+        
+        var simplified: [(Double, Double)] = [points[0]] // Always keep first point
+        
+        for i in 1..<(points.count - 1) {
+            let prevPoint = points[i - 1]
+            let currentPoint = points[i]
+            let nextPoint = points[i + 1]
+            
+            // Calculate the perpendicular distance from current point to the line between prev and next
+            let distance = perpendicularDistance(point: currentPoint, lineStart: prevPoint, lineEnd: nextPoint)
+            let toleranceInKm = tolerance * 111.32 // Convert degrees to approximate km
+            
+            // Only keep the point if it's far enough from the line between its neighbors
+            if distance > toleranceInKm {
+                simplified.append(currentPoint)
+            }
+        }
+        
+        // Always keep the last point
+        simplified.append(points.last!)
+        
+        return simplified
+    }
+    
+    private func perpendicularDistance(point: (Double, Double), lineStart: (Double, Double), lineEnd: (Double, Double)) -> Double {
+        let A = lineStart
+        let B = lineEnd
+        let P = point
+        
+        // Vector from A to B
+        let AB = (B.0 - A.0, B.1 - A.1)
+        // Vector from A to P
+        let AP = (P.0 - A.0, P.1 - A.1)
+        
+        // Length of AB
+        let ABLength = sqrt(AB.0 * AB.0 + AB.1 * AB.1)
+        
+        if ABLength == 0 {
+            // A and B are the same point, return distance from P to A
+            return calculateDistance(from: point, to: lineStart)
+        }
+        
+        // Unit vector in direction of AB
+        let ABUnit = (AB.0 / ABLength, AB.1 / ABLength)
+        
+        // Project AP onto AB
+        let projection = AP.0 * ABUnit.0 + AP.1 * ABUnit.1
+        
+        // Clamp projection to line segment
+        let clampedProjection = max(0, min(ABLength, projection))
+        
+        // Find closest point on line segment
+        let closestPoint = (A.0 + clampedProjection * ABUnit.0, A.1 + clampedProjection * ABUnit.1)
+        
+        // Return distance from P to closest point
+        return calculateDistance(from: point, to: closestPoint)
+    }
+
     // MARK: - Route Point Operations
     
     func addPoint(to route: String, at index: Int, coordinate: (Double, Double), roadType: String = "interstate") {

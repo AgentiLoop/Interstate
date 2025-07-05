@@ -787,226 +787,226 @@
       "longitude" : -109.5498
     },
     {
-      "name" : "Cedar City, UT",
-      "longitude" : -113.0619,
       "latitude" : 37.6775,
-      "population" : 35235
+      "population" : 35235,
+      "name" : "Cedar City, UT",
+      "longitude" : -113.0619
     },
     {
-      "name" : "McCall, ID",
-      "longitude" : -116.0987,
       "latitude" : 44.911,
-      "population" : 3686
+      "population" : 3686,
+      "name" : "McCall, ID",
+      "longitude" : -116.0987
     },
     {
-      "name" : "Bend, OR",
-      "longitude" : -121.3153,
       "latitude" : 44.0582,
-      "population" : 99178
+      "population" : 99178,
+      "name" : "Bend, OR",
+      "longitude" : -121.3153
     },
     {
-      "name" : "Burns, OR",
-      "longitude" : -119.0541,
       "latitude" : 43.5863,
-      "population" : 2730
+      "population" : 2730,
+      "name" : "Burns, OR",
+      "longitude" : -119.0541
     },
     {
-      "name" : "Port Angeles, WA",
-      "longitude" : -123.4307,
       "latitude" : 48.1181,
-      "population" : 20229
+      "population" : 20229,
+      "name" : "Port Angeles, WA",
+      "longitude" : -123.4307
     },
     {
-      "name" : "Eureka, CA",
-      "longitude" : -124.1637,
       "latitude" : 40.8021,
-      "population" : 26512
+      "population" : 26512,
+      "name" : "Eureka, CA",
+      "longitude" : -124.1637
     },
     {
-      "name" : "Alturas, CA",
-      "longitude" : -120.5427,
       "latitude" : 41.4871,
-      "population" : 2715
+      "population" : 2715,
+      "name" : "Alturas, CA",
+      "longitude" : -120.5427
     },
     {
-      "name" : "Ely, NV",
-      "longitude" : -114.8742,
       "latitude" : 39.2533,
-      "population" : 3924
+      "population" : 3924,
+      "name" : "Ely, NV",
+      "longitude" : -114.8742
     },
     {
-      "name" : "Winnemucca, NV",
-      "longitude" : -117.7357,
       "latitude" : 40.973,
-      "population" : 8431
+      "population" : 8431,
+      "name" : "Winnemucca, NV",
+      "longitude" : -117.7357
     },
     {
-      "name" : "Spencer, IA",
-      "longitude" : -95.1444,
       "latitude" : 43.1414,
-      "population" : 11317
+      "population" : 11317,
+      "name" : "Spencer, IA",
+      "longitude" : -95.1444
     },
     {
-      "name" : "Cape Girardeau, MO",
-      "longitude" : -89.5181,
       "latitude" : 37.3058,
-      "population" : 39540
+      "population" : 39540,
+      "name" : "Cape Girardeau, MO",
+      "longitude" : -89.5181
     },
     {
-      "name" : "Harrison, AR",
-      "longitude" : -93.1077,
       "latitude" : 36.2298,
-      "population" : 13163
+      "population" : 13163,
+      "name" : "Harrison, AR",
+      "longitude" : -93.1077
     },
     {
-      "name" : "Monroe, LA",
-      "longitude" : -92.1193,
       "latitude" : 32.5093,
-      "population" : 47702
+      "population" : 47702,
+      "name" : "Monroe, LA",
+      "longitude" : -92.1193
     },
     {
-      "name" : "Greenville, MS",
-      "longitude" : -91.0617,
       "latitude" : 33.4101,
-      "population" : 29670
+      "population" : 29670,
+      "name" : "Greenville, MS",
+      "longitude" : -91.0617
     },
     {
-      "name" : "Florence, AL",
-      "longitude" : -87.6773,
       "latitude" : 34.7998,
-      "population" : 40184
+      "population" : 40184,
+      "name" : "Florence, AL",
+      "longitude" : -87.6773
     },
     {
-      "name" : "Cookeville, TN",
-      "longitude" : -85.5016,
       "latitude" : 36.1628,
-      "population" : 34842
+      "population" : 34842,
+      "name" : "Cookeville, TN",
+      "longitude" : -85.5016
     },
     {
-      "name" : "Somerset, KY",
-      "longitude" : -84.6041,
       "latitude" : 37.092,
-      "population" : 11924
+      "population" : 11924,
+      "name" : "Somerset, KY",
+      "longitude" : -84.6041
     },
     {
-      "name" : "Beckley, WV",
-      "longitude" : -81.1882,
       "latitude" : 37.7782,
-      "population" : 16831
+      "population" : 16831,
+      "name" : "Beckley, WV",
+      "longitude" : -81.1882
     },
     {
-      "name" : "Bristol, VA",
-      "longitude" : -82.1887,
       "latitude" : 36.5957,
-      "population" : 16762
+      "population" : 16762,
+      "name" : "Bristol, VA",
+      "longitude" : -82.1887
     },
     {
-      "name" : "Boone, NC",
-      "longitude" : -81.6746,
       "latitude" : 36.2168,
-      "population" : 19092
+      "population" : 19092,
+      "name" : "Boone, NC",
+      "longitude" : -81.6746
     },
     {
-      "name" : "Athens, GA",
-      "longitude" : -83.3576,
       "latitude" : 33.9519,
-      "population" : 127315
+      "population" : 127315,
+      "name" : "Athens, GA",
+      "longitude" : -83.3576
     },
     {
-      "name" : "Ocala, FL",
-      "longitude" : -82.1401,
       "latitude" : 29.1872,
-      "population" : 63591
+      "population" : 63591,
+      "name" : "Ocala, FL",
+      "longitude" : -82.1401
     },
     {
-      "name" : "Athens, OH",
-      "longitude" : -82.1013,
       "latitude" : 39.3292,
-      "population" : 24094
+      "population" : 24094,
+      "name" : "Athens, OH",
+      "longitude" : -82.1013
     },
     {
-      "name" : "Bloomington, IN",
-      "longitude" : -86.5264,
       "latitude" : 39.1653,
-      "population" : 85755
+      "population" : 85755,
+      "name" : "Bloomington, IN",
+      "longitude" : -86.5264
     },
     {
-      "name" : "Carbondale, IL",
-      "longitude" : -89.2168,
       "latitude" : 37.7273,
-      "population" : 25083
+      "population" : 25083,
+      "name" : "Carbondale, IL",
+      "longitude" : -89.2168
     },
     {
-      "name" : "State College, PA",
-      "longitude" : -77.86,
       "latitude" : 40.7934,
-      "population" : 42074
+      "population" : 42074,
+      "name" : "State College, PA",
+      "longitude" : -77.86
     },
     {
-      "name" : "Plattsburgh, NY",
-      "longitude" : -73.4529,
       "latitude" : 44.6995,
-      "population" : 19841
+      "population" : 19841,
+      "name" : "Plattsburgh, NY",
+      "longitude" : -73.4529
     },
     {
-      "name" : "North Conway, NH",
-      "longitude" : -71.1281,
       "latitude" : 44.0537,
-      "population" : 2349
+      "population" : 2349,
+      "name" : "North Conway, NH",
+      "longitude" : -71.1281
     },
     {
-      "name" : "Presque Isle, ME",
-      "longitude" : -68.0159,
       "latitude" : 46.6812,
-      "population" : 9078
+      "population" : 9078,
+      "name" : "Presque Isle, ME",
+      "longitude" : -68.0159
     },
     {
-      "name" : "Pittsfield, MA",
-      "longitude" : -73.2524,
       "latitude" : 42.4501,
-      "population" : 43927
+      "population" : 43927,
+      "name" : "Pittsfield, MA",
+      "longitude" : -73.2524
     },
     {
-      "name" : "Lakewood, NJ",
-      "longitude" : -74.2176,
       "latitude" : 40.0978,
-      "population" : 135158
+      "population" : 135158,
+      "name" : "Lakewood, NJ",
+      "longitude" : -74.2176
     },
     {
-      "name" : "Cumberland, MD",
-      "longitude" : -78.7625,
       "latitude" : 39.6528,
-      "population" : 19495
+      "population" : 19495,
+      "name" : "Cumberland, MD",
+      "longitude" : -78.7625
     },
     {
-      "name" : "Hot Springs, AR",
-      "longitude" : -93.0552,
       "latitude" : 34.5037,
-      "population" : 38697
+      "population" : 38697,
+      "name" : "Hot Springs, AR",
+      "longitude" : -93.0552
     },
     {
-      "name" : "Watertown, NY",
-      "longitude" : -75.9107,
       "latitude" : 43.9748,
-      "population" : 24685
+      "population" : 24685,
+      "name" : "Watertown, NY",
+      "longitude" : -75.9107
     },
     {
-      "name" : "Salem",
-      "longitude" : -123.02987152665722,
       "latitude" : 44.895171469938525,
-      "population" : 10000
+      "population" : 10000,
+      "name" : "Salem",
+      "longitude" : -123.02987152665722
     },
     {
-      "name" : "Test",
-      "longitude" : -120.6922430630527,
       "latitude" : 51.73105026707297,
-      "population" : 10000
+      "population" : 10000,
+      "name" : "Test",
+      "longitude" : -120.6922430630527
     },
     {
-      "name" : "New City",
-      "longitude" : -88.34149337601116,
       "latitude" : 43.328885585732394,
-      "population" : 10000
+      "population" : 10000,
+      "name" : "New City",
+      "longitude" : -88.34149337601116
     }
   ]
 }

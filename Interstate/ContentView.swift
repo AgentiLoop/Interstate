@@ -22,6 +22,12 @@ struct ContentView: View {
     // Interstate-to-Interstate connection state
     @State private var fromInterstateRoute: String = ""
     @State private var toInterstateRoute: String = ""
+    @State private var simplificationTolerance = 0.005 // Default to Medium (500m)
+    
+    // UI Section Expansion States
+    @State private var showAutoConnect = false
+    @State private var showSimplifyRoutes = false
+    @State private var showBulkActions = false
     @State private var newRoadPoints: [(Double, Double)] = []
     @State private var newRoadName: String = ""
     @State private var isCreatingRoad = false
@@ -326,85 +332,142 @@ struct ContentView: View {
                     }
                     
                     if dataManager.isDataLoaded {
-                        // Analysis Tools
-                        HStack {
-                            Button(action: { dataManager.validateData() }) {
-                                Image(systemName: "checkmark.shield")
-                            }
-                            .help("Validate Data")
-                        }
+
                         
                         // Auto-Connect Tools
+                        VStack(spacing: 0) {
+                            Button(action: { showAutoConnect.toggle() }) {
+                                HStack {
+                                    Image(systemName: showAutoConnect ? "chevron.down" : "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text("Auto-Connect")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            if showAutoConnect {
+                                VStack(spacing: 6) {
+                                    VStack(spacing: 2) {
+                                        Button("Paved → Interstate") {
+                                            dataManager.autoConnectPavedToInterstate()
+                                        }
+                                        .font(.caption)
+                                        .help("Move paved road endpoints to nearest interstate points")
+                                        .foregroundColor(.blue)
+                                        
+                                        Button("Dirt → Interstate") {
+                                            dataManager.autoConnectDirtToInterstate()
+                                        }
+                                        .font(.caption)
+                                        .help("Move dirt road endpoints to nearest interstate points")
+                                        .foregroundColor(.orange)
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    // Interstate-to-Interstate Connection
+                                    VStack(spacing: 4) {
+                                        Text("Interstate ↔ Interstate")
+                                            .font(.caption)
+                                            .foregroundColor(.green)
+                                            .bold()
+                                        
+                                        VStack(spacing: 2) {
+                                            Picker("From", selection: $fromInterstateRoute) {
+                                                Text("Select From Route").tag("")
+                                                ForEach(dataManager.sortedRouteNames, id: \.self) { route in
+                                                    Text(route).tag(route)
+                                                }
+                                            }
+                                            .pickerStyle(MenuPickerStyle())
+                                            .font(.caption)
+                                            .disabled(!dataManager.isDataLoaded || dataManager.interstateRoutes.count < 2)
+                                            
+                                            Picker("To", selection: $toInterstateRoute) {
+                                                Text("Select To Route").tag("")
+                                                ForEach(dataManager.sortedRouteNames.filter { $0 != fromInterstateRoute }, id: \.self) { route in
+                                                    Text(route).tag(route)
+                                                }
+                                            }
+                                            .pickerStyle(MenuPickerStyle())
+                                            .font(.caption)
+                                            .disabled(!dataManager.isDataLoaded || dataManager.interstateRoutes.count < 2)
+                                            
+                                            Button("Connect Routes") {
+                                                dataManager.autoConnectInterstateToInterstate(fromRoute: fromInterstateRoute, toRoute: toInterstateRoute)
+                                                // Reset selections after connection
+                                                fromInterstateRoute = ""
+                                                toInterstateRoute = ""
+                                            }
+                                            .font(.caption)
+                                            .disabled(!dataManager.isDataLoaded || 
+                                                     fromInterstateRoute.isEmpty || 
+                                                     toInterstateRoute.isEmpty || 
+                                                     fromInterstateRoute == toInterstateRoute ||
+                                                     dataManager.interstateRoutes.count < 2)
+                                            .help("Move \(fromInterstateRoute.isEmpty ? "selected" : fromInterstateRoute) endpoint to nearest point on \(toInterstateRoute.isEmpty ? "selected" : toInterstateRoute)")
+                                            .foregroundColor(.green)
+                                        }
+                                    }
+                                }
+                                .padding(8)
+                                .background(Color.gray.opacity(0.05))
+                                .cornerRadius(6)
+                            }
+                        }
+                        
+                        // Route Simplification Tools
                         VStack(spacing: 6) {
-                            Text("Auto-Connect")
+                            Text("Simplify Routes")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
-                            VStack(spacing: 2) {
-                                Button("Paved → Interstate") {
-                                    dataManager.autoConnectPavedToInterstate()
-                                }
-                                .font(.caption)
-                                .help("Move paved road endpoints to nearest interstate points")
-                                .foregroundColor(.blue)
+                            VStack(spacing: 4) {
+                                Text("Tolerance")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                                 
-                                Button("Dirt → Interstate") {
-                                    dataManager.autoConnectDirtToInterstate()
+                                Picker("Tolerance", selection: $simplificationTolerance) {
+                                    Text("High (100m)").tag(0.001)
+                                    Text("Medium (500m)").tag(0.005)
+                                    Text("Low (1km)").tag(0.01)
+                                    Text("Very Low (5km)").tag(0.05)
                                 }
+                                .pickerStyle(MenuPickerStyle())
                                 .font(.caption)
-                                .help("Move dirt road endpoints to nearest interstate points")
-                                .foregroundColor(.orange)
                             }
                             
-                            Divider()
-                            
-                            // Interstate-to-Interstate Connection
-                            VStack(spacing: 4) {
-                                Text("Interstate ↔ Interstate")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
-                                    .bold()
-                                
-                                VStack(spacing: 2) {
-                                    Picker("From", selection: $fromInterstateRoute) {
-                                        Text("Select From Route").tag("")
-                                        ForEach(dataManager.sortedRouteNames, id: \.self) { route in
-                                            Text(route).tag(route)
-                                        }
-                                    }
-                                    .pickerStyle(MenuPickerStyle())
-                                    .font(.caption)
-                                    .disabled(!dataManager.isDataLoaded || dataManager.interstateRoutes.count < 2)
-                                    
-                                    Picker("To", selection: $toInterstateRoute) {
-                                        Text("Select To Route").tag("")
-                                        ForEach(dataManager.sortedRouteNames.filter { $0 != fromInterstateRoute }, id: \.self) { route in
-                                            Text(route).tag(route)
-                                        }
-                                    }
-                                    .pickerStyle(MenuPickerStyle())
-                                    .font(.caption)
-                                    .disabled(!dataManager.isDataLoaded || dataManager.interstateRoutes.count < 2)
-                                    
-                                    Button("Connect Routes") {
-                                        dataManager.autoConnectInterstateToInterstate(fromRoute: fromInterstateRoute, toRoute: toInterstateRoute)
-                                        // Reset selections after connection
-                                        fromInterstateRoute = ""
-                                        toInterstateRoute = ""
-                                    }
-                                    .font(.caption)
-                                    .disabled(!dataManager.isDataLoaded || 
-                                             fromInterstateRoute.isEmpty || 
-                                             toInterstateRoute.isEmpty || 
-                                             fromInterstateRoute == toInterstateRoute ||
-                                             dataManager.interstateRoutes.count < 2)
-                                    .help("Move \(fromInterstateRoute.isEmpty ? "selected" : fromInterstateRoute) endpoint to nearest point on \(toInterstateRoute.isEmpty ? "selected" : toInterstateRoute)")
-                                    .foregroundColor(.green)
+                            VStack(spacing: 2) {
+                                Button("Simplify Selected Route") {
+                                    guard let selectedRoute = selectedRoute else { return }
+                                    let roadType = selectedRoadType.rawValue.lowercased()
+                                    dataManager.simplifyRoute(selectedRoute, roadType: roadType, tolerance: simplificationTolerance)
                                 }
+                                .font(.caption)
+                                .disabled(selectedRoute == nil)
+                                .help("Remove unnecessary points from the selected route")
+                                .foregroundColor(.purple)
+                                
+                                Button("Simplify All \(selectedRoadType.rawValue)") {
+                                    let roadType = selectedRoadType.rawValue.lowercased()
+                                    dataManager.simplifyAllRoutes(roadType: roadType, tolerance: simplificationTolerance)
+                                }
+                                .font(.caption)
+                                .disabled(!dataManager.isDataLoaded)
+                                .help("Remove unnecessary points from all \(selectedRoadType.rawValue.lowercased()) routes")
+                                .foregroundColor(.purple)
                             }
                         }
                         .padding(4)
-                        .background(Color.gray.opacity(0.1))
+                        .background(Color.purple.opacity(0.1))
                         .cornerRadius(6)
                         
                         // Delete All Actions
