@@ -529,7 +529,7 @@ extension GameViewController {
     // MARK: - Simple Intersection Crossings - One Road Over Another
     
     internal func cleanupIntersectionOverlaps(playerPosition: SCNVector3) {
-        let intersectionRadius: CGFloat = 30.0 // 30m radius for intersection detection (increased for better detection)
+        let intersectionRadius: CGFloat = 35.0 // 35m radius for intersection detection - creates larger clear zone
         
         // Get all loaded road segment positions
         var segmentPositions: [(String, SCNVector3, String)] = [] // segmentKey, position, routeType
@@ -584,46 +584,17 @@ extension GameViewController {
     }
     
     private func cleanupIntersectionGroup(segmentKeys: [String], segmentPositions: [(String, SCNVector3, String)]) {
-        // SIMPLE SOLUTION: One road goes OVER the other by a tiny elevation
+        // REALISTIC INTERSECTION: Just let roads overlap naturally at ground level
+        // The intersection detection already prevents markings from being drawn in intersection areas
+        // This creates a natural "clear zone" of black asphalt with no lines - just like real intersections
         
-        // Determine road type priority: Interstate > Paved > Dirt
-        let routeTypePriority: [String: Int] = [
-            "interstate": 3,
-            "paved": 2, 
-            "dirt": 1
-        ]
-        
-        // Find the highest priority road type in this intersection
-        var highestPriority = 0
-        var dominantRouteType = "dirt"
-        
-        for segmentKey in segmentKeys {
-            if let segmentInfo = segmentPositions.first(where: { $0.0 == segmentKey }) {
-                let priority = routeTypePriority[segmentInfo.2] ?? 0
-                if priority > highestPriority {
-                    highestPriority = priority
-                    dominantRouteType = segmentInfo.2
-                }
-            }
-        }
-        
-        // AGGRESSIVE INTERSECTION CLEANUP: Remove ALL markings from lower priority roads
         for segmentKey in segmentKeys {
             guard let segmentNode = loadedRoadSegments[segmentKey] else { continue }
             
-            if let segmentInfo = segmentPositions.first(where: { $0.0 == segmentKey }) {
-                let routeType = segmentInfo.2
-                
-                if routeType == dominantRouteType {
-                    // Raise the dominant road by 2 inches (0.05 meters)
-                    segmentNode.position.y = 0.05
-                    print("🛣️ Elevated \(routeType) road over intersection")
-                } else {
-                    // Keep lower priority roads at ground level
-                    segmentNode.position.y = 0.0
-                    print("📍 Set \(routeType) road to ground level at intersection")
-                }
-            }
+            // Keep all roads at ground level for natural overlap
+            segmentNode.position.y = 0.0
+            
+            print("🛣️ Intersection: \(segmentKey) - natural overlap with clear marking zone")
         }
     }
     
@@ -1211,8 +1182,8 @@ extension GameViewController {
     // MARK: - Curve Creation Helpers
     
     private func createContinuousCurvedLine(points: [SCNVector3], color: NSColor, width: CGFloat, parent: SCNNode) {
-        // INTERSECTION FIX: Stop markings at intersection points
-        let intersectionRadius: CGFloat = 25.0
+        // INTERSECTION FIX: Stop markings at intersection points - larger clear zone
+        let intersectionRadius: CGFloat = 35.0
         
         // Create segments between consecutive points, but skip intersection areas
         for i in 0..<points.count - 1 {
@@ -1306,8 +1277,8 @@ extension GameViewController {
                     )
                     
                     // Check if this dash is near an intersection - skip if so
-                    if isPointNearIntersection(dashStart, radius: 25.0) || 
-                       isPointNearIntersection(dashEnd, radius: 25.0) {
+                    if isPointNearIntersection(dashStart, radius: 35.0) || 
+                       isPointNearIntersection(dashEnd, radius: 35.0) {
                         // Skip creating this dash in intersection area
                     } else {
                         // Create dash
