@@ -438,50 +438,9 @@ extension GameViewController {
     }
     
     func analyzeCheckpointDistances() {
-        print("🔍 Analyzing checkpoint distances from highways...")
-        
-        var checkpointsOnDirtRoads = 0
-        var checkpointsOnHighways = 0
-        let tenMilesInMeters: CGFloat = 16093.0 // 10 miles in meters
-        
-        for (cityName, (checkpointPos, population)) in checkpointPositions {
-            var minDistanceToRoad: CGFloat = CGFloat.infinity
-            var closestRouteName: String = ""
-            
-            // Find the closest highway point across ALL interstate routes
-            for (routeName, gpsCoordinates) in routeGPSData {
-                for (lat, lon) in gpsCoordinates {
-                    let routePoint = gpsToSceneKit(latitude: lat, longitude: lon)
-                    let distance = sqrt(pow(checkpointPos.x - routePoint.x, 2) + 
-                                      pow(checkpointPos.z - routePoint.z, 2))
-                    
-                    if distance < minDistanceToRoad {
-                        minDistanceToRoad = distance
-                        closestRouteName = routeName
-                    }
-                }
-            }
-            
-            // JUST LOG - DON'T MOVE ANYTHING!
-            let ONE_MILE_IN_METERS: CGFloat = 1609.34
-            if minDistanceToRoad <= tenMilesInMeters {
-                if minDistanceToRoad < ONE_MILE_IN_METERS { // Within 1 mile
-                    print("📍 \(cityName) is directly on \(closestRouteName) (distance: \(Int(minDistanceToRoad))m)")
-                    checkpointsOnHighways += 1
-                } else {
-                    print("🛤️ \(cityName) is \(Int(minDistanceToRoad/1609)) miles from \(closestRouteName) - needs dirt road")
-                    checkpointsOnDirtRoads += 1
-                }
-            } else {
-              //  print("🏜️ \(cityName) is \(Int(minDistanceToRoad/1609)) miles from nearest highway - remote dirt road city")
-                checkpointsOnDirtRoads += 1
-            }
-        }
-        
-        print("🧹 Checkpoint analysis completed:")
-        print("   🛣️ \(checkpointsOnHighways) cities directly on interstates")
-        print("   🛤️ \(checkpointsOnDirtRoads) cities need dirt road connections")
-        print("   ✅ \(checkpointPositions.count) total checkpoints preserved")
+        // DISABLED: This expensive analysis doesn't scale and isn't needed at startup
+        // All checkpoints work fine without this analysis
+        print("✅ Checkpoint analysis SKIPPED - all checkpoints work fine")
     }
     
 

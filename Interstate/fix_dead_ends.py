@@ -71,14 +71,50 @@ def find_nearest_route_point(lat: float, lon: float, routes: Dict, exclude_route
     
     return nearest_route, nearest_index, min_distance
 
-def find_connected_routes(connections: Dict) -> set:
-    """Find all routes that have at least one connection."""
-    connected = set()
+def find_connected_endpoints(connections: Dict, routes: Dict) -> set:
+    """Find all endpoints that have connections."""
+    connected_endpoints = set()
+    
     for from_route, conns in connections.items():
-        connected.add(from_route)
-        for conn in conns:
-            connected.add(conn['to'])
-    return connected
+        if from_route in routes:
+            for conn in conns:
+                if conn['to'] in routes:
+                    # Mark both endpoints as potentially connected
+                    # We'll need to check specific connection points
+                    if 'fromPoint' in conn and 'toPoint' in conn:
+                        # Specific connection points are defined
+                        from_coords = routes[from_route]
+                        to_coords = routes[conn['to']]
+                        
+                        if from_coords and to_coords:
+                            from_start = from_coords[0]
+                            from_end = from_coords[-1]
+                            
+                            from_point = tuple(conn['fromPoint'])
+                            to_point = tuple(conn['toPoint'])
+                            
+                            # Check which endpoint matches the connection
+                            start_dist = calculate_distance(from_start[0], from_start[1], from_point[0], from_point[1])
+                            end_dist = calculate_distance(from_end[0], from_end[1], from_point[0], from_point[1])
+                            
+                            if start_dist < 1:  # Within 1 mile
+                                connected_endpoints.add(f"{from_route}-start")
+                            if end_dist < 1:  # Within 1 mile
+                                connected_endpoints.add(f"{from_route}-end")
+                            
+                            # Check the 'to' route endpoint
+                            to_start = to_coords[0]
+                            to_end = to_coords[-1]
+                            
+                            to_start_dist = calculate_distance(to_start[0], to_start[1], to_point[0], to_point[1])
+                            to_end_dist = calculate_distance(to_end[0], to_end[1], to_point[0], to_point[1])
+                            
+                            if to_start_dist < 1:  # Within 1 mile
+                                connected_endpoints.add(f"{conn['to']}-start")
+                            if to_end_dist < 1:  # Within 1 mile
+                                connected_endpoints.add(f"{conn['to']}-end")
+    
+    return connected_endpoints
 
 def main():
     # Load current data
@@ -92,114 +128,117 @@ def main():
     boundaries = find_map_boundaries(routes)
     print(f"Map boundaries: Lat {boundaries[0]:.2f} to {boundaries[1]:.2f}, Lon {boundaries[2]:.2f} to {boundaries[3]:.2f}")
     
-    # Find dead ends
-    connected_routes = find_connected_routes(connections)
-    all_routes = set(routes.keys())
-    dead_ends = all_routes - connected_routes
+    # Find dead end endpoints
+    connected_endpoints = find_connected_endpoints(connections, routes)
+    all_endpoints = set()
     
-    print(f"\nFound {len(dead_ends)} dead-end routes")
+    # Create all possible endpoints
+    for route_name in routes.keys():
+        all_endpoints.add(f"{route_name}-start")
+        all_endpoints.add(f"{route_name}-end")
+    
+    dead_end_endpoints = all_endpoints - connected_endpoints
+    
+    print(f"\nFound {len(dead_end_endpoints)} dead-end endpoints")
+    for endpoint in sorted(dead_end_endpoints):
+        print(f"  {endpoint}")
     
     # Create a copy for modifications
     new_data = copy.deepcopy(data)
     removed_routes = []
     
-    # Process each dead end
-    for route in sorted(dead_ends):
-        coords = routes[route]
+    # Process each dead end endpoint
+    for endpoint in sorted(dead_end_endpoints):
+        # Parse endpoint (e.g., "I-90-start" or "I-70-end")
+        parts = endpoint.rsplit('-', 1)
+        if len(parts) != 2:
+            continue
+            
+        route_name, endpoint_type = parts
+        if route_name not in routes:
+            continue
+            
+        coords = routes[route_name]
         if not coords:
             continue
             
-        print(f"\nProcessing {route}:")
+        print(f"\nProcessing {endpoint}:")
         
-        # Check both endpoints
-        start_lat, start_lon = coords[0]
-        end_lat, end_lon = coords[-1]
+        # Get the specific endpoint coordinate
+        if endpoint_type == "start":
+            endpoint_lat, endpoint_lon = coords[0]
+        else:  # "end"
+            endpoint_lat, endpoint_lon = coords[-1]
         
-        # Find nearest routes to both ends
-        start_nearest, start_idx, start_dist = find_nearest_route_point(start_lat, start_lon, routes, route)
-        end_nearest, end_idx, end_dist = find_nearest_route_point(end_lat, end_lon, routes, route)
+        # Find nearest route point
+        nearest_route, nearest_idx, nearest_dist = find_nearest_route_point(endpoint_lat, endpoint_lon, routes, route_name)
         
-        # Determine if endpoints are on edge
-        start_on_edge = is_edge_point(start_lat, start_lon, boundaries)
-        end_on_edge = is_edge_point(end_lat, end_lon, boundaries)
+        # Determine if endpoint is on edge
+        on_edge = is_edge_point(endpoint_lat, endpoint_lon, boundaries)
         
-        print(f"  Start: ({start_lat:.2f}, {start_lon:.2f}) - Nearest: {start_nearest} at {start_dist:.1f} miles - Edge: {start_on_edge}")
-        print(f"  End: ({end_lat:.2f}, {end_lon:.2f}) - Nearest: {end_nearest} at {end_dist:.1f} miles - Edge: {end_on_edge}")
+        print(f"  Coordinate: ({endpoint_lat:.2f}, {endpoint_lon:.2f})")
+        print(f"  Nearest: {nearest_route} at {nearest_dist:.1f} miles")
+        print(f"  On edge: {on_edge}")
         
-        # Rule 3: If both endpoints are on edge, remove the route
-        if start_on_edge and end_on_edge:
-            print(f"  → Removing {route} (both endpoints on map edge)")
-            del new_data['interstateRoutes'][route]
-            removed_routes.append(route)
+        # Rule 3: If endpoint is on edge, remove the route entirely
+        if on_edge:
+            print(f"  → Removing {route_name} (endpoint on map edge)")
+            if route_name in new_data['interstateRoutes']:
+                del new_data['interstateRoutes'][route_name]
+                removed_routes.append(route_name)
             continue
         
-        # Check which end needs connection
-        connections_to_add = []
-        
-        if start_dist < end_dist:
-            # Connect start point
-            if start_dist <= 10:
-                # Rule 1: Direct connection if within 10 miles
-                connection_type = "paved"
-                print(f"  → Connecting start to {start_nearest} (direct paved, {start_dist:.1f} miles)")
-            else:
-                # Rule 2: Dirt road for interior connections
-                connection_type = "dirt"
-                print(f"  → Connecting start to {start_nearest} (dirt road, {start_dist:.1f} miles)")
-            
-            connections_to_add.append({
-                'from': route,
-                'to': start_nearest,
-                'distance': start_dist,
-                'type': connection_type
-            })
+        # Add connection for this endpoint
+        if nearest_dist <= 10:
+            # Rule 1: Direct connection if within 10 miles
+            connection_type = "paved"
+            print(f"  → Connecting {endpoint} to {nearest_route} (direct paved, {nearest_dist:.1f} miles)")
         else:
-            # Connect end point
-            if end_dist <= 10:
-                connection_type = "paved"
-                print(f"  → Connecting end to {end_nearest} (direct paved, {end_dist:.1f} miles)")
-            else:
-                connection_type = "dirt"
-                print(f"  → Connecting end to {end_nearest} (dirt road, {end_dist:.1f} miles)")
-            
-            connections_to_add.append({
-                'from': route,
-                'to': end_nearest,
-                'distance': end_dist,
-                'type': connection_type
-            })
+            # Rule 2: Dirt road for interior connections
+            connection_type = "dirt"
+            print(f"  → Connecting {endpoint} to {nearest_route} (dirt road, {nearest_dist:.1f} miles)")
         
-        # Add connections
-        for conn in connections_to_add:
-            if conn['from'] not in new_data['connections']:
-                new_data['connections'][conn['from']] = []
-            
-            # Add connection in both directions
-            new_data['connections'][conn['from']].append({
-                'to': conn['to'],
-                'distance': conn['distance'],
-                'type': conn['type']
-            })
-            
-            # Add reverse connection
-            if conn['to'] not in new_data['connections']:
-                new_data['connections'][conn['to']] = []
-            
-            new_data['connections'][conn['to']].append({
-                'to': conn['from'],
-                'distance': conn['distance'],
-                'type': conn['type']
-            })
+        # Add connection
+        if route_name not in new_data['connections']:
+            new_data['connections'][route_name] = []
+        
+        # Add connection in both directions
+        new_data['connections'][route_name].append({
+            'to': nearest_route,
+            'distance': nearest_dist,
+            'type': connection_type
+        })
+        
+        # Add reverse connection
+        if nearest_route not in new_data['connections']:
+            new_data['connections'][nearest_route] = []
+        
+        new_data['connections'][nearest_route].append({
+            'to': route_name,
+            'distance': nearest_dist,
+            'type': connection_type
+        })
     
-    # Verify no dead ends remain
-    final_connected = find_connected_routes(new_data['connections'])
-    final_all_routes = set(new_data['interstateRoutes'].keys())
-    final_dead_ends = final_all_routes - final_connected
+    # Verify no dead end endpoints remain
+    final_connected_endpoints = find_connected_endpoints(new_data['connections'], new_data['interstateRoutes'])
+    final_all_endpoints = set()
+    
+    # Create all possible endpoints for remaining routes
+    for route_name in new_data['interstateRoutes'].keys():
+        final_all_endpoints.add(f"{route_name}-start")
+        final_all_endpoints.add(f"{route_name}-end")
+    
+    final_dead_end_endpoints = final_all_endpoints - final_connected_endpoints
     
     print(f"\n=== SUMMARY ===")
     print(f"Routes removed: {len(removed_routes)} - {removed_routes}")
-    print(f"Remaining routes: {len(final_all_routes)}")
-    print(f"Remaining dead ends: {len(final_dead_ends)} - {sorted(final_dead_ends) if final_dead_ends else 'None!'}")
+    print(f"Remaining routes: {len(new_data['interstateRoutes'])}")
+    print(f"Remaining dead end endpoints: {len(final_dead_end_endpoints)}")
+    if final_dead_end_endpoints:
+        for endpoint in sorted(final_dead_end_endpoints):
+            print(f"  {endpoint}")
+    else:
+        print("  None! All endpoints are now connected.")
     
     # Save the updated data
     with open('interstate_routes_no_dead_ends.json', 'w') as f:

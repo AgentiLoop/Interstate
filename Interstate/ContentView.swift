@@ -14,7 +14,6 @@ struct ContentView: View {
     )
     @State private var editMode: EditMode = .select
     @State private var selectedRoadType: RoadType = .interstate
-    @State private var showingDeadEnds = false
     @State private var showingDirtRoads = true
     @State private var showingInterstateRoads = true
     @State private var showingPavedRoads = true
@@ -275,11 +274,6 @@ struct ContentView: View {
                                     Text("\(routesForSelectedType[routeName]?.count ?? 0) pts")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                    if selectedRoadType == .interstate && dataManager.deadEndRoutes.contains(routeName) {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundColor(.orange)
-                                            .help("Dead end route")
-                                    }
                                 }
                             }
                         }
@@ -334,11 +328,6 @@ struct ContentView: View {
                     if dataManager.isDataLoaded {
                         // Analysis Tools
                         HStack {
-                            Button(action: { dataManager.findDeadEnds() }) {
-                                Image(systemName: "exclamationmark.triangle")
-                            }
-                            .help("Find Dead Ends")
-                            
                             Button(action: { dataManager.validateData() }) {
                                 Image(systemName: "checkmark.shield")
                             }
@@ -434,7 +423,6 @@ struct ContentView: View {
                     Text("Paved Routes: \(dataManager.pavedRoutes.count)")
                     Text("Dirt Routes: \(dataManager.dirtRoutes.count)")
                     Text("Cities: \(dataManager.majorCities.count)")
-                    Text("Dead Ends: \(dataManager.deadEndRoutes.count)")
                     Text("Paved Connections: \(dataManager.pavedRoadCount)")
                     Text("Dirt Connections: \(dataManager.dirtRoadCount)")
                 }
@@ -450,7 +438,6 @@ struct ContentView: View {
                 selectedCity: $selectedCity,
                 selectedPointIndex: $selectedPointIndex,
                 editMode: $editMode,
-                showingDeadEnds: $showingDeadEnds,
                 showingDirtRoads: $showingDirtRoads,
                 showingInterstateRoads: $showingInterstateRoads,
                 showingPavedRoads: $showingPavedRoads,
@@ -467,7 +454,6 @@ struct ContentView: View {
                     Toggle("Show Paved Roads (Blue)", isOn: $showingPavedRoads)
                     Toggle("Show Dirt Roads (Orange)", isOn: $showingDirtRoads)
                     Toggle("Show Cities (Purple)", isOn: $showingCities)
-                    Toggle("Highlight Dead Ends", isOn: $showingDeadEnds)
                 }
                 .padding()
                 .background(.regularMaterial)

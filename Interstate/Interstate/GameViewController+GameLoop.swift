@@ -25,10 +25,8 @@ extension GameViewController {
             updateHUD()
             updateRadarMap()
             
-            // Clean up intersection overlaps every 1 second (60 frames at 60fps)
-            if frameCount % 60 == 0 {
-                cleanupIntersectionOverlaps(playerPosition: carNode.position)
-            }
+            // DISABLED: Intersection cleanup - not needed and causes performance issues
+            // Roads overlap naturally and look fine without this expensive check
             
             frameCount += 1
             

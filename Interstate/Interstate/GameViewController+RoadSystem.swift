@@ -334,21 +334,14 @@ extension GameViewController {
         
         if let data = interstateRoutes[routeName] {
             routeData = data
-            print("🛣️ Found interstate data for: \(routeName)")
         } else if routeName.hasPrefix("paved_"), let data = pavedRoutes[String(routeName.dropFirst(6))] {
             routeData = data
-            print("🛣️ Found paved data for: \(routeName) → \(String(routeName.dropFirst(6)))")
         } else if routeName.hasPrefix("dirt_"), let data = dirtRoutes[String(routeName.dropFirst(5))] {
             routeData = data
-            print("🛤️ Found dirt data for: \(routeName) → \(String(routeName.dropFirst(5)))")
         } else if routeName.hasPrefix("water_"), let data = waterBodies[String(routeName.dropFirst(6))] {
             routeData = data
-            print("🌊 Found water data for: \(routeName)")
         } else if routeName.hasPrefix("coast_"), let data = coastlines[String(routeName.dropFirst(6))] {
             routeData = data
-            print("🏖️ Found coast data for: \(routeName)")
-        } else {
-            print("❌ No route data found for: \(routeName)")
         }
         
         guard let routeCoords = routeData else { return CGFloat.infinity }
@@ -529,73 +522,13 @@ extension GameViewController {
     // MARK: - Simple Intersection Crossings - One Road Over Another
     
     internal func cleanupIntersectionOverlaps(playerPosition: SCNVector3) {
-        let intersectionRadius: CGFloat = 35.0 // 35m radius for intersection detection - creates larger clear zone
-        
-        // Get all loaded road segment positions
-        var segmentPositions: [(String, SCNVector3, String)] = [] // segmentKey, position, routeType
-        
-        for (segmentKey, segmentNode) in loadedRoadSegments {
-            let position = segmentNode.position
-            
-            // Determine route type from segment key
-            let routeType: String
-            if segmentKey.contains("paved_") {
-                routeType = "paved"
-            } else if segmentKey.contains("dirt_") {
-                routeType = "dirt"  
-            } else {
-                routeType = "interstate"
-            }
-            
-            segmentPositions.append((segmentKey, position, routeType))
-        }
-        
-        // Find overlapping segments (intersections)
-        var intersectionGroups: [[String]] = []
-        var processedSegments: Set<String> = []
-        
-        for i in 0..<segmentPositions.count {
-            if processedSegments.contains(segmentPositions[i].0) { continue }
-            
-            var intersectionGroup: [String] = [segmentPositions[i].0]
-            processedSegments.insert(segmentPositions[i].0)
-            
-            // Find all segments that overlap with this one
-            for j in (i+1)..<segmentPositions.count {
-                if processedSegments.contains(segmentPositions[j].0) { continue }
-                
-                let distance = calculateDistance(from: segmentPositions[i].1, to: segmentPositions[j].1)
-                if distance <= intersectionRadius {
-                    intersectionGroup.append(segmentPositions[j].0)
-                    processedSegments.insert(segmentPositions[j].0)
-                }
-            }
-            
-            // Only process groups with multiple segments (actual intersections)
-            if intersectionGroup.count > 1 {
-                intersectionGroups.append(intersectionGroup)
-            }
-        }
-        
-        // Clean up each intersection group
-        for intersectionGroup in intersectionGroups {
-            cleanupIntersectionGroup(segmentKeys: intersectionGroup, segmentPositions: segmentPositions)
-        }
+        // DISABLED: This expensive intersection detection doesn't scale
+        // Roads work fine with natural overlaps without this complex processing
     }
     
     private func cleanupIntersectionGroup(segmentKeys: [String], segmentPositions: [(String, SCNVector3, String)]) {
-        // REALISTIC INTERSECTION: Just let roads overlap naturally at ground level
-        // The intersection detection already prevents markings from being drawn in intersection areas
-        // This creates a natural "clear zone" of black asphalt with no lines - just like real intersections
-        
-        for segmentKey in segmentKeys {
-            guard let segmentNode = loadedRoadSegments[segmentKey] else { continue }
-            
-            // Keep all roads at ground level for natural overlap
-            segmentNode.position.y = 0.0
-            
-            print("🛣️ Intersection: \(segmentKey) - natural overlap with clear marking zone")
-        }
+        // DISABLED: This cleanup is not needed and causes performance issues
+        // Roads work fine with natural overlaps
     }
     
 

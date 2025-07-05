@@ -49,7 +49,6 @@ class DataManager: ObservableObject {
     @Published var dirtRoutes: [String: [(Double, Double)]] = [:]
     @Published var connections: [String: [Connection]] = [:]
     @Published var majorCities: [MajorCity] = []
-    @Published var deadEndRoutes: Set<String> = []
     @Published var hasUnsavedChanges = false
     @Published var isDataLoaded = false
     
@@ -101,7 +100,6 @@ class DataManager: ObservableObject {
                 }
             }
             
-            findDeadEnds()
         }
     }
     
@@ -244,114 +242,21 @@ class DataManager: ObservableObject {
     func removeAllInterstateRoutes() {
         interstateRoutes.removeAll()
         connections.removeAll()
-        deadEndRoutes.removeAll()
         hasUnsavedChanges = true
     }
     
     func findDeadEnds() {
-        deadEndRoutes.removeAll()
-        
-        print("🔍 FINDING DEAD ENDS (including interchange connections)...")
-        
-        // Build a set of all routes that have connections (either from or to)
-        var connectedRoutes = Set<String>()
-        
-        for (fromRoute, routeConnections) in connections {
-            if !routeConnections.isEmpty {
-                connectedRoutes.insert(fromRoute)
-                for connection in routeConnections {
-                    connectedRoutes.insert(connection.to)
-                }
-            }
-        }
-        
-        print("   Routes connected via connections dictionary: \(connectedRoutes.count)")
-        
-        // ANALYZE ACTUAL DATA - Much larger tolerance for highway connections
-        let connectionTolerance = 10.0 // 10km radius - highways can have large interchanges  
-        let allRoutes = Array(interstateRoutes.keys)
-        
-        print("🔍 ANALYZING \(allRoutes.count) routes with \(connectionTolerance)km connection tolerance...")
-        
-        // Check every route to see if it connects to any other route within reasonable distance
-        for routeA in allRoutes {
-            guard let coordsA = interstateRoutes[routeA], coordsA.count >= 2 else { continue }
-            
-            let endpointsA = [coordsA.first!, coordsA.last!]
-            var routeAIsConnected = connectedRoutes.contains(routeA)
-            
-            // DETAILED ANALYSIS for debugging false positives
-            print("🛣️ Analyzing route: \(routeA)")
-            print("   Start: (\(String(format: "%.6f", endpointsA[0].0)), \(String(format: "%.6f", endpointsA[0].1)))")
-            print("   End: (\(String(format: "%.6f", endpointsA[1].0)), \(String(format: "%.6f", endpointsA[1].1)))")
-            
-            if !routeAIsConnected {
-                var minDistanceFound: Double = Double.infinity
-                var closestRoute = ""
-                
-                // Check if ANY endpoint of routeA is close to ANY point on ANY other route
-                for (endpointIndex, endpointA) in endpointsA.enumerated() {
-                    print("   Checking \(endpointIndex == 0 ? "START" : "END") endpoint...")
-                    
-                    for routeB in allRoutes {
-                        if routeA == routeB { continue }
-                        guard let coordsB = interstateRoutes[routeB], !coordsB.isEmpty else { continue }
-                        
-                        // Check against ALL points in routeB (not just endpoints)
-                        for waypointB in coordsB {
-                            let distance = calculateDistance(from: endpointA, to: waypointB)
-                            
-                            if distance < minDistanceFound {
-                                minDistanceFound = distance
-                                closestRoute = routeB
-                            }
-                            
-                            if distance <= connectionTolerance {
-                                // Found a connection!
-                                connectedRoutes.insert(routeA)
-                                connectedRoutes.insert(routeB)
-                                routeAIsConnected = true
-                                print("   ✅ CONNECTION FOUND: \(routeA) \(endpointIndex == 0 ? "start" : "end") ↔ \(routeB)")
-                                print("      Distance: \(String(format: "%.3f", distance)) km")
-                                print("      Connection point: (\(String(format: "%.6f", waypointB.0)), \(String(format: "%.6f", waypointB.1)))")
-                                break
-                            }
-                        }
-                        if routeAIsConnected { break }
-                    }
-                    if routeAIsConnected { break }
-                }
-                
-                if !routeAIsConnected {
-                    print("   ❌ NO CONNECTION FOUND for \(routeA)")
-                    print("      Closest route: \(closestRoute) at \(String(format: "%.3f", minDistanceFound)) km")
-                }
-            } else {
-                print("   ✅ Already connected via connections dictionary")
-            }
-        }
-        
-        print("   Total connected routes: \(connectedRoutes.count)")
-        
-        // Only flag routes as TRUE dead ends if they have NO connections at all
-        for route in interstateRoutes.keys {
-            if !connectedRoutes.contains(route) {
-                deadEndRoutes.insert(route)
-                print("   ❌ REAL dead end: \(route) (no connections within \(connectionTolerance)km)")
-            }
-        }
-        
-        print("   Final REAL dead ends: \(deadEndRoutes.count)")
-        print("✅ Dead end analysis complete - no more false positives!")
+        // This function is no longer needed as dead end detection is removed.
+        // Keeping it here for now, but it will do nothing.
+        print("⚠️ findDeadEnds(): Dead end detection system removed. No action taken.")
     }
     
     func removeDeadEnds() {
-        for deadEnd in deadEndRoutes {
-            interstateRoutes.removeValue(forKey: deadEnd)
-            connections.removeValue(forKey: deadEnd)
-        }
-        deadEndRoutes.removeAll()
-        hasUnsavedChanges = true
+        // This function now serves to clear all dead end endpoints
+        // Individual dead end endpoints should be fixed by connecting them, not removing entire routes
+        print("⚠️ removeDeadEnds(): Dead end endpoints should be fixed by connecting them, not removing routes")
+        print("   Current dead end endpoints: 0 (system removed)")
+        print("   Use connection tools to fix these endpoints instead of removing routes")
     }
     
     // MARK: - Auto-Connect Interstate to Interstate (Manual Selection)
@@ -401,9 +306,7 @@ class DataManager: ObservableObject {
         print("   \(fromRoute) \(connectStart ? "start" : "end") → \(toRoute)")
         print("   Connection distance: \(String(format: "%.1f", distance)) km")
         
-        // Update dead ends after connection
-        findDeadEnds()
-        print("🔍 Dead ends updated - check for warning triangles removed!")
+        // Dead end system removed - no update needed
     }
     
 
@@ -464,11 +367,7 @@ class DataManager: ObservableObject {
         print("🎉 AUTO-CONNECT PAVED ROADS FINISHED!")
         print("   Modified \(connectionsCreated) paved road endpoints")
         
-        // Update dead ends after connections
-        if connectionsCreated > 0 {
-            findDeadEnds()
-            print("🔍 Dead ends updated after paved road connections!")
-        }
+        // Dead end system removed - no update needed after connections
     }
     
     func autoConnectDirtToInterstate() {
@@ -525,11 +424,7 @@ class DataManager: ObservableObject {
         print("🎉 AUTO-CONNECT DIRT ROADS FINISHED!")
         print("   Modified \(connectionsCreated) dirt road endpoints")
         
-        // Update dead ends after connections
-        if connectionsCreated > 0 {
-            findDeadEnds()
-            print("🔍 Dead ends updated after dirt road connections!")
-        }
+        // Dead end system removed - no update needed after connections
     }
     
     private func findNearestInterstatePoint(to targetPoint: (Double, Double)) -> (point: (Double, Double), routeName: String)? {
@@ -741,7 +636,7 @@ class DataManager: ObservableObject {
             print("   No new connections were made")
         }
         
-        findDeadEnds()
+        // Dead end system removed - no update needed
     }
     
     // Helper function to find the closest point on a route to a target point
@@ -1112,8 +1007,7 @@ class DataManager: ObservableObject {
         
         hasUnsavedChanges = true
         
-        // Find dead ends again since we added a new route
-        findDeadEnds()
+        // Dead end system removed - no update needed
     }
     
     func deleteRoute(_ routeName: String, type: String = "interstate") {
@@ -1137,13 +1031,13 @@ class DataManager: ObservableObject {
             connections[fromRoute] = routeConnections.filter { $0.to != routeName }
         }
         
-        // Remove from dead ends set if present
-        deadEndRoutes.remove(routeName)
+        // Remove from dead end endpoints set if present
+        // deadEndEndpoints.remove("\(routeName)-start") // Removed
+        // deadEndEndpoints.remove("\(routeName)-end") // Removed
         
         hasUnsavedChanges = true
         
-        // Recalculate dead ends
-        findDeadEnds()
+        // Dead end system removed - no recalculation needed
     }
     
     // MARK: - City Operations

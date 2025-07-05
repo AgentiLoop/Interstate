@@ -7,7 +7,6 @@ struct MapEditorView: NSViewRepresentable {
     @Binding var selectedCity: MajorCity?
     @Binding var selectedPointIndex: Int?
     @Binding var editMode: ContentView.EditMode
-    @Binding var showingDeadEnds: Bool
     @Binding var showingDirtRoads: Bool
     @Binding var showingInterstateRoads: Bool
     @Binding var showingPavedRoads: Bool
@@ -65,7 +64,6 @@ struct MapEditorView: NSViewRepresentable {
             polyline.routeName = routeName
                 polyline.routeType = "interstate"
             polyline.isSelected = routeName == selectedRoute
-            polyline.isDeadEnd = dataManager.deadEndRoutes.contains(routeName)
             mapView.addOverlay(polyline)
             
             // Add editable points for selected route
@@ -216,32 +214,37 @@ struct MapEditorView: NSViewRepresentable {
             }
         }
         
-        // Add dead end point annotations when highlighting is enabled
-        if showingDeadEnds {
-            for routeName in dataManager.deadEndRoutes {
-                if let routeCoords = dataManager.interstateRoutes[routeName], !routeCoords.isEmpty {
-                    // Add red annotations for the endpoints of dead end routes
-                    let firstPoint = routeCoords.first!
-                    let lastPoint = routeCoords.last!
-                    
-                    let firstAnnotation = DeadEndPointAnnotation()
-                    firstAnnotation.coordinate = CLLocationCoordinate2D(latitude: firstPoint.0, longitude: firstPoint.1)
-                    firstAnnotation.routeName = routeName
-                    firstAnnotation.isEndpoint = true
-                    firstAnnotation.title = "Dead End"
-                    firstAnnotation.subtitle = routeName
-                    mapView.addAnnotation(firstAnnotation)
-                    
-                    // Only add second annotation if it's different from the first
-                    if firstPoint.0 != lastPoint.0 || firstPoint.1 != lastPoint.1 {
-                        let lastAnnotation = DeadEndPointAnnotation()
-                        lastAnnotation.coordinate = CLLocationCoordinate2D(latitude: lastPoint.0, longitude: lastPoint.1)
-                        lastAnnotation.routeName = routeName
-                        lastAnnotation.isEndpoint = true
-                        lastAnnotation.title = "Dead End"
-                        lastAnnotation.subtitle = routeName
-                        mapView.addAnnotation(lastAnnotation)
-                    }
+        // Add red endpoint markers for the selected route only
+        if let selectedRoute = selectedRoute {
+            let routeCoords: [(Double, Double)]?
+            switch selectedRoadType {
+            case .interstate:
+                routeCoords = dataManager.interstateRoutes[selectedRoute]
+            case .paved:
+                routeCoords = dataManager.pavedRoutes[selectedRoute]
+            case .dirt:
+                routeCoords = dataManager.dirtRoutes[selectedRoute]
+            }
+            
+            if let coords = routeCoords, !coords.isEmpty {
+                // Add red marker for start endpoint
+                let startAnnotation = RouteEndpointAnnotation()
+                startAnnotation.coordinate = CLLocationCoordinate2D(latitude: coords.first!.0, longitude: coords.first!.1)
+                startAnnotation.routeName = selectedRoute
+                startAnnotation.isStartPoint = true
+                startAnnotation.title = "Start"
+                startAnnotation.subtitle = "\(selectedRoute) - Start Point"
+                mapView.addAnnotation(startAnnotation)
+                
+                // Add red marker for end endpoint (only if different from start)
+                if coords.count > 1 {
+                    let endAnnotation = RouteEndpointAnnotation()
+                    endAnnotation.coordinate = CLLocationCoordinate2D(latitude: coords.last!.0, longitude: coords.last!.1)
+                    endAnnotation.routeName = selectedRoute
+                    endAnnotation.isStartPoint = false
+                    endAnnotation.title = "End"
+                    endAnnotation.subtitle = "\(selectedRoute) - End Point"
+                    mapView.addAnnotation(endAnnotation)
                 }
             }
         }
@@ -622,9 +625,6 @@ struct MapEditorView: NSViewRepresentable {
                 if routePolyline.isSelected {
                     renderer.strokeColor = NSColor.systemBlue
                     renderer.lineWidth = 5
-                } else if routePolyline.isDeadEnd && parent.showingDeadEnds {
-                    renderer.strokeColor = NSColor.systemOrange
-                    renderer.lineWidth = 4
                 } else {
                     // Set color based on road type
                     switch routePolyline.routeType {
@@ -768,8 +768,8 @@ struct MapEditorView: NSViewRepresentable {
                 view?.centerOffset = CGPoint(x: 0, y: -size/2)
                 
                 return view
-            } else if annotation is DeadEndPointAnnotation {
-                let identifier = "DeadEndPointAnnotation"
+            } else if annotation is RouteEndpointAnnotation {
+                let identifier = "RouteEndpointAnnotation"
                 var view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
                 
                 if view == nil {
@@ -939,7 +939,6 @@ class RoutePolyline: MKPolyline {
     var routeName: String?
     var routeType: String = "interstate"
     var isSelected: Bool = false
-    var isDeadEnd: Bool = false
 }
 
 class ConnectionPolyline: MKPolyline {
@@ -973,9 +972,9 @@ class RoadPointAnnotation: MKPointAnnotation {
     var isFromPoint: Bool = true
 }
 
-class DeadEndPointAnnotation: MKPointAnnotation {
+class RouteEndpointAnnotation: MKPointAnnotation {
     var routeName: String?
-    var isEndpoint: Bool = true
+    var isStartPoint: Bool = true
 }
 
  
