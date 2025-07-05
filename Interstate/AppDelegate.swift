@@ -6,12 +6,17 @@
 //
 
 import Cocoa
+import SwiftUI
 
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
     
     // Keys for storing window frame
     private let windowFrameKey = "Interstate.WindowFrame"
+    private let mapEditorWindowFrameKey = "Interstate.MapEditorWindowFrame"
+    
+    // Map Editor window reference
+    private var mapEditorWindow: NSWindow?
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Disable automatic state restoration completely
@@ -56,20 +61,119 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             print("✅ Window minimum size set to 800x600")
         }
+        
+        // Set up menu bar
+        setupMenuBar()
     }
     
-    @objc private func windowDidMove(_ notification: Notification) {
+    private func setupMenuBar() {
+        let mainMenu = NSApplication.shared.mainMenu ?? NSMenu()
+        
+        // Add Tools menu if it doesn't exist
+        var toolsMenu: NSMenu?
+        for menuItem in mainMenu.items {
+            if menuItem.title == "Tools" {
+                toolsMenu = menuItem.submenu
+                break
+            }
+        }
+        
+        if toolsMenu == nil {
+            let toolsMenuItem = NSMenuItem(title: "Tools", action: nil, keyEquivalent: "")
+            toolsMenu = NSMenu(title: "Tools")
+            toolsMenuItem.submenu = toolsMenu
+            
+            // Insert before the Window menu (or at the end if Window menu doesn't exist)
+            var insertIndex = mainMenu.items.count
+            for (index, item) in mainMenu.items.enumerated() {
+                if item.title == "Window" {
+                    insertIndex = index
+                    break
+                }
+            }
+            mainMenu.insertItem(toolsMenuItem, at: insertIndex)
+        }
+        
+        // Add Map Editor menu item
+        let mapEditorMenuItem = NSMenuItem(
+            title: "Open Map Editor",
+            action: #selector(openMapEditor),
+            keyEquivalent: "m"
+        )
+        mapEditorMenuItem.keyEquivalentModifierMask = [.command, .shift]
+        mapEditorMenuItem.target = self
+        toolsMenu?.addItem(mapEditorMenuItem)
+        
+        print("🔧 Added Map Editor menu item: Tools → Open Map Editor (⌘⇧M)")
+    }
+    
+    @objc private func openMapEditor() {
+        if let existingWindow = mapEditorWindow {
+            existingWindow.makeKeyAndOrderFront(nil)
+            print("🗺️ Brought existing Map Editor window to front")
+            return
+        }
+        
+        // Create the SwiftUI content view
+        let dataManager = DataManager()
+        let contentView = ContentView().environmentObject(dataManager)
+        
+        // Create the hosting view
+        let hostingView = NSHostingView(rootView: contentView)
+        
+        // Create the window
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1200, height: 800),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Interstate Map Editor"
+        window.contentView = hostingView
+        window.minSize = NSSize(width: 1000, height: 700)
+        window.setFrameAutosaveName("MapEditorWindow")
+        
+        // Keep window in memory when closed (don't release)
+        window.isReleasedWhenClosed = false
+        
+        // Restore window frame if saved
+        if let frameString = UserDefaults.standard.string(forKey: mapEditorWindowFrameKey) {
+            window.setFrame(NSRectFromString(frameString), display: true)
+            print("🪟 Restored Map Editor window frame: \(frameString)")
+        } else {
+            window.center()
+        }
+        
+        // Set up window delegate to handle closing
+        window.delegate = self
+        
+        // Store reference
+        mapEditorWindow = window
+        
+        // Show the window
+        window.makeKeyAndOrderFront(nil)
+        
+        print("🗺️ Created and opened Map Editor window")
+    }
+    
+    @objc internal func windowDidMove(_ notification: Notification) {
         saveWindowFrame(notification)
     }
     
-    @objc private func windowDidResize(_ notification: Notification) {
+    @objc internal func windowDidResize(_ notification: Notification) {
         saveWindowFrame(notification)
     }
     
     private func saveWindowFrame(_ notification: Notification) {
         if let window = notification.object as? NSWindow {
             let frameString = NSStringFromRect(window.frame)
-            UserDefaults.standard.set(frameString, forKey: windowFrameKey)
+            
+            if window == mapEditorWindow {
+                UserDefaults.standard.set(frameString, forKey: mapEditorWindowFrameKey)
+            } else {
+                UserDefaults.standard.set(frameString, forKey: windowFrameKey)
+            }
             // No need to synchronize immediately - let it happen naturally
         }
     }
@@ -79,13 +183,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let window = NSApplication.shared.windows.first {
             let frameString = NSStringFromRect(window.frame)
             UserDefaults.standard.set(frameString, forKey: windowFrameKey)
-            UserDefaults.standard.synchronize()
-            print("💾 Saved window frame on termination: \(frameString)")
         }
+        
+        if let mapEditorWindow = mapEditorWindow {
+            let frameString = NSStringFromRect(mapEditorWindow.frame)
+            UserDefaults.standard.set(frameString, forKey: mapEditorWindowFrameKey)
+        }
+        
+        UserDefaults.standard.synchronize()
+        print("💾 Saved all window frames on termination")
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
     }
-    
+}
+
+// MARK: - NSWindowDelegate
+extension AppDelegate: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        if let window = notification.object as? NSWindow, window == mapEditorWindow {
+            // Save Map Editor window frame before closing
+            let frameString = NSStringFromRect(window.frame)
+            UserDefaults.standard.set(frameString, forKey: mapEditorWindowFrameKey)
+            
+            // Keep the window reference - don't release the window
+            print("🗺️ Map Editor window closed but kept in memory")
+        }
+    }
 }

@@ -17,8 +17,6 @@ extension GameViewController {
         print("🚫 Highway connection auto-creation disabled - all roads must come from map data")
         return
         
-        print("🛣️ Setting up highway connections...")
-        
         var connectionsCreated = 0
         var directConnections = 0
         var pavedConnections = 0

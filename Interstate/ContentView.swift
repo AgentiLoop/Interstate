@@ -1,5 +1,4 @@
 
-
 import SwiftUI
 import MapKit
 import UniformTypeIdentifiers
@@ -819,5 +818,4 @@ struct BulkActionsView: View {
 #Preview {
     ContentView()
         .environmentObject(DataManager())
-}
-
+} 
