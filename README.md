@@ -1,5 +1,8 @@
 # Interstate Highway Driving Game
 
+🤖 **Built by the makers of [Agent!](https://github.com/AgentiLoop/Agent)**, an autonomous macOS agent.
+
+
 An immersive 3D driving game built with SceneKit that lets you drive on a network of major US interstate highways.
 
 ## Features
